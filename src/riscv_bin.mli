@@ -12,6 +12,10 @@ type parcel = int
 exception Incomplete_parcel
 (** Thrown when not all bytes of an instruction is available *)
 
+exception Not_enough_parcels
+(** Thrown when there are not enough parcels to decode an 
+    instruction *)
+
 val parcels_of_bytes : big_endian -> int list -> parcel list
 (** Expression [parcels_of_bytes b lst] converts a list [lst] of bytes 
     into a list of parcels. Each byte is represented as an integer, i.e., 
