@@ -72,8 +72,8 @@ let decode_32inst h l =
     ICondJmp(NoI, d_rs1 h, d_rs2 h, d_imB h l, op) 
     (* Indirect Jump Instructions *)
   | 0b1101011 -> 
-      let op = match d_funIB l with 0b000 -> OpJALRC | 0b001 -> OpJALRR | 
-                                    0b010 -> OpJALRJ | 0b100 -> OpRDNPC | 
+      let op = match d_funIB l with 0b000 -> OpJALR_C | 0b001 -> OpJALR_R | 
+                                    0b010 -> OpJALR_J | 0b100 -> OpRDNPC | 
                                     _ -> failinst h l in
       IIndJmp(NoI, d_rd h, d_rs1 h, d_imI h l, op)
     (* Load Memory Instructions *)
@@ -86,7 +86,19 @@ let decode_32inst h l =
   | 0b0100011 ->
       let op = match d_funIB l with 0b000 -> OpSB | 0b001 -> OpSH | 
                                     0b010 -> OpSW | 0b011 -> OpSD | _ -> failinst h l in
-      IStore(NoI, d_rs1 h, d_rs2 h, d_imB h l, op)
+      IStore(NoI, d_rs1 h, d_rs2 h, d_imB h l, op) 
+    (* Atomic Memory Instructions *)
+  | 0b0101011 ->
+      let op = match d_funR h l with 0b000010 -> OpAMOADD_W  | 0b001010 -> OpAMOSWAP_W |
+                                     0b010010 -> OpAMOAND_W  | 0b011010 -> OpAMOOR_W |
+                                     0b100010 -> OpAMOMIN_W  | 0b101010 -> OpAMOMAX_W |
+                                     0b110010 -> OpAMOMINU_W | 0b111010 -> OpAMOMAXU_W |
+                                     0b000011 -> OpAMOADD_D  | 0b001011 -> OpAMOSWAP_D |
+                                     0b010011 -> OpAMOAND_D  | 0b011011 -> OpAMOOR_D |
+                                     0b100011 -> OpAMOMIN_D  | 0b101011 -> OpAMOMAX_D |
+                                     0b110011 -> OpAMOMINU_D | 0b111011 -> OpAMOMAXU_D |
+                                     _ -> failinst h l in
+      IAtomic(NoI, d_rd h, d_rs1 h, d_rs2 h, op)
   | _ -> failinst h l
 
 
