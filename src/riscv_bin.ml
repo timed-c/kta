@@ -1,6 +1,7 @@
 
 
 open Riscv_isa
+open Printf
 
 (*************** Exported types and exceptions ********************)
 
@@ -52,13 +53,49 @@ let d_funR4 low = (low lsr 7) land 0b11111
 (* Decoding of 3 bit funct opcode field for I and B Types *)
 let d_funIB low = (low lsr 7) land 0b111
 
+(* Error reporting if we have an unknown instruction *)
+let failinst h l = 
+  failwith (sprintf "ERROR: Unknown instruction %x,%x,%x,%x\n" 
+            (h lsr 8) (h land 0xff) (l lsr 8) (l land 0xff))
+
+(* Decodes one 32 bit instruction *)
+let decode_32inst h l =
+  match d_op l with
+    (* Absolute Jump Instructions *)
+  | 0b1100111 -> IAbsJmp(NoI, d_offJ h l, OpJ)
+  | 0b1101111 -> IAbsJmp(NoI, d_offJ h l, OpJAL)
+    (* Conditional Jump Instructions *)
+  | 0b1100011 -> 
+      let op = match d_funIB l with 0b000 -> OpBEQ | 0b001 -> OpBNE  | 0b100 -> OpBLT |
+                                    0b101 -> OpBGE | 0b110 -> OpBLTU | 0b111 -> OpBGEU | 
+                                    _ -> failinst h l in
+    ICondJmp(NoI, d_rs1 h, d_rs2 h, d_imB h l, op) 
+    (* Indirect Jump Instructions *)
+  | 0b1101011 -> 
+      let op = match d_funIB l with 0b000 -> OpJALRC | 0b001 -> OpJALRR | 
+                                    0b010 -> OpJALRJ | 0b100 -> OpRDNPC | 
+                                    _ -> failinst h l in
+      IIndJmp(NoI, d_rd h, d_rs1 h, d_imI h l, op)
+    (* Load Memory Instructions *)
+  | 0b0000011 -> 
+      let op = match d_funIB l with 0b000 -> OpLB  | 0b001 -> OpLH  | 0b010 -> OpLW |
+                                    0b011 -> OpLD  | 0b100 -> OpLBU | 0b101 -> OpLHU |
+                                    0b110 -> OpLWU | _ -> failinst h l in
+      ILoad(NoI, d_rd h, d_rs1 h, d_imI h l, op)
+    (* Store Memory Instructions *)
+  | 0b0100011 ->
+      let op = match d_funIB l with 0b000 -> OpSB | 0b001 -> OpSH | 
+                                    0b010 -> OpSW | 0b011 -> OpSD | _ -> failinst h l in
+      IStore(NoI, d_rs1 h, d_rs2 h, d_imB h l, op)
+  | _ -> failinst h l
 
 
-(* Local function for decoding the 6 format types available in
-   RISC-V (see page 5 in manual). Returns a triple consisting of
-   the new parcel list, number of parcels consumed, and
+
+
+(* Local function for decoding one instruction. Returns a triple 
+   consisting of the new parcel list, number of parcels consumed, and
    the format type value *)
-let decode_format parcels =
+let decode_inst parcels =
   match parcels with
   | p1::ps when (p1 land 0b11111) = 0b11111 -> 
        failwith "ERROR: Instructions larger than 32-bit are not yet supported."
