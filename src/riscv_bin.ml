@@ -111,6 +111,9 @@ let decode_32inst h l =
                                      0b110011 -> OpAMOMINU_D | 0b111011 -> OpAMOMAXU_D |
                                      _ -> failinst h l in
       Inst(IAtomic(NoI, d_rd h, d_rs1 h, d_rs2 h, op))
+     (* Integer Register-Immediate Instructions *)
+(*  | 0b0010011 ->
+      let op = match d_funR *)
   | _ -> failinst h l
 
 

@@ -16,28 +16,55 @@ type info =
 type rd  = int
 type rs1 = int
 type rs2 = int
-type imm12 = int
-type offset25 = int
+type imm12 = int  (* 12 bit immediate *)
+type immv = int   (* variable number of bits depending on instruction 
+                     SLLI, SRAI, SRLI have 5 bit, 
+                     SLLIW, SRAIW, and SRLIW have 4 bit,
+                     LUI has 20 bits. Note that rs1 is unused for LUI
+                     other instructions have 12 bits *)
 
 (** Opcodes *)
-type opAbsJmp  = OpJ  | OpJAL
-type opCondJmp = OpBEQ | OpBNE | OpBLT | OpBGE | OpBLTU | OpBGEU
-type opIndJmp  = OpJALR_C | OpJALR_R | OpJALR_J | OpRDNPC
-type opLoad    = OpLB | OpLH | OpLW | OpLD | OpLBU | OpLHU | OpLWU
-type opStore   = OpSB | OpSH | OpSW | OpSD
-type opAtomic  = OpAMOADD_W  | OpAMOSWAP_W | OpAMOAND_W   | OpAMOOR_W | 
-                 OpAMOMIN_W  | OpAMOMAX_W  | OpAMOMINU_W  | OpAMOMAXU_W | 
-                 OpAMOADD_D  | OpAMOSWAP_D | OpAMOAND_D   | OpAMOOR_D | 
-                 OpAMOMIN_D  | OpAMOMAX_D  | OpAMOMINU_D  | OpAMOMAXU_D  
+type opAbsJmp    = OpJ  | OpJAL
+type opCondJmp   = OpBEQ | OpBNE | OpBLT | OpBGE | OpBLTU | OpBGEU
+type opIndJmp    = OpJALR_C | OpJALR_R | OpJALR_J | OpRDNPC
+type opLoad      = OpLB | OpLH | OpLW | OpLD | OpLBU | OpLHU | OpLWU
+type opStore     = OpSB | OpSH | OpSW | OpSD
+type opAtomic    = OpAMOADD_W  | OpAMOSWAP_W | OpAMOAND_W   | OpAMOOR_W | 
+                   OpAMOMIN_W  | OpAMOMAX_W  | OpAMOMINU_W  | OpAMOMAXU_W | 
+                   OpAMOADD_D  | OpAMOSWAP_D | OpAMOAND_D   | OpAMOOR_D | 
+                   OpAMOMIN_D  | OpAMOMAX_D  | OpAMOMINU_D  | OpAMOMAXU_D 
+type opIntImReg  = OpADDI  | OpSLLI  | OpSLTI   | OpSLTIU | OpXORI | 
+                   OpSRLI  | OpSRAI  | OpORI    | OpANDI  | OpLUI  |
+                   OpADDIW | OpSLLIW | OpSRLIW  | OpSRAIW
+type opIntRegReg = OpADD   | OpSUB   | OpSLL    | OpSLT   | OpSLTU |
+                   OpXOR   | OpSRL   | OpSRA    | OpOR    | OpAND  |
+                   OpMUL   | OpMULH  | OpMULHSU | OpMULHU | OpDIV  |
+                   OpDIVU  | OpREM   | OpREMU   | OpADDW  | OpSUBW |
+                   OpSLLW  | OpSRLW  | OpSRAW   | OpMULW  | OpDIVW |
+                   OpDIVUW | OpREMW  | OpREMUW
+                     
 
-(** Instruction types *)
+(** Instructions *)
 type inst = 
-| IAbsJmp  of info * sid * opAbsJmp                (* Absolute Jump Instructions *)
-| ICondJmp of info * rs1 * rs2 * sid   * opCondJmp (* Conditional Jump Instructions *)
-| IIndJmp  of info * rd  * rs1 * imm12 * opIndJmp  (* Indirect Jump Instructions *)
-| ILoad    of info * rd  * rs1 * imm12 * opLoad    (* Load Memory Instructions *)
-| IStore   of info * rs1 * rs2 * imm12 * opStore   (* Store Memory Instructions *)
-| IAtomic  of info * rd  * rs1 * rs2   * opAtomic  (* Atomic Memory Instructions *) 
+| IAbsJmp    of info * sid * opAbsJmp                   (* Absolute Jump *)
+| ICondJmp   of info * rs1 * rs2 * sid   * opCondJmp    (* Conditional Jump  *)
+| IIndJmp    of info * rd  * rs1 * imm12 * opIndJmp     (* Indirect Jump *)
+| ILoad      of info * rd  * rs1 * imm12 * opLoad       (* Load Memory *)
+| IStore     of info * rs1 * rs2 * imm12 * opStore      (* Store Memory *)
+| IAtomic    of info * rd  * rs1 * rs2   * opAtomic     (* Atomic Memory *) 
+| IIntImReg  of info * rd  * rs1 * immv  * opIntImReg   (* Integer Register-Immediate *)
+| IIntRegReg of info * rd  * rs1 * rs2   * opIntRegReg  (* Integer Register-Register *)
+
+
+(** Is the integer register-immediate opcode a 32 bit instruction used only in RV64? *)
+let isIntImReg32 op = match op with
+   OpADDIW | OpSLLIW | OpSRLIW | OpSRAIW -> true | _ -> false
+
+(** Is the integer register-register opcode a 32 bit instruction used only in RV64? *)
+let isIntRegReg32 op = match op with
+   OpADDW | OpSUBW | OpSLLW | OpSRLW | OpSRAW | OpMULW | OpDIVW | OpDIVUW |
+   OpREMW | OpREMUW -> true | _ -> false
+
 
 
 
