@@ -36,14 +36,20 @@ type encoding =
     Ascii | Latin1 | Utf8 | Utf16le | Utf16be | Utf32le | Utf32be | Auto 
 
 exception Decode_error of (encoding * int)
+exception Unknown_sid
+
+
+
 
 let space_char = 0x20 
+
 
 (* 
   Comments state which test case the differnet functions are tested in.
   ST = successful test, ET=Exception test, i.e., when the funtion raise 
   an exception
 *) 
+
 
 
 let valid_uchar c = c >= 0 && c <= 0x1FFFFF
@@ -224,6 +230,8 @@ struct
     
   type ustring = tree ref
 
+  type sid = int
+
   (* ST: test_append (no 1-4) *)
   let (^.) s1 s2 = ref (Branch(!s1,!s2))
 
@@ -250,6 +258,30 @@ struct
  
   (* ST: test_append_3 *)
   let uc c = int_of_char (if c = '\x0D' then '\x0A' else c)
+
+  module OrderedUString =
+    struct
+    type t = ustring
+    let equal x y =  x =. y 
+    let hash t = Hashtbl.hash (collapse_ustring t)
+  end
+  module USHashtbl = Hashtbl.Make(OrderedUString)
+
+  let symtab1  = USHashtbl.create 1024 
+  let (symtab2 : (int,ustring) Hashtbl.t) = Hashtbl.create 1024 
+  let idcount = ref 0    
+  let empty = 0
+
+  let sid_of_ustring s = 
+  try USHashtbl.find symtab1 s
+  with
+      Not_found -> 
+	incr idcount;
+	USHashtbl.add symtab1 s !idcount;
+	Hashtbl.add symtab2 !idcount s;
+	!idcount
+
+  let ustring_of_sid i = Hashtbl.find symtab2 i
 
   (* ST: test_ustring_conversion_functions *)
   let ustring_of_bool b = if b then us"true" else us"false"
@@ -758,6 +790,5 @@ let not_equal s1 s2 = Op.( <>. ) s1 s2
 
 (* ST: test_hashtbl*)
 let hash t = Hashtbl.hash (collapse_ustring t)
-
 
 

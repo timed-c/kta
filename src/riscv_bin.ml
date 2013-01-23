@@ -13,6 +13,18 @@ type parcel = int
 
 (*************** Local types and exceptions ***********************)
 
+type offset12 = int
+type offset25 = int
+
+(* Internal wrapper type that is used for storing addresses. Before
+   the instruction is returned, these bit addresses are replaced
+   by symbolic points *)
+type wrapped_inst =
+| Inst of inst 
+| BitAddrAbsJmp of info * offset25 * opAbsJmp
+| BitAddrCondJmp of info * rs1 * rs2 * offset12 * opCondJmp
+
+
 
 (*************** Local functions **********************************)
 
@@ -62,31 +74,31 @@ let failinst h l =
 let decode_32inst h l =
   match d_op l with
     (* Absolute Jump Instructions *)
-  | 0b1100111 -> IAbsJmp(NoI, d_offJ h l, OpJ)
-  | 0b1101111 -> IAbsJmp(NoI, d_offJ h l, OpJAL)
+  | 0b1100111 -> BitAddrAbsJmp(NoI, d_offJ h l, OpJ)
+  | 0b1101111 -> BitAddrAbsJmp(NoI, d_offJ h l, OpJAL)
     (* Conditional Jump Instructions *)
   | 0b1100011 -> 
       let op = match d_funIB l with 0b000 -> OpBEQ | 0b001 -> OpBNE  | 0b100 -> OpBLT |
                                     0b101 -> OpBGE | 0b110 -> OpBLTU | 0b111 -> OpBGEU | 
                                     _ -> failinst h l in
-    ICondJmp(NoI, d_rs1 h, d_rs2 h, d_imB h l, op) 
+    BitAddrCondJmp(NoI, d_rs1 h, d_rs2 h, d_imB h l, op) 
     (* Indirect Jump Instructions *)
   | 0b1101011 -> 
       let op = match d_funIB l with 0b000 -> OpJALR_C | 0b001 -> OpJALR_R | 
                                     0b010 -> OpJALR_J | 0b100 -> OpRDNPC | 
                                     _ -> failinst h l in
-      IIndJmp(NoI, d_rd h, d_rs1 h, d_imI h l, op)
+      Inst(IIndJmp(NoI, d_rd h, d_rs1 h, d_imI h l, op))
     (* Load Memory Instructions *)
   | 0b0000011 -> 
       let op = match d_funIB l with 0b000 -> OpLB  | 0b001 -> OpLH  | 0b010 -> OpLW |
                                     0b011 -> OpLD  | 0b100 -> OpLBU | 0b101 -> OpLHU |
                                     0b110 -> OpLWU | _ -> failinst h l in
-      ILoad(NoI, d_rd h, d_rs1 h, d_imI h l, op)
+      Inst(ILoad(NoI, d_rd h, d_rs1 h, d_imI h l, op))
     (* Store Memory Instructions *)
   | 0b0100011 ->
       let op = match d_funIB l with 0b000 -> OpSB | 0b001 -> OpSH | 
                                     0b010 -> OpSW | 0b011 -> OpSD | _ -> failinst h l in
-      IStore(NoI, d_rs1 h, d_rs2 h, d_imB h l, op) 
+      Inst(IStore(NoI, d_rs1 h, d_rs2 h, d_imB h l, op))
     (* Atomic Memory Instructions *)
   | 0b0101011 ->
       let op = match d_funR h l with 0b000010 -> OpAMOADD_W  | 0b001010 -> OpAMOSWAP_W |
@@ -98,7 +110,7 @@ let decode_32inst h l =
                                      0b100011 -> OpAMOMIN_D  | 0b101011 -> OpAMOMAX_D |
                                      0b110011 -> OpAMOMINU_D | 0b111011 -> OpAMOMAXU_D |
                                      _ -> failinst h l in
-      IAtomic(NoI, d_rd h, d_rs1 h, d_rs2 h, op)
+      Inst(IAtomic(NoI, d_rd h, d_rs1 h, d_rs2 h, op))
   | _ -> failinst h l
 
 

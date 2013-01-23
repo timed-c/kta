@@ -4,6 +4,8 @@
   - 32 or 64 bit
 *)
 
+open Ustring.Op
+
 (** Info type *)
 type lineno = int
 type info = 
@@ -30,10 +32,14 @@ type opAtomic  = OpAMOADD_W  | OpAMOSWAP_W | OpAMOAND_W   | OpAMOOR_W |
 
 (** Instruction types *)
 type inst = 
-| IAbsJmp  of info * offset25  * opAbsJmp          (* Absolute Jump Instructions *)
-| ICondJmp of info * rs1 * rs2 * imm12 * opCondJmp (* Conditional Jump Instructions *)
+| IAbsJmp  of info * sid * opAbsJmp                (* Absolute Jump Instructions *)
+| ICondJmp of info * rs1 * rs2 * sid   * opCondJmp (* Conditional Jump Instructions *)
 | IIndJmp  of info * rd  * rs1 * imm12 * opIndJmp  (* Indirect Jump Instructions *)
 | ILoad    of info * rd  * rs1 * imm12 * opLoad    (* Load Memory Instructions *)
 | IStore   of info * rs1 * rs2 * imm12 * opStore   (* Store Memory Instructions *)
 | IAtomic  of info * rd  * rs1 * rs2   * opAtomic  (* Atomic Memory Instructions *) 
+
+
+
+
 

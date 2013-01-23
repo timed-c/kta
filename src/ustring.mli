@@ -48,12 +48,14 @@ type uchar = int
 
 
 
-
 module Op :
 sig 
 
   type ustring
   (** Unicode string type *)
+
+  type sid
+  (** Type of an string identifier *)
 
   val ( ^. ) : ustring -> ustring -> ustring
   (** Fast infix string concatenation operator. Equivalent to function 
@@ -91,11 +93,22 @@ sig
   (** Creates a ustring from a Latin-1 encoded OCaml string. This 
       function is an alias function for [Ustring.from_latin1]. The purpose
       is to make it a simple short-cut for writing inline Unicode strings
-      in programs, e.g., [(us"This is a Unicode string")] defines a ustring.
-  *)  
+      in programs, e.g., [(us"This is a Unicode string")] defines a ustring. *)  
  
   val uc : char -> uchar
   (** Creates a uchar from a Latin-1 encoded char. *)
+
+  val sid_of_ustring : ustring -> sid
+  (** Returns a unique string identifier for the ustring. This identifier can
+      only be checked for equality using the standard = operator and for
+      looking up using function [ustring_of_sid] (see below). The identifier
+      is globally defined. The mechanism is a simple way of implementing a
+      fast symbol table. All lookups are performed using a hash tables. *)
+ 
+  val ustring_of_sid : sid -> ustring
+  (** Looks up a [ustring] for a specific [sid] (string identifier). 
+      If the string identifier has not been defined, exception
+      [Not_found] is raised *)
 
 
   (** {6 Module Pervasives's functions} *)
