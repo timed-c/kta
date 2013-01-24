@@ -111,7 +111,7 @@ let decode_32inst h l =
                                      0b110011 -> OpAMOMINU_D | 0b111011 -> OpAMOMAXU_D |
                                      _ -> failinst h l in
       Inst(IAtomic(NoI, d_rd h, d_rs1 h, d_rs2 h, op))
-     (* Integer Register-Immediate Instructions *)
+     (* Integer Register-Immediate Compute Instructions *)
   | 0b0010011 ->
       let im12 = d_imI h l in
       let imop = im12 lsr 6 in
@@ -122,8 +122,8 @@ let decode_32inst h l =
                                     0b110 -> OpORI   | 0b111 -> OpANDI |
                                     _ -> failinst h l in
       let im = match op with OpSLLI | OpSRLI | OpSRAI -> im12 land 0b111111 | _ -> im12 in
-      Inst(IIntImReg(NoI, d_rd h, d_rs1 h, im, op))
-  | 0b0110111 -> Inst(IIntImReg(NoI, d_rd h, 0, d_imL h l, OpLUI))
+      Inst(ICompImm(NoI, d_rd h, d_rs1 h, im, op))
+  | 0b0110111 -> Inst(ICompImm(NoI, d_rd h, 0, d_imL h l, OpLUI))
   | 0b0011011 ->
       let im12 = d_imI h l in
       let imop = im12 lsr 5 in
@@ -132,8 +132,8 @@ let decode_32inst h l =
                                     0b101 when imop = 0b10 -> OpSRAIW |
                                     _ -> failinst h l in
       let im = match op with OpSRLIW | OpSRAIW -> im12 land 0b11111 | _ -> im12 in
-      Inst(IIntImReg(NoI, d_rd h, d_rs1 h, im, op))
-     (* Integer Register-Register Instructions *)
+      Inst(ICompImm(NoI, d_rd h, d_rs1 h, im, op))
+     (* Integer Register-Register Compute Instructions *)
   | 0b0110011 ->
       let op = match d_funR h l with 0b0000000000 -> OpADD    | 0b1000000000 -> OpSUB   |
                                      0b0000000001 -> OpSLL    | 0b0000000010 -> OpSLT   |
@@ -145,7 +145,7 @@ let decode_32inst h l =
                                      0b0000001100 -> OpDIV    | 0b0000001101 -> OpDIVU  |
                                      0b0000001110 -> OpREM    | 0b0000001111 -> OpREMU  |
                                      _ -> failinst h l in
-      Inst(IIntRegReg(NoI, d_rd h, d_rs1 h, d_rs2 h, op))
+      Inst(ICompReg(NoI, d_rd h, d_rs1 h, d_rs2 h, op))
   | 0b0111011 ->
       let op = match d_funR h l with 0b0000000000 -> OpADDW   | 0b1000000000 -> OpSUBW  |
                                      0b0000000001 -> OpSLLW   | 0b0000000101 -> OpSRLW  |
@@ -153,9 +153,16 @@ let decode_32inst h l =
                                      0b0000001100 -> OpDIVW   | 0b0000001101 -> OpDIVUW |
                                      0b0000001110 -> OpREMW   | 0b0000001111 -> OpREMUW |
                                      _ -> failinst h l in
-      Inst(IIntRegReg(NoI, d_rd h, d_rs1 h, d_rs2 h, op))
+      Inst(ICompReg(NoI, d_rd h, d_rs1 h, d_rs2 h, op))
   | _ -> failinst h l
-
+    (* Floating-Point Load Memory Instructions *)
+  | 0b0000011 -> 
+      let op = match d_funIB l with 0b010 -> OpFLW | 0b011 -> OpFLD | _ -> failinst h l in
+      Inst(IFPLoad(NoI, d_rd h, d_rs1 h, d_imI h l, op))
+    (* Floating-Point Store Memory Instructions *)
+  | 0b0100011 ->
+      let op = match d_funIB l with 0b010 -> OpFSW | 0b011 -> OpFSD | _ -> failinst h l in
+      Inst(IFPStore(NoI, d_rs1 h, d_rs2 h, d_imB h l, op))
 
 
 
