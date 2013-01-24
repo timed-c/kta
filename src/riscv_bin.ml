@@ -124,6 +124,15 @@ let decode_32inst h l =
       let im = match op with OpSLLI | OpSRLI | OpSRAI -> im12 land 0b111111 | _ -> im12 in
       Inst(IIntImReg(NoI, d_rd h, d_rs1 h, im, op))
   | 0b0110111 -> Inst(IIntImReg(NoI, d_rd h, 0, d_imL h l, OpLUI))
+  | 0b0011011 ->
+      let im12 = d_imI h l in
+      let imop = im12 lsr 5 in
+      let op = match d_funIB l with 0b000 -> OpADDIW | 0b001 -> OpSLLIW | 
+                                    0b101 when imop = 0b00 -> OpSRLIW |
+                                    0b101 when imop = 0b10 -> OpSRAIW |
+                                    _ -> failinst h l in
+      let im = match op with OpSRLIW | OpSRAIW -> im12 land 0b11111 | _ -> im12 in
+      Inst(IIntImReg(NoI, d_rd h, d_rs1 h, im, op))
      (* Integer Register-Register Instructions *)
   | 0b0110011 ->
       let op = match d_funR h l with 0b0000000000 -> OpADD    | 0b1000000000 -> OpSUB   |
@@ -135,6 +144,14 @@ let decode_32inst h l =
                                      0b0000001010 -> OpMULHSU | 0b0000001011 -> OpMULHU |
                                      0b0000001100 -> OpDIV    | 0b0000001101 -> OpDIVU  |
                                      0b0000001110 -> OpREM    | 0b0000001111 -> OpREMU  |
+                                     _ -> failinst h l in
+      Inst(IIntRegReg(NoI, d_rd h, d_rs1 h, d_rs2 h, op))
+  | 0b0111011 ->
+      let op = match d_funR h l with 0b0000000000 -> OpADDW   | 0b1000000000 -> OpSUBW  |
+                                     0b0000000001 -> OpSLLW   | 0b0000000101 -> OpSRLW  |
+                                     0b1000000101 -> OpSRAW   | 0b0000001000 -> OpMULW  |
+                                     0b0000001100 -> OpDIVW   | 0b0000001101 -> OpDIVUW |
+                                     0b0000001110 -> OpREMW   | 0b0000001111 -> OpREMUW |
                                      _ -> failinst h l in
       Inst(IIntRegReg(NoI, d_rd h, d_rs1 h, d_rs2 h, op))
   | _ -> failinst h l
