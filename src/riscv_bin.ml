@@ -16,7 +16,7 @@ type parcel = int
 type offset12 = int
 type offset25 = int
 
-(* Internal wrapper type that is used for storing addresses. Before
+(* Internal wrapper type used for storing addresses. Before
    the instruction is returned, these bit addresses are replaced
    by symbolic points *)
 type wrapped_inst =
@@ -112,8 +112,31 @@ let decode_32inst h l =
                                      _ -> failinst h l in
       Inst(IAtomic(NoI, d_rd h, d_rs1 h, d_rs2 h, op))
      (* Integer Register-Immediate Instructions *)
-(*  | 0b0010011 ->
-      let op = match d_funR *)
+  | 0b0010011 ->
+      let im12 = d_imI h l in
+      let imop = im12 lsr 6 in
+      let op = match d_funIB l with 0b000 -> OpADDI  | 0b001 -> OpSLLI | 0b010 -> OpSLTI |
+                                    0b011 -> OpSLTIU | 0b100 -> OpXORI | 
+                                    0b101 when imop = 0 -> OpSRLI |
+                                    0b101 when imop = 1 -> OpSRAI |
+                                    0b110 -> OpORI   | 0b111 -> OpANDI |
+                                    _ -> failinst h l in
+      let im = match op with OpSLLI | OpSRLI | OpSRAI -> im12 land 0b111111 | _ -> im12 in
+      Inst(IIntImReg(NoI, d_rd h, d_rs1 h, im, op))
+  | 0b0110111 -> Inst(IIntImReg(NoI, d_rd h, 0, d_imL h l, OpLUI))
+     (* Integer Register-Register Instructions *)
+  | 0b0110011 ->
+      let op = match d_funR h l with 0b0000000000 -> OpADD    | 0b1000000000 -> OpSUB   |
+                                     0b0000000001 -> OpSLL    | 0b0000000010 -> OpSLT   |
+                                     0b0000000011 -> OpSLTU   | 0b0000000100 -> OpXOR   | 
+                                     0b0000000101 -> OpSRL    | 0b1000000101 -> OpSRA   | 
+                                     0b0000000110 -> OpOR     | 0b0000000111 -> OpAND   |
+                                     0b0000001000 -> OpMUL    | 0b0000001001 -> OpMULH  |
+                                     0b0000001010 -> OpMULHSU | 0b0000001011 -> OpMULHU |
+                                     0b0000001100 -> OpDIV    | 0b0000001101 -> OpDIVU  |
+                                     0b0000001110 -> OpREM    | 0b0000001111 -> OpREMU  |
+                                     _ -> failinst h l in
+      Inst(IIntRegReg(NoI, d_rd h, d_rs1 h, d_rs2 h, op))
   | _ -> failinst h l
 
 
