@@ -70,6 +70,19 @@ let failinst h l =
   failwith (sprintf "ERROR: Unknown instruction %x,%x,%x,%x\n" 
             (h lsr 8) (h land 0xff) (l lsr 8) (l land 0xff))
 
+
+(* Decodes the top 7 bits funct opcode of the R-Type, excluding rm field *)
+let d_fp_funR h l = ((h land 1) lsl 6) land ((l lsr 12) lsl 2) land
+                    ((l lsr 7) land 0b11)
+
+(* Decodes the rounding mode from R-type (used in FP instructions) *)
+let d_rmR l = match (l lsr 9) land 0b111 with 
+                0b000 -> RmRNE | 0b001 -> RmRTZ | 0b010 -> RmRDN | 
+                0b011 -> RmRUP | 0b100 -> RmRMM | 
+                _ -> failwith "ERROR: Unknown rounding mode."
+
+               
+
 (* Decodes one 32 bit instruction *)
 let decode_32inst h l =
   match d_op l with
@@ -154,15 +167,37 @@ let decode_32inst h l =
                                      0b0000001110 -> OpREMW   | 0b0000001111 -> OpREMUW |
                                      _ -> failinst h l in
       Inst(ICompReg(NoI, d_rd h, d_rs1 h, d_rs2 h, op))
-  | _ -> failinst h l
     (* Floating-Point Load Memory Instructions *)
-  | 0b0000011 -> 
+  | 0b0000111 -> 
       let op = match d_funIB l with 0b010 -> OpFLW | 0b011 -> OpFLD | _ -> failinst h l in
       Inst(IFPLoad(NoI, d_rd h, d_rs1 h, d_imI h l, op))
     (* Floating-Point Store Memory Instructions *)
-  | 0b0100011 ->
+  | 0b0100111 ->
       let op = match d_funIB l with 0b010 -> OpFSW | 0b011 -> OpFSD | _ -> failinst h l in
       Inst(IFPStore(NoI, d_rs1 h, d_rs2 h, d_imB h l, op))
+    (* Floating-Point Register-Register Compute Instructions *)
+  | 0b1010011 ->
+      let op = match d_fp_funR h l with 
+               0b0000000 -> OpFADD_S | 0b0000100 -> OpFSUB_S  | 0b0001000 -> OpFMUL_S |
+               0b0001100 -> OpFDIV_S | 0b0010000 -> OpFSQRT_S | 0b1100000 -> OpFMIN_S |
+               0b1100100 -> OpFMAX_S |
+               0b0000001 -> OpFADD_D | 0b0000101 -> OpFSUB_D  | 0b0001001 -> OpFMUL_D |
+               0b0001101 -> OpFDIV_D | 0b0010001 -> OpFSQRT_D | 0b1100001 -> OpFMIN_D |
+               0b1100101 -> OpFMAX_D | _ -> failinst h l in
+      Inst(IFPCompReg(NoI, d_rd h, d_rs1 h, d_rs2 h, d_rmR l, op))
+  | 0b1000011 ->
+       let op = if l land 0b110000000 = 0 then OpFMADD_S else OpFMADD_D in
+       Inst(IFPCompReg3(NoI, d_rd h, d_rs1 h, d_rs2 h, d_rs3 h l, d_rmR l, op))
+  | 0b1000111 -> 
+       let op = if l land 0b110000000 = 0 then OpFMSUB_S else OpFMSUB_D in
+       Inst(IFPCompReg3(NoI, d_rd h, d_rs1 h, d_rs2 h, d_rs3 h l, d_rmR l, op))
+  | 0b1001011 ->  
+       let op = if l land 0b110000000 = 0 then OpFNMSUB_S else OpFNMSUB_D in
+       Inst(IFPCompReg3(NoI, d_rd h, d_rs1 h, d_rs2 h, d_rs3 h l, d_rmR l, op))
+  | 0b1001111 ->
+       let op = if l land 0b110000000 = 0 then OpFNMADD_S else OpFNMADD_D in
+       Inst(IFPCompReg3(NoI, d_rd h, d_rs1 h, d_rs2 h, d_rs3 h l, d_rmR l, op))
+  | _ -> failinst h l
 
 
 
