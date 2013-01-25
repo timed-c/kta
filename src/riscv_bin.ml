@@ -211,6 +211,11 @@ let decode_32inst h l =
   | 0b1001111 ->
        let op = if l land 0b110000000 = 0 then OpFNMADD_S else OpFNMADD_D in
        Inst(IFPComp3(NoI, d_rd h, d_rs1 h, d_rs2 h, d_rs3 h l, d_rmR l, op))
+  (* Miscellaneous Memory Instructions *)
+  | 0b0101111 ->
+    let op = match d_funIB l with 0b001 -> OpFENCE_I | 0b010 -> OpFENCE |
+                                           _ -> failinst h l in
+    Inst(IMiscMem(NoI, d_rd h, d_rs1 h, d_imI h l, op))
   | _ -> failinst h l
 
 

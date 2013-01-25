@@ -63,8 +63,9 @@ type opFPComp     = OpFADD_S   | OpFSUB_S    | OpFMUL_S   | OpFDIV_S |
                     OpMFTX_S   | OpMFTX_D    | OpMFFSR    |
                     OpFEQ_S    | OpFLT_S     | OpFLE_S    | OpFEQ_D |
                     OpFLT_D    | OpFLE_D                   
-type opFPComp3    = OpFMADD_S | OpFMSUB_S | OpFNMSUB_S | OpFNMADD_S |
-                    OpFMADD_D | OpFMSUB_D | OpFNMSUB_D | OpFNMADD_D
+type opFPComp3    = OpFMADD_S  | OpFMSUB_S   | OpFNMSUB_S | OpFNMADD_S |
+                    OpFMADD_D  | OpFMSUB_D   | OpFNMSUB_D | OpFNMADD_D
+type opMiscMem    = OpFENCE_I  | OpFENCE
 
 (** Instructions *)
 type inst = 
@@ -78,9 +79,9 @@ type inst =
 | ICompReg    of info * rd  * rs1 * rs2   * opCompReg    (* Integer Register-Register Computation *)
 | IFPLoad     of info * rd  * rs1 * imm12 * opFPLoad     (* Floating-Point Load Memory *) 
 | IFPStore    of info * rs1 * rs2 * imm12 * opFPStore    (* Floating-Point Store Memory *)
-| IFPComp     of info * rd  * rs1 * rs2  * rm * opFPComp        (* FP comp, mov, compare (2 reg) *)
-| IFPComp3    of info * rd  * rs1 * rs2  * rs3 * rm * opFPComp3 (* FP comp, mov, compare (3 reg) *)
-
+| IFPComp     of info * rd  * rs1 * rs2   * rm * opFPComp        (* FP comp, mov, compare (2 reg) *)
+| IFPComp3    of info * rd  * rs1 * rs2   * rs3 * rm * opFPComp3 (* FP comp, mov, compare (3 reg) *)
+| IMiscMem    of info * rd  * rs1 * imm12 * opMiscMem            (* Misc memory instructions *)
 
 (** Is the integer register-immediate opcode a 32 bit instruction used only in RV64? *)
 let isIntImReg32 op = match op with
