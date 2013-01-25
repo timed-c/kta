@@ -55,7 +55,7 @@ type opFPComp     = OpFADD_S   | OpFSUB_S    | OpFMUL_S   | OpFDIV_S |
                     OpFSQRT_D  | OpFMIN_D    | OpFMAX_D   | 
                     OpFSGNJ_S  | OpFSGNJN_S  | OpFSGNJX_S | OpFSGNJ_D | 
                     OpFSGNJN_D | OpFSGNJX_D  | OpFCVT_S_D | OpFCVT_D_S |
-                    OpFCVT_S_L | OpFCVT_S_LU | OpFCTV_S_W | OpFCVT_S_WU |
+                    OpFCVT_S_L | OpFCVT_S_LU | OpFCVT_S_W | OpFCVT_S_WU |
                     OpFCVT_D_L | OpFCVT_D_LU | OpFCVT_D_W | OpFCVT_D_WU |
                     OpMXTF_S   | OpMXTF_D    | OpMTFSR    |
                     OpFCVT_L_S | OpFCVT_LU_S | OpFCVT_W_S | OpFCVT_WU_S |
