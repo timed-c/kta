@@ -25,7 +25,7 @@ type immv = int   (* variable number of bits depending on instruction
                      other instructions have 12 bits *)
 
 (* Floating-Point Rounding Mode. See table 3 in RISC-V manual *)
-type rm = RmRNE | RmRTZ | RmRDN | RmRUP | RmRMM
+type rm = RmRNE | RmRTZ | RmRDN | RmRUP | RmRMM 
 
 
 (** Opcodes *)
@@ -49,12 +49,21 @@ type opCompReg    = OpADD   | OpSUB   | OpSLL    | OpSLT   | OpSLTU |
                     OpDIVUW | OpREMW  | OpREMUW
 type opFPLoad     = OpFLW   | OpFLD
 type opFPStore    = OpFSW   | OpFSD
-type opFPCompReg  = OpFADD_S  | OpFSUB_S | OpFMUL_S | OpFDIV_S |
-                    OpFSQRT_S | OpFMIN_S | OpFMAX_S | 
-                    OpFADD_D  | OpFSUB_D | OpFMUL_D | OpFDIV_D |
-                    OpFSQRT_D | OpFMIN_D | OpFMAX_D 
- 
-type opFPCompReg3 = OpFMADD_S | OpFMSUB_S | OpFNMSUB_S | OpFNMADD_S |
+type opFPComp     = OpFADD_S   | OpFSUB_S    | OpFMUL_S   | OpFDIV_S |
+                    OpFSQRT_S  | OpFMIN_S    | OpFMAX_S   | 
+                    OpFADD_D   | OpFSUB_D    | OpFMUL_D   | OpFDIV_D |
+                    OpFSQRT_D  | OpFMIN_D    | OpFMAX_D   | 
+                    OpFSGNJ_S  | OpFSGNJN_S  | OpFSGNJX_S | OpFSGNJ_D | 
+                    OpFSGNJN_D | OpFSGNJX_D  | OpFCVT_S_D | OpFCVT_D_S |
+                    OpFCVT_S_L | OpFCVT_S_LU | OpFCTV_S_W | OpFCVT_S_WU |
+                    OpFCVT_D_L | OpFCVT_D_LU | OpFCVT_D_W | OpFCVT_D_WU |
+                    OpMXTF_S   | OpMXTF_D    | OpMTFSR    |
+                    OpFCVT_L_S | OpFCVT_LU_S | OpFCVT_W_S | OpFCVT_WU_S |
+                    OpFCVT_L_D | OpFCVT_LU_D | OpFCVT_W_D | OpFCVT_WU_D |
+                    OpMFTX_S   | OpMFTX_D    | OpMFFSR    |
+                    OpFEQ_S    | OpFLT_S     | OpFLE_S    | OpFEQ_D |
+                    OpFLT_D    | OpFLE_D                   
+type opFPComp3    = OpFMADD_S | OpFMSUB_S | OpFNMSUB_S | OpFNMADD_S |
                     OpFMADD_D | OpFMSUB_D | OpFNMSUB_D | OpFNMADD_D
 
 (** Instructions *)
@@ -69,9 +78,8 @@ type inst =
 | ICompReg    of info * rd  * rs1 * rs2   * opCompReg    (* Integer Register-Register Computation *)
 | IFPLoad     of info * rd  * rs1 * imm12 * opFPLoad     (* Floating-Point Load Memory *) 
 | IFPStore    of info * rs1 * rs2 * imm12 * opFPStore    (* Floating-Point Store Memory *)
-| IFPCompReg  of info * rd  * rs1 * rs2  * rm * opFPCompReg        (* FP Reg-Reg Comp (2 reg) *)
-| IFPCompReg3 of info * rd  * rs1 * rs2  * rs3 * rm * opFPCompReg3 (* FP Reg-Reg Comp (3 reg) *)
-
+| IFPComp     of info * rd  * rs1 * rs2  * rm * opFPComp        (* FP comp, mov, compare (2 reg) *)
+| IFPComp3    of info * rd  * rs1 * rs2  * rs3 * rm * opFPComp3 (* FP comp, mov, compare (3 reg) *)
 
 
 (** Is the integer register-immediate opcode a 32 bit instruction used only in RV64? *)

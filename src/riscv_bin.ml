@@ -184,19 +184,19 @@ let decode_32inst h l =
                0b0000001 -> OpFADD_D | 0b0000101 -> OpFSUB_D  | 0b0001001 -> OpFMUL_D |
                0b0001101 -> OpFDIV_D | 0b0010001 -> OpFSQRT_D | 0b1100001 -> OpFMIN_D |
                0b1100101 -> OpFMAX_D | _ -> failinst h l in
-      Inst(IFPCompReg(NoI, d_rd h, d_rs1 h, d_rs2 h, d_rmR l, op))
+      Inst(IFPComp(NoI, d_rd h, d_rs1 h, d_rs2 h, d_rmR l, op))
   | 0b1000011 ->
        let op = if l land 0b110000000 = 0 then OpFMADD_S else OpFMADD_D in
-       Inst(IFPCompReg3(NoI, d_rd h, d_rs1 h, d_rs2 h, d_rs3 h l, d_rmR l, op))
+       Inst(IFPComp3(NoI, d_rd h, d_rs1 h, d_rs2 h, d_rs3 h l, d_rmR l, op))
   | 0b1000111 -> 
        let op = if l land 0b110000000 = 0 then OpFMSUB_S else OpFMSUB_D in
-       Inst(IFPCompReg3(NoI, d_rd h, d_rs1 h, d_rs2 h, d_rs3 h l, d_rmR l, op))
+       Inst(IFPComp3(NoI, d_rd h, d_rs1 h, d_rs2 h, d_rs3 h l, d_rmR l, op))
   | 0b1001011 ->  
        let op = if l land 0b110000000 = 0 then OpFNMSUB_S else OpFNMSUB_D in
-       Inst(IFPCompReg3(NoI, d_rd h, d_rs1 h, d_rs2 h, d_rs3 h l, d_rmR l, op))
+       Inst(IFPComp3(NoI, d_rd h, d_rs1 h, d_rs2 h, d_rs3 h l, d_rmR l, op))
   | 0b1001111 ->
        let op = if l land 0b110000000 = 0 then OpFNMADD_S else OpFNMADD_D in
-       Inst(IFPCompReg3(NoI, d_rd h, d_rs1 h, d_rs2 h, d_rs3 h l, d_rmR l, op))
+       Inst(IFPComp3(NoI, d_rd h, d_rs1 h, d_rs2 h, d_rs3 h l, d_rmR l, op))
   | _ -> failinst h l
 
 
