@@ -70,7 +70,6 @@ let failinst h l =
   failwith (sprintf "ERROR: Unknown instruction %x,%x,%x,%x\n" 
             (h lsr 8) (h land 0xff) (l lsr 8) (l land 0xff))
 
-
 (* Decodes the top 7 bits funct opcode of the R-Type, excluding rm field *)
 let d_fp_funR h l = ((h land 1) lsl 6) land ((l lsr 12) lsl 2) land
                     ((l lsr 7) land 0b11)
@@ -81,8 +80,7 @@ let d_rmR l = match (l lsr 9) land 0b111 with
                 0b011 -> RmRUP | 0b100 -> RmRMM | 
                 _ -> failwith "ERROR: Unknown rounding mode."
 
-               
-
+             
 (* Decodes one 32 bit instruction *)
 let decode_32inst h l =
   match d_op l with
@@ -213,9 +211,15 @@ let decode_32inst h l =
        Inst(IFPComp3(NoI, d_rd h, d_rs1 h, d_rs2 h, d_rs3 h l, d_rmR l, op))
   (* Miscellaneous Memory Instructions *)
   | 0b0101111 ->
-    let op = match d_funIB l with 0b001 -> OpFENCE_I | 0b010 -> OpFENCE |
+       let op = match d_funIB l with 0b001 -> OpFENCE_I | 0b010 -> OpFENCE |
                                            _ -> failinst h l in
-    Inst(IMiscMem(NoI, d_rd h, d_rs1 h, d_imI h l, op))
+       Inst(IMiscMem(NoI, d_rd h, d_rs1 h, d_imI h l, op))
+  (* System Instructions *)
+  | 0b1110111 ->
+       let op = match d_funR h l with 0b0000000000 -> OpSYSCALL  | 0b0000000001 -> OpBREAK |
+                                      0b0000000100 -> OpRDCYCLE  | 0b0000001100 -> OpRDTIME |
+                                      0b0000010100 -> OpRDINSTRET | _ -> failinst h l in
+       Inst(ISys(NoI, d_rd h, op))                            
   | _ -> failinst h l
 
 
