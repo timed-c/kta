@@ -1,3 +1,0 @@
-[submodule "external/batinc"]
-	path = external/batinc
-	url = git://github.com/ocaml-batteries-team/batteries-included.git
