@@ -283,6 +283,8 @@ struct
 
   let ustring_of_sid i = Hashtbl.find symtab2 i
 
+  let usid s = sid_of_ustring (us s)
+
   (* ST: test_ustring_conversion_functions *)
   let ustring_of_bool b = if b then us"true" else us"false"
 

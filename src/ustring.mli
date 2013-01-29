@@ -110,6 +110,9 @@ sig
       If the string identifier has not been defined, exception
       [Not_found] is raised *)
 
+  val usid : string -> sid
+  (** Expression [sid s] returns a unique string identifier of string [s]. 
+      Same as expression [sid_of_ustring (us s)] *)
 
   (** {6 Module Pervasives's functions} *)
   (** The following section defines the Unicode version of several functions 
