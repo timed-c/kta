@@ -1,6 +1,6 @@
 
 
-open Riscv_isa
+open RiscvISA
 open Printf
 open Ustring.Op
 
@@ -16,13 +16,13 @@ let print_hex chars =
   print_endline ""
 
 let main = 
-  let _ = print_hex (Riscv_bin.bytes_of_parcels false 
-                     (Riscv_bin.parcels_of_bytes false prog1)) in
+  let _ = print_hex (RiscvBin.bytes_of_parcels false 
+                     (RiscvBin.parcels_of_bytes false prog1)) in
   let _ = print_endline "-------" in
-  let code = Riscv_bin.decode (Riscv_bin.parcels_of_bytes true prog1) in
+  let code = RiscvBin.decode (RiscvBin.parcels_of_bytes true prog1) in
   let _ = print_hex prog1 in
-  let _ = print_hex (Riscv_bin.bytes_of_parcels true (Riscv_bin.encode code)) in
-  let _ = uprint_endline (Riscv_asm.sprint true code) in
+  let _ = print_hex (RiscvBin.bytes_of_parcels true (RiscvBin.encode code)) in
+  let _ = uprint_endline (RiscvAsm.sprint true code) in
   ()  
 
 
