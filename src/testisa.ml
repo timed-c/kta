@@ -4,25 +4,30 @@ open RiscvISA
 open Printf
 open Ustring.Op
 
-(*
-let prog1 = [
-(* rd=1, rs1=3, imm=352, op=LW *)
-0b00001000;0b11000011;0b10101001;0b00000011;
-(*   5|      5|            12|    3|     7| *)
-]*)
-let prog1 = "\x00\x23\x82\x12"
 
+
+(*  4: 0040 b063   |  beqz    ra,5c            what does z in beqz mean?
+   00000000 01000000 10110000 01100011          
+   Encoded using big-endian
+*)   
+let beqz = "\xb0\x63\x00\x40" 
+
+
+(* 14: 0044 6063   |  beq     ra,v0,44 
+   00000000 01000100 01100000 01100011
+*)
 
 let print_hex str = 
   String.iter (fun c -> printf "%x," (int_of_char c)) str;
   print_endline ""
 
 let main = 
-  print_hex prog1;
+  let prog = beqz in
+  print_hex prog;
   print_endline "-------";
-  let code = RiscvBin.decode true prog1 in 
+  let (code,i) = RiscvBin.decode true prog 0 in 
+  Std.print code;
   print_hex (RiscvBin.encode true code);
-  uprint_endline (RiscvAsm.sprint true code);
   ()  
 
 
