@@ -16,10 +16,9 @@ type big_endian = bool
 (*************** Local functions **********************************)
 
 (* Sign extend value [v] that has [n] significant bits *)
-let sign_ext v n =  if ((v lsr (n-1)) land 1) = 0 
-                   then v else (-1 lsl n) land v
-                                   
-
+let sign_ext v n = if ((v lsr (n-1)) land 1) = 0 
+                   then v else (-1 lsl n) lor v
+  
 (* Pretty print conditional jumps *)
 let ppCondJmp op =
   match op with

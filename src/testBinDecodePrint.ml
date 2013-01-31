@@ -23,11 +23,9 @@ let main =
   test_ustr "Instruction bne with symbol" 
              (inst_conf1 0x74 "\x10\xe3\x06\x80")  (us"bne   x26,x0,7c <jumpid>");
 
-  (*test_ustr "Instruction bne with negative address"   
-             (inst 0x2b0 "\xc0\xe3\xf9\x0b")  (us"bne     x26,x0,290"); 
-    Negative jump is not working.
-  *)
-  
+  test_ustr "Instruction bne with negative address"   
+             (inst 0x2b0 "\xc0\xe3\xf9\x0b")  (us"bne     x4,x5,290"); 
+
   
   result()
 
