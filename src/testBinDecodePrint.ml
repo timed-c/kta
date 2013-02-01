@@ -15,7 +15,7 @@ let main =
   let inst_conf1 pos code = RiscvAsm.sprint_inst_conf 6 m pos (fst (RiscvBin.decode true code 0)) in
 
 
-  (* Absolute Jumps *)
+  (*** Absolute Jumps ***)
 
   test_ustr "Instruction j"  
              (inst true 0x1cfc  "\xc7\x67\xff\xf9")  (us"j       418");
@@ -23,7 +23,7 @@ let main =
              (inst true 0x1cfc  "\xc7\x6f\xff\xf9")  (us"jal     418");
   
 
-  (* Conditional branches *)
+  (*** Conditional branches ***)
 
   test_ustr "Instruction beq with little-endian"  
              (inst false 0x3c  "\x63\x38\x44\x00")  (us"beq     x1,x2,58"); 
@@ -54,6 +54,24 @@ let main =
 
   test_ustr "Instruction bgeu"   
              (inst true 0x1654 "\xeb\xe3\x00\xc4")  (us"bgeu    x3,x2,16c8");
+
+
+  (*** Indirect jumps ***)
+
+  test_ustr "Instruction jalr.c"  
+             (inst true 0xc0  "\x00\x6b\x98\x80")  (us"jalr.c  x19,x2");
+
+  test_ustr "Instruction jalr.j"  
+             (inst true 0x138  "\x01\x6b\x99\x80")  (us"jalr.j  x19,x6");
+
+  test_ustr "Instruction jalr.r"  
+             (inst true 0x138  "\x00\xeb\x99\x80")  (us"jalr.r  x19,x6");
+
+  test_ustr "Instruction jalr.r negative offset"  
+             (inst true 0x138  "\xfc\xeb\x99\xbf")  (us"jalr.r  x19,x6,-1");
+
+  test_ustr "Instruction rdnpc"  
+             (inst true 0x138  "\x02\x6b\xf8\x00")  (us"rdnpc   x31");
 
   
   result()

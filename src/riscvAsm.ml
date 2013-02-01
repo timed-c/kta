@@ -13,11 +13,19 @@ type big_endian = bool
 (*************** Local types and exceptions ***********************)
 
 
+(* Needs to consider instrutions "move" (actually addi) beqz etc. *)
+
 (*************** Local functions **********************************)
 
 (* Sign extend value [v] that has [n] significant bits *)
 let sign_ext v n = if ((v lsr (n-1)) land 1) = 0 
                    then v else (-1 lsl n) lor v
+
+(* Pretty print absolute jumps *)
+let ppAbsJmp op = 
+  match op with 
+  | OpJ   -> us"j"
+  | OpJAL -> us"jal"
   
 (* Pretty print conditional jumps *)
 let ppCondJmp op =
@@ -29,10 +37,14 @@ let ppCondJmp op =
   | OpBLTU -> us"bltu" 
   | OpBGEU -> us"bgeu"
 
-let ppAbsJmp op = 
-  match op with 
-  | OpJ   -> us"j"
-  | OpJAL -> us"jal"
+(* Pretty print indirect jumps *)
+let ppIndJmp op =
+  match op with
+  | OpJALR_C -> us"jalr.c"
+  | OpJALR_R -> us"jalr.r"
+  | OpJALR_J -> us"jalr.j"
+  | OpRDNPC  -> us"rdnpc"
+
 
 (* Pretty print general purpose register *)
 let ppXreg r =
@@ -65,13 +77,17 @@ let ppAddr addr map =
 let parse str = []
 
 let sprint_inst_conf n map pc inst = 
-  match inst with
+    match inst with
   | IAbsJmp(fi,imm25,op) ->
       let addr = ((sign_ext imm25 25) lsl 1) + pc in      
       pp1arg n map (ppAbsJmp op) (ppAddr addr map)
   | ICondJmp(fi,rs1,rs2,imm12,op) ->            
       let addr = ((sign_ext imm12 12) lsl 1) + pc in
       pp3arg n map (ppCondJmp op) (ppXreg rs1) (ppXreg rs2) (ppAddr addr map)
+  | IIndJmp(fi,rd,rs1,imm12,op) -> (
+      if op = OpRDNPC then pp1arg n map (ppIndJmp op) (ppXreg rd)
+      else if imm12 = 0 then pp2arg n map (ppIndJmp op) (ppXreg rd) (ppXreg rs1) 
+      else pp3arg n map (ppIndJmp op) (ppXreg rd) (ppXreg rs1) (ustring_of_int (sign_ext imm12 12))    )
   | _ -> us""
   
 
