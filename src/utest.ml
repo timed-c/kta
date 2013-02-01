@@ -12,10 +12,9 @@ let textshown = ref false
 let maintext() =
   if !textshown then () else (
   textshown := true;
-  printf "Simple unit testing - Utest\n";
+  printf "Simple unit testing framework - Utest\n";
   printf "(C) Copyright David Broman, 2013.\n\n")
   
-
 let init str =
    maintext();
    name := str;
@@ -30,7 +29,6 @@ let test str ok =
   else (
     count_fail := !count_fail + 1;
     printf "FAIL\n") 
-
 
 let test_str str result expected =
   let res = (result = expected) in
@@ -48,7 +46,6 @@ let test_ustr str result expected =
     uprint_endline (us"   Expected: '" ^. expected ^. us"'");
     uprint_endline (us"   Result:   '" ^. result ^. us"'"))
   
-
 let result() =
   maintext();
   printf "Result: %d successful and  %d failed test(s).\n\n" (!count_ok) (!count_fail);

@@ -29,6 +29,10 @@ let ppCondJmp op =
   | OpBLTU -> us"bltu" 
   | OpBGEU -> us"bgeu"
 
+let ppAbsJmp op = 
+  match op with 
+  | OpJ   -> us"j"
+  | OpJAL -> us"jal"
 
 (* Pretty print general purpose register *)
 let ppXreg r =
@@ -40,12 +44,15 @@ let ppFPreg r =
   if r < 0 || r > 31 then raise (Failure (sprintf "Unknown register value %d." r))
     else us"f" ^. ustring_of_int r
 
-(* Pretty print an instruction with 3 arguments *)
-let pp3arg n map op a1 a2 a3 =
+(* Make space *)
+let space op n =  
   let oplen = Ustring.length op in
-  let space =  Ustring.make (if n > oplen then n - oplen else 1) (uc ' ') in
-  op ^. space ^. a1 ^. us"," ^. a2 ^. us"," ^. a3
-  
+  Ustring.make (if n > oplen then n - oplen else 1) (uc ' ') 
+
+(* Pretty print an instruction with different number of arguments *)
+let pp1arg n map op a1  = op ^. space op n ^. a1 
+let pp2arg n map op a1 a2 = op ^. space op n  ^. a1 ^. us"," ^. a2
+let pp3arg n map op a1 a2 a3 = op ^. space op n  ^. a1 ^. us"," ^. a2 ^. us"," ^. a3
 
 (* Pretty print an address with symbol (if exists) *)
 let ppAddr addr map = 
@@ -59,10 +66,14 @@ let parse str = []
 
 let sprint_inst_conf n map pc inst = 
   match inst with
+  | IAbsJmp(fi,imm25,op) ->
+      let addr = ((sign_ext imm25 25) lsl 1) + pc in      
+      pp1arg n map (ppAbsJmp op) (ppAddr addr map)
   | ICondJmp(fi,rs1,rs2,imm12,op) ->            
       let addr = ((sign_ext imm12 12) lsl 1) + pc in
       pp3arg n map (ppCondJmp op) (ppXreg rs1) (ppXreg rs2) (ppAddr addr map)
   | _ -> us""
+  
 
 let sprint_inst = sprint_inst_conf 8 (IntMap.empty)
 

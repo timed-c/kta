@@ -15,10 +15,12 @@ let main =
   let inst_conf1 pos code = RiscvAsm.sprint_inst_conf 6 m pos (fst (RiscvBin.decode true code 0)) in
 
 
-  (* Unconditional Jumps *)
+  (* Absolute Jumps *)
 
-  (* test_ustr "Instruction jal"  
-             (inst true 0x1cfc  "\xc7\x6f\xff\xf9")  (us"jal     418"); *)
+  test_ustr "Instruction j"  
+             (inst true 0x1cfc  "\xc7\x67\xff\xf9")  (us"j       418");
+  test_ustr "Instruction jal"  
+             (inst true 0x1cfc  "\xc7\x6f\xff\xf9")  (us"jal     418");
   
 
   (* Conditional branches *)
