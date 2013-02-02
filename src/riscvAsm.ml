@@ -45,6 +45,25 @@ let ppIndJmp op =
   | OpJALR_J -> us"jalr.j"
   | OpRDNPC  -> us"rdnpc"
 
+(* Pretty print loads *)
+let ppLoad op = 
+  match op with 
+  | OpLB -> us"lb"
+  | OpLH -> us"lh"
+  | OpLW -> us"lw"
+  | OpLD -> us"ld"
+  | OpLBU -> us"lbu"
+  | OpLHU -> us"lhu"
+  | OpLWU-> us"lwu"
+
+(* Pretty print stores *)
+let ppStore op =
+  match op with 
+  | OpSB -> us"sb"
+  | OpSH -> us"sh"
+  | OpSW -> us"sw"
+  | OpSD -> us"sd"
+
 
 (* Pretty print general purpose register *)
 let ppXreg r =
@@ -65,6 +84,7 @@ let space op n =
 let pp1arg n map op a1  = op ^. space op n ^. a1 
 let pp2arg n map op a1 a2 = op ^. space op n  ^. a1 ^. us"," ^. a2
 let pp3arg n map op a1 a2 a3 = op ^. space op n  ^. a1 ^. us"," ^. a2 ^. us"," ^. a3
+let pp3arg_addr n map op a1 a2 a3  = op ^. space op n  ^. a1 ^. us"," ^. a3 ^. us"(" ^. a2 ^. us")"
 
 (* Pretty print an address with symbol (if exists) *)
 let ppAddr addr map = 
@@ -88,7 +108,13 @@ let sprint_inst_conf n map pc inst =
       if op = OpRDNPC then pp1arg n map (ppIndJmp op) (ppXreg rd)
       else if imm12 = 0 then pp2arg n map (ppIndJmp op) (ppXreg rd) (ppXreg rs1) 
       else pp3arg n map (ppIndJmp op) (ppXreg rd) (ppXreg rs1) (ustring_of_int (sign_ext imm12 12))    )
+  | ILoad(fi,rd,rs1,imm12,op) ->
+      pp3arg_addr n map (ppLoad op) (ppXreg rd) (ppXreg rs1) (ustring_of_int (sign_ext imm12 12))
+  | IStore(fi,rs1,rs2,imm12,op) ->
+      pp3arg_addr n map (ppStore op) (ppXreg rs2) (ppXreg rs1) (ustring_of_int (sign_ext imm12 12))
+      (* Note the reversed order for rs1 and rs2 *)
   | _ -> us""
+
   
 
 let sprint_inst = sprint_inst_conf 8 (IntMap.empty)

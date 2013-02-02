@@ -73,6 +73,15 @@ let main =
   test_ustr "Instruction rdnpc"  
              (inst true 0x138  "\x02\x6b\xf8\x00")  (us"rdnpc   x31");
 
+
+  (*** Loads and Stores ***)
+
+  test_ustr "Instruction lw"  
+             (inst true 0x1e48  "\xd1\x03\x18\x90")  (us"lw      x3,1076(x2)");
+
+  test_ustr "Instruction sw"  
+             (inst true 0x18d8  "\x11\x23\x07\xba")  (us"sw      x29,4(x30)");
+  
   
   result()
 
