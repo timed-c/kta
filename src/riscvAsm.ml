@@ -53,6 +53,21 @@ let ppAtomic op = us (match op with
   | OpAMOMIN_D  -> "amomin.d"  | OpAMOMAX_D  -> "amomax.d" | OpAMOMINU_D -> "amominu.d" 
   | OpAMOMAXU_D -> "amomaxu.d")
 
+(* Pretty printing integer register-register instructions *)
+let ppCompReg op = us (match op with
+  | OpADD   -> "add"   | OpSUB  -> "sub"  | OpSLL    -> "sll"    | OpSLT   -> "slt"   | OpSLTU -> "sltu" 
+  | OpXOR   -> "xor"   | OpSRL  -> "srl"  | OpSRA    -> "sra"    | OpOR    -> "or"    | OpAND  -> "and" 
+  | OpMUL   -> "mul"   | OpMULH -> "mulh" | OpMULHSU -> "mulhsu" | OpMULHU -> "mulhu" | OpDIV  -> "div"
+  | OpDIVU  -> "divu"  | OpREM  -> "rem"  | OpREMU   -> "remu"   | OpADDW  -> "addw"  | OpSUBW -> "subw" 
+  | OpSLLW  -> "sllw"  | OpSRLW -> "srlw" | OpSRAW   -> "sraw"   | OpMULW  -> "mulw"  | OpDIVW -> "divw"
+  | OpDIVUW -> "divuw" | OpREMW -> "remw" | OpREMUW  -> "remuw")
+
+(* Pretty print integer intermediate-register instructions *)
+let ppCompImm op = us (match op with
+  | OpADDI  -> "addi"  | OpSLLI  -> "slli"  | OpSLTI  -> "slti" | OpSLTIU -> "sltiu"
+  | OpXORI  -> "xori"  | OpSRLI  -> "srli"  | OpSRAI  -> "srai" | OpORI   -> "ori"   
+  | OpANDI  -> "andi"  | OpLUI   -> "lui"   | OpADDIW -> "addiw"| OpSLLIW -> "slliw"
+  | OpSRLIW -> "srliw" | OpSRAIW -> "sraiw")
 
 
 (* Pretty print general purpose register *)
@@ -105,7 +120,12 @@ let sprint_inst_conf n map pc inst =
       (* Note the reversed order for rs1 and rs2 *)
   | IAtomic(fi,rd,rs1,rs2,op) ->
       pp3arg n map (ppAtomic op) (ppXreg rd) (ppXreg rs1) (ppXreg rs2)
+  | ICompImm(fi,rd,rs1,immv,op) -> 
+      pp3arg n map (ppCompImm op) (ppXreg rd) (ppXreg rs1) (ustring_of_int (sign_ext immv 12))
+  | ICompReg(fi,rd,rs1,rs2,op) ->
+      pp3arg n map (ppCompReg op) (ppXreg rd) (ppXreg rs1) (ppXreg rs2)
   | _ -> us""
+
 
   
 

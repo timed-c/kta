@@ -88,6 +88,25 @@ let main =
              (inst true 0x0  "\x01\x2b\x00\x44")  (us"amoadd.w x0,x1,x2");
 
 
+  (*** Integer computation instructions ***)
+
+  test_ustr "Instruction xori"  
+             (inst true 0x128  "\x3e\x13\x18\x5c")  (us"xori    x3,x1,1807");
+
+  test_ustr "Instruction srai"  
+             (inst true 0x190  "\x7e\x93\x18\x41")  (us"srai    x3,x1,31");
+
+  test_ustr "Instruction sll"  
+             (inst true 0x80  "\x00\xb3\x08\x74")  (us"sll     x1,x1,x26");
+
+  test_ustr "Instruction xor"  
+             (inst true 0x174  "\x02\x33\x10\x44")  (us"xor     x2,x1,x2");
+
+  test_ustr "Instruction mulhu"  
+             (inst true 0x208  "\x05\xb3\x18\x44")  (us"mulhu   x3,x1,x2");
+ 
+
+
   result()
 
 
