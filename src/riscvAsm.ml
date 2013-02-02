@@ -22,47 +22,37 @@ let sign_ext v n = if ((v lsr (n-1)) land 1) = 0
                    then v else (-1 lsl n) lor v
 
 (* Pretty print absolute jumps *)
-let ppAbsJmp op = 
-  match op with 
-  | OpJ   -> us"j"
-  | OpJAL -> us"jal"
+let ppAbsJmp op = us (match op with  
+   | OpJ   -> "j" | OpJAL -> "jal")
   
 (* Pretty print conditional jumps *)
-let ppCondJmp op =
-  match op with
-  | OpBEQ  -> us"beq"
-  | OpBNE  -> us"bne"
-  | OpBLT  -> us"blt"
-  | OpBGE  -> us"bge"
-  | OpBLTU -> us"bltu" 
-  | OpBGEU -> us"bgeu"
+let ppCondJmp op = us (match op with
+  | OpBEQ  -> "beq"  | OpBNE  -> "bne" | OpBLT  -> "blt" | OpBGE  -> "bge"
+  | OpBLTU -> "bltu" | OpBGEU -> "bgeu")
 
 (* Pretty print indirect jumps *)
-let ppIndJmp op =
-  match op with
-  | OpJALR_C -> us"jalr.c"
-  | OpJALR_R -> us"jalr.r"
-  | OpJALR_J -> us"jalr.j"
-  | OpRDNPC  -> us"rdnpc"
+let ppIndJmp op = us (match op with
+  | OpJALR_C -> "jalr.c" | OpJALR_R -> "jalr.r" | OpJALR_J -> "jalr.j"
+  | OpRDNPC  -> "rdnpc")
 
 (* Pretty print loads *)
-let ppLoad op = 
-  match op with 
-  | OpLB -> us"lb"
-  | OpLH -> us"lh"
-  | OpLW -> us"lw"
-  | OpLD -> us"ld"
-  | OpLBU -> us"lbu"
-  | OpLHU -> us"lhu"
-  | OpLWU-> us"lwu"
+let ppLoad op = us (match op with 
+  | OpLB  -> "lb"  | OpLH  -> "lh"  | OpLW  -> "lw"  | OpLD -> "ld"
+  | OpLBU -> "lbu" | OpLHU -> "lhu" | OpLWU -> "lwu")
 
 (* Pretty print stores *)
-let ppStore op =
-  match op with 
-  | OpSB -> us"sb"
-  | OpSH -> us"sh"
-  | OpSW -> us"sw"
-  | OpSD -> us"sd"
+let ppStore op = us (match op with 
+  | OpSB -> "sb" | OpSH -> "sh" | OpSW -> "sw" | OpSD -> "sd")
+
+(* Pretty printing atomic memory instructions *)
+let ppAtomic op = us (match op with 
+  | OpAMOADD_W  -> "amoadd.w"  | OpAMOSWAP_W -> "amoswap.w"| OpAMOAND_W  -> "amoand.w" 
+  | OpAMOOR_W   -> "amoor.w"   | OpAMOMIN_W  -> "amomin.w" | OpAMOMAX_W  -> "amomax.w" 
+  | OpAMOMINU_W -> "amominu.w" | OpAMOMAXU_W -> "amomaxu.w"| OpAMOADD_D  -> "amoadd.d" 
+  | OpAMOSWAP_D -> "amoswap.d" | OpAMOAND_D  -> "amoand.d" | OpAMOOR_D   -> "amoor.d" 
+  | OpAMOMIN_D  -> "amomin.d"  | OpAMOMAX_D  -> "amomax.d" | OpAMOMINU_D -> "amominu.d" 
+  | OpAMOMAXU_D -> "amomaxu.d")
+
 
 
 (* Pretty print general purpose register *)
@@ -113,6 +103,8 @@ let sprint_inst_conf n map pc inst =
   | IStore(fi,rs1,rs2,imm12,op) ->
       pp3arg_addr n map (ppStore op) (ppXreg rs2) (ppXreg rs1) (ustring_of_int (sign_ext imm12 12))
       (* Note the reversed order for rs1 and rs2 *)
+  | IAtomic(fi,rd,rs1,rs2,op) ->
+      pp3arg n map (ppAtomic op) (ppXreg rd) (ppXreg rs1) (ppXreg rs2)
   | _ -> us""
 
   

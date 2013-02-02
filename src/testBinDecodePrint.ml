@@ -82,7 +82,12 @@ let main =
   test_ustr "Instruction sw"  
              (inst true 0x18d8  "\x11\x23\x07\xba")  (us"sw      x29,4(x30)");
   
-  
+  (*** Atomic memory instruction ***)
+
+  test_ustr "Instruction amoadd.w"  
+             (inst true 0x0  "\x01\x2b\x00\x44")  (us"amoadd.w x0,x1,x2");
+
+
   result()
 
 
