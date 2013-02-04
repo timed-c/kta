@@ -28,7 +28,12 @@ val decode_interval : big_endian -> string -> int -> int -> RiscvISA.inst list
 val decode_all : big_endian -> string -> RiscvISA.inst list
 
 val encode : big_endian -> RiscvISA.inst -> string
+(** Expression [encode b i] encodes a 32-bit instruction [i]. The
+    returned string is guaranteed to be 4 bytes long.  Encoding is
+    using big-endian if [b] is true, else little-endian encoding. *)
 
 val encode_all : big_endian -> RiscvISA.inst list -> string
-
+(** Expression [encode_all b il] encodes a list of 32-bit instruction
+    [il].  Encoding is using big-endian if [b] is true, else
+    little-endian encoding. *)
 

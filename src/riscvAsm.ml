@@ -111,30 +111,30 @@ let parse str = []
 
 let sprint_inst_conf n map pc inst = 
     match inst with
-  | IAbsJmp(fi,imm25,op) ->
+  | IAbsJmp(fi,op,imm25) ->
       let addr = ((sign_ext imm25 25) lsl 1) + pc in      
       pp1arg n map (ppAbsJmp op) (ppAddr addr map)
-  | ICondJmp(fi,rs1,rs2,imm12,op) ->            
+  | ICondJmp(fi,op,rs1,rs2,imm12) ->            
       let addr = ((sign_ext imm12 12) lsl 1) + pc in
       pp3arg n map (ppCondJmp op) (ppXreg rs1) (ppXreg rs2) (ppAddr addr map)
-  | IIndJmp(fi,rd,rs1,imm12,op) -> (
+  | IIndJmp(fi,op,rd,rs1,imm12) -> (
       if op = OpRDNPC then pp1arg n map (ppIndJmp op) (ppXreg rd)
       else if imm12 = 0 then pp2arg n map (ppIndJmp op) (ppXreg rd) (ppXreg rs1) 
       else pp3arg n map (ppIndJmp op) (ppXreg rd) (ppXreg rs1) (ustring_of_int (sign_ext imm12 12))    )
-  | ILoad(fi,rd,rs1,imm12,op) ->
+  | ILoad(fi,op,rd,rs1,imm12) ->
       pp3arg_addr n map (ppLoad op) (ppXreg rd) (ppXreg rs1) (ustring_of_int (sign_ext imm12 12))
-  | IStore(fi,rs1,rs2,imm12,op) ->
+  | IStore(fi,op,rs1,rs2,imm12) ->
       pp3arg_addr n map (ppStore op) (ppXreg rs2) (ppXreg rs1) (ustring_of_int (sign_ext imm12 12))
       (* Note the reversed order for rs1 and rs2 *)
-  | IAtomic(fi,rd,rs1,rs2,op) ->
+  | IAtomic(fi,op,rd,rs1,rs2) ->
       pp3arg n map (ppAtomic op) (ppXreg rd) (ppXreg rs1) (ppXreg rs2)
-  | ICompImm(fi,rd,rs1,immv,op) -> 
+  | ICompImm(fi,op,rd,rs1,immv) -> 
       pp3arg n map (ppCompImm op) (ppXreg rd) (ppXreg rs1) (ustring_of_int (sign_ext immv 12))
-  | ICompReg(fi,rd,rs1,rs2,op) ->
+  | ICompReg(fi,op,rd,rs1,rs2) ->
       pp3arg n map (ppCompReg op) (ppXreg rd) (ppXreg rs1) (ppXreg rs2)
-  | IMiscMem(fi,rd,rs1,imm12,op) -> 
+  | IMiscMem(fi,op,rd,rs1,imm12) -> 
       pp3arg n map (ppMiscMem op) (ppXreg rd) (ppXreg rs1) (ustring_of_int imm12)
-  | ISys(fi,rd,op) ->
+  | ISys(fi,op,rd) ->
       pp1arg n map (ppSys op) (ppXreg rd)
  
   

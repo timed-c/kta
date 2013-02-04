@@ -60,16 +60,16 @@ type opSys        = OpSYSCALL   | OpBREAK     | OpRDCYCLE  | OpRDTIME |
 
 (** Instructions *)
 type inst = 
-| IAbsJmp     of info * imm25 * opAbsJmp                         (* Absolute Jump *)
-| ICondJmp    of info * rs1 * rs2 * imm12 * opCondJmp            (* Conditional Jump  *)
-| IIndJmp     of info * rd  * rs1 * imm12 * opIndJmp             (* Indirect Jump *)
-| ILoad       of info * rd  * rs1 * imm12 * opLoad               (* Load Memory *)
-| IStore      of info * rs1 * rs2 * imm12 * opStore              (* Store Memory *)
-| IAtomic     of info * rd  * rs1 * rs2   * opAtomic             (* Atomic Memory *) 
-| ICompImm    of info * rd  * rs1 * immv  * opCompImm            (* Integer Register-Immediate Computation *)
-| ICompReg    of info * rd  * rs1 * rs2   * opCompReg            (* Integer Register-Register Computation *)
-| IMiscMem    of info * rd  * rs1 * imm12 * opMiscMem            (* Misc memory instructions *)
-| ISys        of info * rd  * opSys                              (* System instructions *)
+| IAbsJmp     of info * opAbsJmp * imm25                 (* Absolute Jump *)
+| ICondJmp    of info * opCondJmp * rs1 * rs2 * imm12    (* Conditional Jump  *)
+| IIndJmp     of info * opIndJmp * rd * rs1 * imm12      (* Indirect Jump *)
+| ILoad       of info * opLoad * rd  * rs1 * imm12       (* Load Memory *)
+| IStore      of info * opStore * rs1 * rs2 * imm12      (* Store Memory *)
+| IAtomic     of info * opAtomic * rd  * rs1 * rs2       (* Atomic Memory *) 
+| ICompImm    of info * opCompImm * rd  * rs1 * immv     (* Integer Register-Immediate Computation *)
+| ICompReg    of info * opCompReg * rd  * rs1 * rs2      (* Integer Register-Register Computation *)
+| IMiscMem    of info * opMiscMem * rd  * rs1 * imm12    (* Misc memory instructions *)
+| ISys        of info * opSys * rd                       (* System instructions *)
 
 
 
