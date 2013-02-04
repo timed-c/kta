@@ -64,11 +64,6 @@ let failinst h l =
 let d_fp_funR h l = ((h land 1) lsl 6) lor ((l lsr 12) lsl 2) lor
                     ((l lsr 7) land 0b11)
 
-(* Decodes the rounding mode from R-type (used in FP instructions) *)
-let d_rmR l = match (l lsr 9) land 0b111 with 
-                0b000 -> RmRNE | 0b001 -> RmRTZ | 0b010 -> RmRDN | 
-                0b011 -> RmRUP | 0b100 -> RmRMM | 
-                _ -> failwith "ERROR: Unknown rounding mode."
 
              
 (* Decodes one 32 bit instruction *)
@@ -156,50 +151,6 @@ let decode_32inst h l =
                                      0b0000001110 -> OpREMW   | 0b0000001111 -> OpREMUW |
                                      _ -> failinst h l in
       ICompReg(fi, d_rd h, d_rs1 h, d_rs2 h, op)
-    (* Floating-Point Load Memory Instructions *)
-  | 0b0000111 -> 
-      let op = match d_funIB l with 0b010 -> OpFLW | 0b011 -> OpFLD | _ -> failinst h l in
-      IFPLoad(fi, d_rd h, d_rs1 h, d_imI h l, op)
-    (* Floating-Point Store Memory Instructions *)
-  | 0b0100111 ->
-      let op = match d_funIB l with 0b010 -> OpFSW | 0b011 -> OpFSD | _ -> failinst h l in
-      IFPStore(fi, d_rs1 h, d_rs2 h, d_imB h l, op)
-    (* Floating-Point Register-Register Compute Instructions *)
-  | 0b1010011 ->
-      let op = match d_fp_funR h l with 
-               0b0000000 -> OpFADD_S    | 0b0000100 -> OpFSUB_S  | 0b0001000 -> OpFMUL_S | (* Comp S *)
-               0b0001100 -> OpFDIV_S    | 0b0010000 -> OpFSQRT_S | 0b1100000 -> OpFMIN_S |
-               0b1100100 -> OpFMAX_S    |
-               0b0000001 -> OpFADD_D    | 0b0000101 -> OpFSUB_D  | 0b0001001 -> OpFMUL_D | (* Comp D *)
-               0b0001101 -> OpFDIV_D    | 0b0010001 -> OpFSQRT_D | 0b1100001 -> OpFMIN_D |
-               0b1100101 -> OpFMAX_D    | 
-               0b0010100 -> OpFSGNJ_S   | 0b0011000 -> OpFSGNJN_S  | 0b0011100 -> OpFSGNJX_S  | (* FP Mov/Conv *)
-               0b0010101 -> OpFSGNJ_D   | 0b0011001 -> OpFSGNJN_D  | 0b0011101 -> OpFSGNJX_D  | 
-               0b1000100 -> OpFCVT_S_D  | 0b1000001 -> OpFCVT_D_S  |
-               0b0110000 -> OpFCVT_S_L  | 0b0110100 -> OpFCVT_S_LU | 0b0111000 -> OpFCVT_S_W  | (* Int-FP Mov/Conv *)
-               0b0111100 -> OpFCVT_S_WU | 0b0110001 -> OpFCVT_D_L  | 0b0110101 -> OpFCVT_D_LU |
-               0b0111001 -> OpFCVT_D_W  | 0b0111101 -> OpFCVT_D_WU | 0b1111000 -> OpMXTF_S    |
-               0b1111001 -> OpMXTF_D    | 0b1111100 -> OpMTFSR |
-               0b0100000 -> OpFCVT_L_S  | 0b0100100 -> OpFCVT_LU_S | 0b0101000 -> OpFCVT_W_S  | (* FP-Int Mov/Conv *)
-               0b0101100 -> OpFCVT_WU_S | 0b0100001 -> OpFCVT_L_D  | 0b0100101 -> OpFCVT_LU_D |
-               0b0101001 -> OpFCVT_W_D  | 0b0101101 -> OpFCVT_WU_D | 0b1110000 -> OpMFTX_S    |
-               0b1110001 -> OpMFTX_D    | 0b1110100 -> OpMFFSR     |
-               0b1010100 -> OpFEQ_S     | 0b1011000 -> OpFLT_S     | 0b1011100 -> OpFLE_S     | (* FP Compare *)
-               0b1010101 -> OpFEQ_D     | 0b1011001 -> OpFLT_D     | 0b1011101 -> OpFLE_D     |
-               _ -> failinst h l in
-      IFPComp(fi, d_rd h, d_rs1 h, d_rs2 h, d_rmR l, op)
-  | 0b1000011 ->
-       let op = if l land 0b110000000 = 0 then OpFMADD_S else OpFMADD_D in
-       IFPComp3(fi, d_rd h, d_rs1 h, d_rs2 h, d_rs3 h l, d_rmR l, op)
-  | 0b1000111 -> 
-       let op = if l land 0b110000000 = 0 then OpFMSUB_S else OpFMSUB_D in
-       IFPComp3(fi, d_rd h, d_rs1 h, d_rs2 h, d_rs3 h l, d_rmR l, op)
-  | 0b1001011 ->  
-       let op = if l land 0b110000000 = 0 then OpFNMSUB_S else OpFNMSUB_D in
-       IFPComp3(fi, d_rd h, d_rs1 h, d_rs2 h, d_rs3 h l, d_rmR l, op)
-  | 0b1001111 ->
-       let op = if l land 0b110000000 = 0 then OpFNMADD_S else OpFNMADD_D in
-       IFPComp3(fi, d_rd h, d_rs1 h, d_rs2 h, d_rs3 h l, d_rmR l, op)
   (* Miscellaneous Memory Instructions *)
   | 0b0101111 ->
        let op = match d_funIB l with 0b001 -> OpFENCE_I | 0b010 -> OpFENCE |

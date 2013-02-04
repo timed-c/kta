@@ -34,9 +34,6 @@ type immv = int   (* variable numbers of bits depending on instruction
                      LUI has 20 bits. Note that rs1 is unused for LUI
                      other instructions have 12 bits *)
 
-(* Floating-Point Rounding Mode. See table 3 in RISC-V manual *)
-type rm = RmRNE | RmRTZ | RmRDN | RmRUP | RmRMM 
-
 
 (** Opcodes *)
 type opAbsJmp     = OpJ  | OpJAL
@@ -57,24 +54,6 @@ type opCompReg    = OpADD   | OpSUB   | OpSLL    | OpSLT   | OpSLTU |
                     OpDIVU  | OpREM   | OpREMU   | OpADDW  | OpSUBW |
                     OpSLLW  | OpSRLW  | OpSRAW   | OpMULW  | OpDIVW |
                     OpDIVUW | OpREMW  | OpREMUW
-type opFPLoad     = OpFLW   | OpFLD
-type opFPStore    = OpFSW   | OpFSD
-type opFPComp     = OpFADD_S    | OpFSUB_S    | OpFMUL_S   | OpFDIV_S |
-                    OpFSQRT_S   | OpFMIN_S    | OpFMAX_S   | 
-                    OpFADD_D    | OpFSUB_D    | OpFMUL_D   | OpFDIV_D |
-                    OpFSQRT_D   | OpFMIN_D    | OpFMAX_D   | 
-                    OpFSGNJ_S   | OpFSGNJN_S  | OpFSGNJX_S | OpFSGNJ_D | 
-                    OpFSGNJN_D  | OpFSGNJX_D  | OpFCVT_S_D | OpFCVT_D_S |
-                    OpFCVT_S_L  | OpFCVT_S_LU | OpFCVT_S_W | OpFCVT_S_WU |
-                    OpFCVT_D_L  | OpFCVT_D_LU | OpFCVT_D_W | OpFCVT_D_WU |
-                    OpMXTF_S    | OpMXTF_D    | OpMTFSR    |
-                    OpFCVT_L_S  | OpFCVT_LU_S | OpFCVT_W_S | OpFCVT_WU_S |
-                    OpFCVT_L_D  | OpFCVT_LU_D | OpFCVT_W_D | OpFCVT_WU_D |
-                    OpMFTX_S    | OpMFTX_D    | OpMFFSR    |
-                    OpFEQ_S     | OpFLT_S     | OpFLE_S    | OpFEQ_D |
-                    OpFLT_D     | OpFLE_D                   
-type opFPComp3    = OpFMADD_S   | OpFMSUB_S   | OpFNMSUB_S | OpFNMADD_S |
-                    OpFMADD_D   | OpFMSUB_D   | OpFNMSUB_D | OpFNMADD_D
 type opMiscMem    = OpFENCE_I   | OpFENCE
 type opSys        = OpSYSCALL   | OpBREAK     | OpRDCYCLE  | OpRDTIME |
                     OpRDINSTRET
@@ -89,10 +68,6 @@ type inst =
 | IAtomic     of info * rd  * rs1 * rs2   * opAtomic             (* Atomic Memory *) 
 | ICompImm    of info * rd  * rs1 * immv  * opCompImm            (* Integer Register-Immediate Computation *)
 | ICompReg    of info * rd  * rs1 * rs2   * opCompReg            (* Integer Register-Register Computation *)
-| IFPLoad     of info * rd  * rs1 * imm12 * opFPLoad             (* Floating-Point Load Memory *) 
-| IFPStore    of info * rs1 * rs2 * imm12 * opFPStore            (* Floating-Point Store Memory *)
-| IFPComp     of info * rd  * rs1 * rs2   * rm * opFPComp        (* FP comp, mov, compare (2 reg) *)
-| IFPComp3    of info * rd  * rs1 * rs2   * rs3 * rm * opFPComp3 (* FP comp, mov, compare (3 reg) *)
 | IMiscMem    of info * rd  * rs1 * imm12 * opMiscMem            (* Misc memory instructions *)
 | ISys        of info * rd  * opSys                              (* System instructions *)
 
@@ -106,9 +81,6 @@ let isIntImReg32 op = match op with
 let isIntRegReg32 op = match op with
    OpADDW | OpSUBW | OpSLLW | OpSRLW | OpSRAW | OpMULW | OpDIVW | OpDIVUW |
    OpREMW | OpREMUW -> true | _ -> false
-
-
-
 
 
 
