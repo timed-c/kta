@@ -80,7 +80,6 @@ let ppSys op = us (match op with
   | OpRDTIME  -> "rdtime"   | OpRDINSTRET -> "rdinstret")
 
 
-
 (* Pretty print general purpose register *)
 let ppXreg r =
   if r < 0 || r > 31 then raise (Failure (sprintf "Unknown register value %d." r))
@@ -133,12 +132,11 @@ let sprint_inst_conf n map pc inst =
       pp3arg n map (ppCompImm op) (ppXreg rd) (ppXreg rs1) (ustring_of_int (sign_ext immv 12))
   | ICompReg(fi,rd,rs1,rs2,op) ->
       pp3arg n map (ppCompReg op) (ppXreg rd) (ppXreg rs1) (ppXreg rs2)
-  | _ -> us""
+  | IMiscMem(fi,rd,rs1,imm12,op) -> 
+      pp3arg n map (ppMiscMem op) (ppXreg rd) (ppXreg rs1) (ustring_of_int imm12)
+  | ISys(fi,rd,op) ->
+      pp1arg n map (ppSys op) (ppXreg rd)
  
-(*| IMiscMem    of info * rd  * rs1 * imm12 * opMiscMem            (* Misc memory instructions *)
-| ISys        of info * rd  * opSys                              (* System instructions *)
-*)
-
   
 
 let sprint_inst = sprint_inst_conf 8 (IntMap.empty)

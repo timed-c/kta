@@ -1,0 +1,18 @@
+
+
+
+
+- How to pretty print addresses for conditional jumps? Hex?
+- How to print the offset for indirect jumps?
+
+NOT-YET-IMPLEMENTED
+====================
+- Floating-point instructions are not yet implemented. Some draft code are available 
+  in file floating.ml. 
+
+
+TO TEST 
+=================
+- Misc memory instructions and system instructions are implemented but there
+   are no unit tests.
+-
