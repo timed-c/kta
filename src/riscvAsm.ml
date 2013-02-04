@@ -77,6 +77,50 @@ let ppFPLoad op = us (match op with
 let ppFPStore op = us (match op with 
   | OpFSW -> "fsw" | OpFSD -> "fsd")
 
+(* Pretty printing of floating point computations *)
+let ppFPComp op = us (match op with 
+  | OpFADD_S    -> "fadd.s"    | OpFSUB_S    -> "fsub.s"    | OpFMUL_S    -> "fmul.s"   
+  | OpFDIV_S    -> "fdiv.s"    | OpFSQRT_S   -> "fsqrt.s"   | OpFMIN_S    -> "fmin.s"   
+  | OpFMAX_S    -> "fmax.s"    | OpFADD_D    -> "fadd.d"    | OpFSUB_D    -> "fsub.d"   
+  | OpFMUL_D    -> "fmul.d"    | OpFDIV_D    -> "fdiv.d"    | OpFSQRT_D   -> "fsqrt.d"  
+  | OpFMIN_D    -> "fmin.d"    | OpFMAX_D    -> "fmax.d"    | OpFSGNJ_S   -> "fsgnj.s"  
+  | OpFSGNJN_S  -> "fsgnjn.s"  | OpFSGNJX_S  -> "fsgnjx.s"  | OpFSGNJ_D   -> "fsgnj.d" 
+  | OpFSGNJN_D  -> "fsgnjn.d"  | OpFSGNJX_D  -> "fsgnjx.d"  | OpFCVT_S_D  -> "fcvt.s.d"
+  | OpFCVT_D_S  -> "fcvt.d.s"  | OpFCVT_S_L  -> "fcvt.s.l"  | OpFCVT_S_LU -> "fcvt.s.lu"
+  | OpFCVT_S_W  -> "fcvt.s.w"  | OpFCVT_S_WU -> "fcvt.s.wu" | OpFCVT_D_L  -> "fcvt.d.l"
+  | OpFCVT_D_LU -> "fcvt.d.lu" | OpFCVT_D_W  -> "fcvt.d.w"  | OpFCVT_D_WU -> "fcvt.d.wu" 
+  | OpMXTF_S    -> "mxtf.s"    | OpMXTF_D    -> "mxtf.d"    | OpMTFSR     -> "mtfsr"  
+  | OpFCVT_L_S  -> "fcvt.l.s"  | OpFCVT_LU_S -> "fcvt.lu.s" | OpFCVT_W_S  -> "fcvt.w.s"
+  | OpFCVT_WU_S -> "fcvt.wu.s" | OpFCVT_L_D  -> "fcvt.l.d"  | OpFCVT_LU_D -> "fcvt.lu.d" 
+  | OpFCVT_W_D  -> "fcvt.w.d"  | OpFCVT_WU_D -> "fcvt.wu.d" | OpMFTX_S    -> "mftx.s"
+  | OpMFTX_D    -> "mftx.d"    | OpMFFSR     -> "mffsr"     | OpFEQ_S     -> "feq.s"
+  | OpFLT_S     -> "flt.s"     | OpFLE_S     -> "fle.s"     | OpFEQ_D     -> "feq.d"
+  | OpFLT_D     -> "flt.d"     | OpFLE_D     -> "fle.d")
+                  
+(* Pretty printing of floating point computations (with 3 args) *)
+let ppFPComp3 op = us (match op with 
+  | OpFMADD_S  -> "fmadd.s"  | OpFMSUB_S  -> "fmsub.s"  | OpFNMSUB_S -> "fnmsub.s"
+  | OpFNMADD_S -> "fnmadd.s" | OpFMADD_D  -> "fmadd.d"  | OpFMSUB_D  -> "fmsub.d" 
+  | OpFNMSUB_D -> "fnmsub.d" | OpFNMADD_D -> "fnmadd.d")
+
+(* Pretty printing misc memory instructions  *)
+let ppMiscMem op = us (match op with 
+  | OpFENCE_I -> "fence.i"  | OpFENCE -> "fence")
+
+(* Pretty printing sys instructions *)
+let ppSys op = us (match op with 
+  | OpSYSCALL -> "syscall"  | OpBREAK     -> "break"      | OpRDCYCLE -> "rdcycle"   
+  | OpRDTIME  -> "rdtime"   | OpRDINSTRET -> "rdinstret")
+
+(* Pretty print the rounding mode *)
+let ppRM rm = us (match rm with 
+  | RmRNE -> "rne" | RmRTZ -> "rtz" | RmRDN -> "rdn" | RmRUP -> "rup" | RmRMM -> "rmm")
+
+(* Returns true for floating-point instructions that are using rounding mode *)
+let useRM rm = match rm with 
+  | OpFMIN_S  | OpFMAX_S   | OpFMIN_D   | OpFMAX_D | OpFSGNJ_S | OpFSGNJN_S | OpFSGNJX_S 
+  | OpFSGNJ_D | OpFSGNJN_D | OpFSGNJX_D | OpMXTF_S | OpMXTF_D  | OpMTFSR    | OpMFTX_S   
+  | OpMFTX_D  | OpMFFSR _ -> false | _ -> true
 
 (* Pretty print general purpose register *)
 let ppXreg r =
@@ -98,6 +142,13 @@ let pp1arg n map op a1  = op ^. space op n ^. a1
 let pp2arg n map op a1 a2 = op ^. space op n  ^. a1 ^. us"," ^. a2
 let pp3arg n map op a1 a2 a3 = op ^. space op n  ^. a1 ^. us"," ^. a2 ^. us"," ^. a3
 let pp3arg_addr n map op a1 a2 a3  = op ^. space op n  ^. a1 ^. us"," ^. a3 ^. us"(" ^. a2 ^. us")"
+let pp4arg n map op a1 a2 a3 a4 = op ^. space op n  ^. a1 ^. us"," ^. a2 ^. us"," ^. a3 ^. us"," ^. a4 
+let pp5arg n map op a1 a2 a3 a4 a5 = op ^. space op n  ^. a1 ^. us"," ^. a2 ^. us"," ^. a3 ^. us"," ^. a4
+                                  ^. us"," ^. a5 
+
+
+(* Returns [str] if [opt] is true, else returns an empty string *)
+let stropt opt str = if opt then us"," ^. str else us""
 
 (* Pretty print an address with symbol (if exists) *)
 let ppAddr addr map = 
@@ -136,8 +187,17 @@ let sprint_inst_conf n map pc inst =
       pp3arg_addr n map (ppFPLoad op) (ppXreg rd) (ppXreg rs1) (ustring_of_int (sign_ext imm12 12))
   | IFPStore(fi,rs1,rs2,imm12,op) ->
       pp3arg_addr n map (ppFPStore op) (ppXreg rs2) (ppXreg rs1) (ustring_of_int (sign_ext imm12 12))  
+  | IFPComp(fi,rd,rs1,rs2,rm,op) ->
+      pp4arg n map (ppFPComp op) (ppXreg rd) (ppXreg rs1) (ppXreg rs2) (stropt (useRM op) (ppRM rm))
+  | IFPComp3(fi,rd,rs1,rs2,rs3,rm,op) ->
+      pp5arg n map (ppFPComp3 op) (ppXreg rd) (ppXreg rs1) (ppXreg rs2) (ppXreg rs3) (ppRM rm)
+  | IMiscMem(fi,rd,rs1,imm12,op) ->
+      
   | _ -> us""
  
+(*| IMiscMem    of info * rd  * rs1 * imm12 * opMiscMem            (* Misc memory instructions *)
+| ISys        of info * rd  * opSys                              (* System instructions *)
+*)
 
   
 
