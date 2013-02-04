@@ -106,6 +106,14 @@ let main =
              (inst true 0x208  "\x05\xb3\x18\x44")  (us"mulhu   x3,x1,x2");
  
 
+  (*** Floating-point Loads and Stores ***)
+
+  test_ustr "Instruction flw"  
+             (inst true 0x1e48  "\xd1\x07\x18\x90")  (us"flw     x3,1076(x2)");
+
+  test_ustr "Instruction fsw"  
+             (inst true 0x18d8  "\x11\x27\x07\xba")  (us"fsw     x29,4(x30)");
+
 
   result()
 

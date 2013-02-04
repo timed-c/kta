@@ -69,6 +69,14 @@ let ppCompImm op = us (match op with
   | OpANDI  -> "andi"  | OpLUI   -> "lui"   | OpADDIW -> "addiw"| OpSLLIW -> "slliw"
   | OpSRLIW -> "srliw" | OpSRAIW -> "sraiw")
 
+(* Pretty print floating-point loads *)
+let ppFPLoad op = us (match op with 
+  | OpFLW -> "flw"  | OpFLD -> "fld")
+
+(* Pretty print floating-point stores *)
+let ppFPStore op = us (match op with 
+  | OpFSW -> "fsw" | OpFSD -> "fsd")
+
 
 (* Pretty print general purpose register *)
 let ppXreg r =
@@ -124,8 +132,12 @@ let sprint_inst_conf n map pc inst =
       pp3arg n map (ppCompImm op) (ppXreg rd) (ppXreg rs1) (ustring_of_int (sign_ext immv 12))
   | ICompReg(fi,rd,rs1,rs2,op) ->
       pp3arg n map (ppCompReg op) (ppXreg rd) (ppXreg rs1) (ppXreg rs2)
+  | IFPLoad(fi,rd,rs1,imm12,op) ->
+      pp3arg_addr n map (ppFPLoad op) (ppXreg rd) (ppXreg rs1) (ustring_of_int (sign_ext imm12 12))
+  | IFPStore(fi,rs1,rs2,imm12,op) ->
+      pp3arg_addr n map (ppFPStore op) (ppXreg rs2) (ppXreg rs1) (ustring_of_int (sign_ext imm12 12))  
   | _ -> us""
-
+ 
 
   
 
