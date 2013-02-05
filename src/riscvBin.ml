@@ -230,6 +230,38 @@ let encAtomic op = match op with
   | OpAMOMIN_D  -> 0b00001000110101011 | OpAMOMAX_D  -> 0b00001010110101011
   | OpAMOMINU_D -> 0b00001100110101011 | OpAMOMAXU_D -> 0b00001110110101011
 
+let encCompImm op = match op with
+  | OpADDI  -> 0b0000010011 | OpSLLI  -> 0b0010010011 | OpSLTI  -> 0b0100010011  
+  | OpSLTIU -> 0b0110010011 | OpXORI  -> 0b1000010011 | OpSRLI  -> 0b1010010011 
+  | OpSRAI  -> 0b1010010011 | OpORI   -> 0b1100010011 | OpANDI  -> 0b1110010011 
+  | OpLUI   -> 0b0110111    | OpADDIW -> 0b0000011011 | OpSLLIW -> 0b0010011011
+  | OpSRLIW -> 0b1010011011 | OpSRAIW -> 0b1010011011
+
+let encCompReg op = match op with
+  | OpADD    -> 0b00000000000110011 | OpSUB   -> 0b10000000000110011   
+  | OpSLL    -> 0b00000000010110011 | OpSLT   -> 0b00000000100110011   
+  | OpSLTU   -> 0b00000000110110011 | OpXOR   -> 0b00000001000110011  
+  | OpSRL    -> 0b00000001010110011 | OpSRA   -> 0b10000001010110011   
+  | OpOR     -> 0b00000001100110011 | OpAND   -> 0b00000001110110011 
+  | OpMUL    -> 0b00000010000110011 | OpMULH  -> 0b00000010010110011 
+  | OpMULHSU -> 0b00000010100110011 | OpMULHU -> 0b00000010110110011
+  | OpDIV    -> 0b00000011000110011 | OpDIVU  -> 0b00000011010110011
+  | OpREM    -> 0b00000011100110011 | OpREMU  -> 0b00000011110110011 
+  | OpADDW   -> 0b00000000000111011 | OpSUBW  -> 0b10000000000111011
+  | OpSLLW   -> 0b00000000010111011 | OpSRLW  -> 0b00000001010111011
+  | OpSRAW   -> 0b10000001010111011 | OpMULW  -> 0b00000010000111011
+  | OpDIVW   -> 0b00000011000111011 | OpDIVUW -> 0b00000011010111011
+  | OpREMW   -> 0b00000011100111011 | OpREMUW -> 0b00000011110111011
+
+let encMiscMem op = match op with
+  | OpFENCE_I -> 0b0010101111  | OpFENCE -> 0b0100101111  
+
+let encSys op = match op with
+  | OpSYSCALL   -> 0b00000000001110111 | OpBREAK  -> 0b00000000011110111    
+  | OpRDCYCLE   -> 0b00000001001110111 | OpRDTIME -> 0b00000011001110111
+  | OpRDINSTRET -> 0b00000101001110111
+
+
 (* Encodes one 32 bit instructions. Returns a tuple with two parcels. *)
 let encode_32inst inst =
   match inst with 
@@ -246,13 +278,16 @@ let encode_32inst inst =
   (* Atomic Memory *)
   | IAtomic(fi,op,rd,rs1,rs2) -> encR rd rs1 rs2 (encAtomic op)
   (* Integer Register-Immediate Computation *)
-  | ICompImm(fi,op,rd,rs1,immv) -> (0,0)
+  | ICompImm(fi,op,rd,rs1,immv) -> 
+     if op = OpLUI then encL rd immv (encCompImm op) else 
+     let imm = immv lor (match op with OpSRAI | OpSRAIW -> 0b1000000 | _ -> 0) in
+     encI rd rs1 imm (encCompImm op)
   (* Integer Register-Register Computation *)
-  | ICompReg(fi,op,rd,rs1,rs2) -> (0,0)
+  | ICompReg(fi,op,rd,rs1,rs2) -> encR rd rs1 rs2 (encCompReg op)
   (* Misc memory instructions *)
-  | IMiscMem(fi,op,rd,rs1,imm12) -> (0,0)
+  | IMiscMem(fi,op,rd,rs1,imm12) -> encI rd rs1 imm12 (encMiscMem op)
   (* System instructions *)
-  | ISys(fi,op,rd) -> (0,0)
+  | ISys(fi,op,rd) -> encR rd 0 0 (encSys op)
 
 
 (* Encode a 32 bit instruction to a string at a specific index. *)
@@ -264,8 +299,6 @@ let encode_to_str bige inst s i =
   s.[i+ah+2] <- (char_of_int (h lsr 8));
   s.[i+al+2] <- (char_of_int (h land 0xff));
   s
-
-
 
 
 
