@@ -165,7 +165,7 @@ let decode_32inst h l =
 
 
 (* Encode the R-type *)
-let enR rd rs1 rs2 opfunct17 =
+let encR rd rs1 rs2 opfunct17 =
   let high = (rd lsl 11) lor (rs1 lsl 6) lor (rs2 lsl 1) lor (opfunct17 lsr 16) in
   let low = opfunct17 land 0xffff in
   (high,low)
@@ -220,6 +220,15 @@ let encStore op = match op with
   | OpSB -> 0b0000100011 | OpSH -> 0b0010100011 | OpSW -> 0b0100100011 
   | OpSD -> 0b0110100011 
 
+let encAtomic op = match op with
+  | OpAMOADD_W  -> 0b00000000100101011 | OpAMOSWAP_W -> 0b00000010100101011 
+  | OpAMOAND_W  -> 0b00000100100101011 | OpAMOOR_W   -> 0b00000110100101011 
+  | OpAMOMIN_W  -> 0b00001000100101011 | OpAMOMAX_W  -> 0b00001010100101011
+  | OpAMOMINU_W -> 0b00001100100101011 | OpAMOMAXU_W -> 0b00001110100101011
+  | OpAMOADD_D  -> 0b00000000110101011 | OpAMOSWAP_D -> 0b00000010110101011
+  | OpAMOAND_D  -> 0b00000100110101011 | OpAMOOR_D   -> 0b00000110110101011 
+  | OpAMOMIN_D  -> 0b00001000110101011 | OpAMOMAX_D  -> 0b00001010110101011
+  | OpAMOMINU_D -> 0b00001100110101011 | OpAMOMAXU_D -> 0b00001110110101011
 
 (* Encodes one 32 bit instructions. Returns a tuple with two parcels. *)
 let encode_32inst inst =
@@ -235,7 +244,7 @@ let encode_32inst inst =
   (* Store Memory *)
   | IStore(fi,op,rs1,rs2,imm12) -> encB rs1 rs2 imm12 (encStore op)
   (* Atomic Memory *)
-  | IAtomic(fi,op,rd,rs1,rs2) -> (0,0)
+  | IAtomic(fi,op,rd,rs1,rs2) -> encR rd rs1 rs2 (encAtomic op)
   (* Integer Register-Immediate Computation *)
   | ICompImm(fi,op,rd,rs1,immv) -> (0,0)
   (* Integer Register-Register Computation *)
