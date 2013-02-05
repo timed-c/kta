@@ -204,7 +204,10 @@ let encJ offset25 op7 =
 let encAbsJmp op = match op with
   | OpJ -> 0b1100111 | OpJAL -> 0b1101111
 
-
+let encCondJmp op = match op with
+  | OpBEQ -> 0b0001100011 | OpBNE  -> 0b0011100011 | OpBLT  -> 0b1001100011 
+  | OpBGE -> 0b1011100011 | OpBLTU -> 0b1101100011 | OpBGEU -> 0b1111100011
+  
 
 
 
@@ -213,10 +216,9 @@ let encAbsJmp op = match op with
 let encode_32inst inst =
   match inst with 
   (* Absolute Jump *)
-  | IAbsJmp(fi,op,imm25) -> 
-      encJ imm25 (encAbsJmp op)
+  | IAbsJmp(fi,op,imm25) -> encJ imm25 (encAbsJmp op)
   (* Conditional Jump *)
-  | ICondJmp(fi,op,rs1,rs2,imm12) -> (0,0)
+  | ICondJmp(fi,op,rs1,rs2,imm12) -> encB rs1 rs2 imm12 (encCondJmp op)
   (* Indirect Jump *)
   | IIndJmp(fi,op,rd,rs1,imm12) -> (0,0)
   (* Load Memory *)
