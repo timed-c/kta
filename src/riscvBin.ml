@@ -200,7 +200,6 @@ let encJ offset25 op7 =
   let low = ((offset25 land 0b111111111) lsl 7) lor op7 in
   (high,low)
 
-
 let encAbsJmp op = match op with
   | OpJ -> 0b1100111 | OpJAL -> 0b1101111
 
@@ -208,7 +207,9 @@ let encCondJmp op = match op with
   | OpBEQ -> 0b0001100011 | OpBNE  -> 0b0011100011 | OpBLT  -> 0b1001100011 
   | OpBGE -> 0b1011100011 | OpBLTU -> 0b1101100011 | OpBGEU -> 0b1111100011
   
-
+let encIndJmp op = match op with
+  | OpJALR_C -> 0b0001101011 | OpJALR_R -> 0b0011101011 
+  | OpJALR_J -> 0b0101101011 | OpRDNPC  -> 0b1001101011
 
 
 
@@ -220,7 +221,7 @@ let encode_32inst inst =
   (* Conditional Jump *)
   | ICondJmp(fi,op,rs1,rs2,imm12) -> encB rs1 rs2 imm12 (encCondJmp op)
   (* Indirect Jump *)
-  | IIndJmp(fi,op,rd,rs1,imm12) -> (0,0)
+  | IIndJmp(fi,op,rd,rs1,imm12) -> encI rd rs1 imm12 (encIndJmp op)
   (* Load Memory *)
   | ILoad(fi,op,rd,rs1,imm12) -> (0,0) 
   (* Store Memory *)
