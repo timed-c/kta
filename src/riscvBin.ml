@@ -211,6 +211,14 @@ let encIndJmp op = match op with
   | OpJALR_C -> 0b0001101011 | OpJALR_R -> 0b0011101011 
   | OpJALR_J -> 0b0101101011 | OpRDNPC  -> 0b1001101011
 
+let encLoad op = match op with
+  | OpLB  -> 0b0000000011 | OpLH  -> 0b0010000011 | OpLW  -> 0b0100000011  
+  | OpLD  -> 0b0110000011 | OpLBU -> 0b1000000011 | OpLHU -> 0b1010000011  
+  | OpLWU -> 0b1100000011
+
+let encStore op = match op with
+  | OpSB -> 0b0000100011 | OpSH -> 0b0010100011 | OpSW -> 0b0100100011 
+  | OpSD -> 0b0110100011 
 
 
 (* Encodes one 32 bit instructions. Returns a tuple with two parcels. *)
@@ -223,9 +231,9 @@ let encode_32inst inst =
   (* Indirect Jump *)
   | IIndJmp(fi,op,rd,rs1,imm12) -> encI rd rs1 imm12 (encIndJmp op)
   (* Load Memory *)
-  | ILoad(fi,op,rd,rs1,imm12) -> (0,0) 
+  | ILoad(fi,op,rd,rs1,imm12) -> encI rd rs1 imm12 (encLoad op) 
   (* Store Memory *)
-  | IStore(fi,op,rs1,rs2,imm12) -> (0,0)
+  | IStore(fi,op,rs1,rs2,imm12) -> encB rs1 rs2 imm12 (encStore op)
   (* Atomic Memory *)
   | IAtomic(fi,op,rd,rs1,rs2) -> (0,0)
   (* Integer Register-Immediate Computation *)
