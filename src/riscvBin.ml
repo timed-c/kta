@@ -9,7 +9,6 @@ open Ustring.Op
 exception Decode_error
 exception Unsupported_encoding
 
-type big_endian = bool
 
 
 
@@ -165,7 +164,90 @@ let decode_32inst h l =
   | _ -> failinst h l
 
 
-  
+(* Encode the R-type *)
+let enR rd rs1 rs2 opfunct17 =
+  let high = (rd lsl 11) lor (rs1 lsl 6) lor (rs2 lsl 1) lor (opfunct17 lsr 16) in
+  let low = opfunct17 land 0xffff in
+  (high,low)
+
+(* Encode the R4-type *)
+let encR4 rd rs1 rs2 rs3 opfunct12 =
+  let high = (rd lsl 11) lor (rs1 lsl 6) lor (rs2 lsl 1) lor (rs3 lsr 4) in
+  let low = ((rs3 land 0b1111) lsl 12) lor opfunct12 in
+  (high,low)
+
+(* Encode the I-type *)
+let encI rd rs1 imm12 opfunct10 =
+  let high = (rd lsl 11) lor (rs1 lsl 6) lor (imm12 lsr 6) in
+  let low = ((imm12 land 0b111111) lsl 10) lor opfunct10 in
+  (high,low)
+
+(* Encode the B-type *)
+let encB rs1 rs2 imm12 opfunct10 =
+  let high = ((imm12 lsr 7) lsl 11) lor (rs1 lsl 6) lor (rs2 lsl 1) lor ((imm12 lsr 6) land 1) in
+  let low = ((imm12 land 0b111111) lsl 10) lor opfunct10 in
+  (high,low)
+
+(* Encode the L-type *)
+let encL rd imm20 op7 =
+  let high = (rd lsl 11) lor (imm20 lsr 9) in
+  let low = ((imm20 land 0b111111111) lsl 7) lor op7 in
+  (high,low)
+
+(* Encode the J-type *)
+let encJ offset25 op7 =
+  let high = offset25 lsr 9 in
+  let low = ((offset25 land 0b111111111) lsl 7) lor op7 in
+  (high,low)
+
+
+let encAbsJmp op = match op with
+  | OpJ -> 0b1100111 | OpJAL -> 0b1101111
+
+
+
+
+
+
+(* Encodes one 32 bit instructions. Returns a tuple with two parcels. *)
+let encode_32inst inst =
+  match inst with 
+  (* Absolute Jump *)
+  | IAbsJmp(fi,op,imm25) -> 
+      encJ imm25 (encAbsJmp op)
+  (* Conditional Jump *)
+  | ICondJmp(fi,op,rs1,rs2,imm12) -> (0,0)
+  (* Indirect Jump *)
+  | IIndJmp(fi,op,rd,rs1,imm12) -> (0,0)
+  (* Load Memory *)
+  | ILoad(fi,op,rd,rs1,imm12) -> (0,0) 
+  (* Store Memory *)
+  | IStore(fi,op,rs1,rs2,imm12) -> (0,0)
+  (* Atomic Memory *)
+  | IAtomic(fi,op,rd,rs1,rs2) -> (0,0)
+  (* Integer Register-Immediate Computation *)
+  | ICompImm(fi,op,rd,rs1,immv) -> (0,0)
+  (* Integer Register-Register Computation *)
+  | ICompReg(fi,op,rd,rs1,rs2) -> (0,0)
+  (* Misc memory instructions *)
+  | IMiscMem(fi,op,rd,rs1,imm12) -> (0,0)
+  (* System instructions *)
+  | ISys(fi,op,rd) -> (0,0)
+
+
+(* Encode a 32 bit instruction to a string at a specific index. *)
+let encode_to_str bige inst s i = 
+  let (h,l) = encode_32inst inst in
+  let (ah,al) = if bige then (0,1) else (1,0) in 
+  s.[i+ah] <- (char_of_int (l lsr 8));
+  s.[i+al] <- (char_of_int (l land 0xff));
+  s.[i+ah+2] <- (char_of_int (h lsr 8));
+  s.[i+al+2] <- (char_of_int (h land 0xff));
+  s
+
+
+
+
 
 (**************** Exported functions *******************************)
 
@@ -192,7 +274,10 @@ let decode_all bige data =
   decode_interval bige data 0 (String.length data) 
 
 
-let encode bige inst = ""
+let encode bige inst = 
+  let s = String.create(4) in
+  encode_to_str bige inst s 0
+  
 
 
 let encode_all bige instlst = ""
