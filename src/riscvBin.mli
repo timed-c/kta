@@ -22,8 +22,13 @@ val decode : bool -> string -> int -> RiscvISA.inst * int
     encoding, exception [Unsupported_encoding] is raised. *)
 
 val decode_interval : bool -> string -> int -> int -> RiscvISA.inst list
+(** Expression [decode_interval b s pos len] decodes a string, starting
+    at [pos] and decodes [len] number of characters. If wrong offset or
+    length, exception [Invalid_argument] is raised. *)
 
 val decode_all : bool -> string -> RiscvISA.inst list
+(** Expression [decode_all b s] decodes string [s] using big-endian 
+    if [b] is true. See also function [decode]. *)
 
 val encode : bool -> RiscvISA.inst -> string
 (** Expression [encode b i] encodes a 32-bit instruction [i]. The

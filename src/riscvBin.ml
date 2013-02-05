@@ -297,8 +297,8 @@ let encode_to_str bige inst s i =
   s.[i+ah] <- (char_of_int (l lsr 8));
   s.[i+al] <- (char_of_int (l land 0xff));
   s.[i+ah+2] <- (char_of_int (h lsr 8));
-  s.[i+al+2] <- (char_of_int (h land 0xff));
-  s
+  s.[i+al+2] <- (char_of_int (h land 0xff))
+  
 
 
 
@@ -320,8 +320,14 @@ let decode bige data pos =
   (decode_32inst p2 p1, pos+4) 
 
 
-let decode_interval bige data pos len = []
-  
+let decode_interval bige data pos len = 
+  let rec loop p len acc = 
+    if len > 0 then 
+      let (inst,p2) = decode bige data p in
+      loop p2 (len - (p2-p)) (inst::acc)
+    else acc
+  in
+  List.rev (loop pos len []) 
 
 let decode_all bige data = 
   decode_interval bige data 0 (String.length data) 
@@ -329,10 +335,14 @@ let decode_all bige data =
 
 let encode bige inst = 
   let s = String.create(4) in
-  encode_to_str bige inst s 0
+  encode_to_str bige inst s 0;
+  s
   
 
+let encode_all bige instlst = 
+  let s = String.create((List.length instlst)*4) in
+  List.iteri (fun k inst -> encode_to_str bige inst s (k*4)) instlst;
+  s
 
-let encode_all bige instlst = ""
   
 

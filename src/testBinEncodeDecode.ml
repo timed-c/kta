@@ -4,6 +4,7 @@
 
 
 open Ustring.Op
+open Printf
 open Utest
 open RiscvISA
 
@@ -11,6 +12,8 @@ open RiscvISA
 let main = 
   init "Binary decoding and encoding of RISC-V instructions.";
   let encdec bige s = RiscvBin.encode bige (fst (RiscvBin.decode bige s 0)) in
+  let encdeclist bige s = RiscvBin.encode_all bige (RiscvBin.decode_all bige s) in
+  
 
   (*** Absolute Jumps ***)
   
@@ -102,6 +105,11 @@ let main =
   test_str "Instruction mulhu" (encdec true s) s; 
  
 
+  (** Encode and decode a list of instructions **)
+
+  
+  let s = "\x02\x33\x10\x44\x11\x23\x07\xba\x00\x6b\x98\x80\xc2\x63\xf8\x81" in 
+  test "Encode and decode a list of instructions" ((encdeclist true s) = s); 
 
   result()
 
