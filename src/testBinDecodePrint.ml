@@ -4,9 +4,6 @@ open Ustring.Op
 open Utest
 open RiscvISA
 
-(* Special instructions that I need to parse:
-   beqz, bnez *)
-
 
 let main = 
   init "Binary decoding and pretty printing";
