@@ -26,9 +26,12 @@ val string_of_intlist : int list -> string
 val intlist_of_string : string -> int list
 (** Converts a string into a list of integers *)
 
-val write_bin_file : string -> string -> unit
-(** Call [write_bin_file n d] creates a binary file named [n] and stores 
+val write_binfile : string -> string -> unit
+(** Call [write_binfile n d] creates a binary file named [n] and stores 
     string data [d] in the file. Raises [Sys_error] if error creating or
     writing to file. *)
 
-    
+val read_binfile : string -> string
+(** Call [read_binfile n] reads the binary file with filename [n] and
+    returns the binary data as a string. Exception [Sys_error] is raised
+    if the file cannot be found or cannot be read. *)

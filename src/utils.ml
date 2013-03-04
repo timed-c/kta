@@ -36,10 +36,24 @@ let intlist_of_string s =
     then work (n-1) ((int_of_char (s.[n]))::a) else a in
   work (String.length s) []
 
-let write_bin_file filename str =
-  let ch = open_out_bin filename in
-  output_string ch str;
-  close_out ch  
+let write_binfile filename str =
+  let f = open_out_bin filename in
+  output_string f str;
+  flush f;
+  close_out f  
+
+let read_binfile filename =
+  let f = open_in_bin filename in
+  let size = in_channel_length f in
+  let s = String.create size in
+  try 
+    let read = input f s 0 size in
+    if read = size then (close_in f; s) 
+    else raise (Sys_error "Cannot read file")
+  with 
+  | Invalid_argument _ -> raise (Sys_error "Cannot read file")
+
+  
 
 
 
