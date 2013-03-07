@@ -1,8 +1,5 @@
 
 
-
-
-
 exception Decode_error
 (** Raised when not all bytes of an instruction is available or
     if index out-of-bound. *)
