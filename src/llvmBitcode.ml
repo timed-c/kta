@@ -41,11 +41,12 @@ let check_byte_size s p size =
 let check_alignment b =  
   if b != 0 then error_align() else ()
 
-(* Decode one byte that is assumed to be byte aligned. *)
-let dByte (BS(s,p,d,b)) =
+(* Decode [n] number of bytes that are assumed to be byte aligned. *)
+let dBytes (BS(s,p,d,b)) n =
   check_alignment b;
-  check_byte_size s p 1;
-  (s2int s p, BS(s,p+1,0,0))
+  check_byte_size s p n;
+  (String.sub s p n, BS(s,p+n,0,0))
+
   
 (* Decode a 32-bits word in little-endian format*)
 let dWord32 (BS(s,p,d,b)) =
@@ -54,18 +55,20 @@ let dWord32 (BS(s,p,d,b)) =
   let v = (s2int s p) lor ((s2int s (p+1)) lsl 8) lor 
           ((s2int s (p+2)) lsl 16) lor  ((s2int s (p+3)) lsl 24) in
   (v, BS(s,p+4,0,0))
-  
 
+  
 
 (** Decodes the bitcode header (if present) as well as the
     bitstream magic number. All data is checked for consistency *)
-let decode_header bs =
-  let (b0, bs) = dByte bs in 
-  let (b1, bs) = dByte bs in
-  if (b0,b1) = (0xde,0xc0) then (* Includes header *)
-    let (b2, bs) = dByte bs in
-    let (b3, bs) = dByte bs in
-    if (b2,b3) <> (0x17,0x0b) then error_header() else
+let decode_header bitstr =
+  let decode_ir_magic bs = 
+    let (str, bs) = dBytes bs 4 in
+    if str = "\x42\x43\xc0\xde" then bs else error_header()
+  in
+  let (b0, bs) = dBytes bitstr 1 in 
+  if b0 = "\xde" then (* Includes header *)
+    let (b1, bs) = dBytes bs 3 in
+    if b1 <> "\xc0\x17\x0b" then error_header() else
     let (version,bs) = dWord32 bs in
     if version != 0 then error_version version else
     let (offset,bs) = dWord32 bs in
@@ -75,9 +78,9 @@ let decode_header bs =
     let BS(s,_,_,_) = bs in                                      (* TEMP *)
     printf "Header: offset=%d, size_info=%d, string_size=%d\n"   (* TEMP *)
         offset size (String.length s);                           (* TEMP *)
-    bs
-  else if (b0,b1) = (0x42,0x43) then bs (* Only bitstream magic *)
-  else error_header()
+    decode_ir_magic bs
+  else 
+    decode_ir_magic bitstr (* No header included *)
     
 
 
@@ -87,7 +90,7 @@ let decode_header bs =
 let decode data =
   let bs = BS(data,0,0,0) in
   let BS(s,p,d,b) = decode_header bs in
-  printf "String length length=%d, end_pos=%d\n" (String.length data) p
+  printf "String length length=%d, end_pos=%d (%x)\n" (String.length data) p p
 
 
 
