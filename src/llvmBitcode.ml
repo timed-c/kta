@@ -48,21 +48,26 @@ let check_alignment b =
   if b != 0 then error_align() else ()
 
 (* Decode [n] number of bytes that are assumed to be byte aligned. *)
-let dBytes (BS(s,p,d,b)) n =
+let dBytes bs n =
+  let BS(s,p,d,b) = bs in
   check_alignment b;
   check_byte_size s p n;
   (String.sub s p n, BS(s,p+n,0,0))
   
 (* Decode a 32-bits word in little-endian format*)
-let dWord32 (BS(s,p,d,b)) =
+let dWord32 bs =
+  let BS(s,p,d,b) = bs in
   check_alignment b;
   check_byte_size s p 4;
   let v = (s2int s p) lor ((s2int s (p+1)) lsl 8) lor 
           ((s2int s (p+2)) lsl 16) lor  ((s2int s (p+3)) lsl 24) in
   (v, BS(s,p+4,0,0))
 
-(* Decode a Fixed width Integer of bit size [n]. *)
-let dFI (BS(s,p,d,b)) n = 
+(* Decode a Fixed width Integer of bit size [n] from a bit stream [bs].
+   Returns a tuple (v,bs'), where [v] is the decoded integer value
+   and [bs'] the updated bit stream. *)
+let dFI bs n = 
+  let BS(s,p,d,b) = bs in
   let rec decode p d b =
     if b > intsize then error_intsize() 
     else if b >= n then 
@@ -73,8 +78,27 @@ let dFI (BS(s,p,d,b)) n =
       let d' = ((s2int s p) lsl b) lor d in
       decode (p + 1) d' (b+8))
   in decode p d b
+
+(* Decode Variable width Integers (VBR), according to LLVM Bitcode spec. 
+   Decode from bit stream [bs] using [n] bits chucks. The function 
+   returns a tuple (v,bs'), where [v] is the decoded integer value
+   and [bs'] the updated bit stream.  *)
+let dVBR bs n =
+  let checkbit = 1 lsl (n-1) in
+  let maskbits = ones (n-1) in
+  let rec decLoop bs acc b =
+    if b > intsize then error_intsize() else    
+    let (v,bs) = dFI bs n in
+    let acc = ((v land maskbits) lsl b) lor acc in
+    if (checkbit land v) != 0 then 
+      decLoop bs acc (b+n-1)
+    else 
+      (acc,bs)    
+  in decLoop bs 0 0
       
-  
+
+
+      
 (** Decodes the bitcode header (if present) as well as the
     bitstream magic number. All data is checked for consistency *)
 let decode_header bitstr =
@@ -109,8 +133,8 @@ let decode data =
   let bs = decode_header bs in
   let BS(s,p,d,b) = bs in
   printf "String length length=%d, end_pos=%d (%x)\n" (String.length data) p p;
-  let (v1,bs) = dFI bs 2 in
-  let (v2,bs) = dFI bs 8 in
+  let (v1,bs) = dVBR bs 2 in
+  let (v2,bs) = dVBR bs 8 in
   let (v3,bs) = dFI bs 4 in
   let (v4,bs) = dFI bs 18 in
   let (v5,bs) = dFI bs 8 in
