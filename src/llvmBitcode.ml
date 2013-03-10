@@ -47,6 +47,12 @@ let check_byte_size s p size =
 let check_alignment b =  
   if b != 0 then error_align() else ()
 
+(* Checks invariants of the bit stream. Can be removed in production code *)
+let check_invariant bs =
+  let BS(s,p,d,b) = bs in
+  if b > 7 then failwith "Invariant violated. b is not <= 7" else ()
+
+
 (* Decode [n] number of bytes that are assumed to be byte aligned. *)
 let dBytes bs n =
   let BS(s,p,d,b) = bs in
@@ -67,6 +73,7 @@ let dWord32 bs =
    Returns a tuple (v,bs'), where [v] is the decoded integer value
    and [bs'] the updated bit stream. *)
 let dFI bs n = 
+  check_invariant bs;
   let BS(s,p,d,b) = bs in
   let rec decode p d b =
     if b > intsize then error_intsize() 
@@ -84,6 +91,7 @@ let dFI bs n =
    returns a tuple (v,bs'), where [v] is the decoded integer value
    and [bs'] the updated bit stream.  *)
 let dVBR bs n =
+  check_invariant bs;
   let checkbit = 1 lsl (n-1) in
   let maskbits = ones (n-1) in
   let rec decLoop bs acc b =
@@ -95,8 +103,14 @@ let dVBR bs n =
     else 
       (acc,bs)    
   in decLoop bs 0 0
-      
-
+  
+(* Skip bits so that the bit stream points to a multiple of 32 bits. *)
+let dAlign32 bs =
+  check_invariant bs;
+  let BS(s,p,d,b) = bs in
+  if p mod 4 = 0 && b = 0 then bs else
+  BS(s, (((p-1) / 4) + 1) * 4, 0, 0)
+  
 
       
 (** Decodes the bitcode header (if present) as well as the
@@ -129,12 +143,17 @@ let decode_header bitstr =
 
 
 let decode data =
+  let printbs bs =
+      let BS(s,p,d,b) = bs in
+      printf "** p=%d d=%d b=%d\n" p d b
+  in
   let bs = BS(data,0,0,0) in
   let bs = decode_header bs in
   let BS(s,p,d,b) = bs in
   printf "String length length=%d, end_pos=%d (%x)\n" (String.length data) p p;
+  let bs = dAlign32 bs in
   let (v1,bs) = dVBR bs 2 in
-  let (v2,bs) = dVBR bs 8 in
+  let (v2,bs) = dVBR bs 6 in
   let (v3,bs) = dFI bs 4 in
   let (v4,bs) = dFI bs 18 in
   let (v5,bs) = dFI bs 8 in
