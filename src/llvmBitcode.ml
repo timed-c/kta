@@ -30,6 +30,10 @@ let error_version v = raise (Bitcode_error (sprintf "LLVM Bitcode version %d is 
 let error_intsize() = raise (Bitcode_error 
          (sprintf "The machine's word size of %d bits is not large enough." Sys.word_size))
 
+let print_bs txt bs = 
+  let BS(s,p,d,b) = bs in
+  printf "** '%s' p=%d d=%d b=%d " txt p d b;
+  uprint_endline (us"[" ^. Ustring.string2hex (String.sub s p 10) ^. us"]")
                                                    
 (* Return an integer with [n] bits set *)
 let ones n = (1 lsl n) - 1 
@@ -55,14 +59,14 @@ let check_invariant bs =
 
 
 (* Decode [n] number of bytes that are assumed to be byte aligned. *)
-let dBytes bs n =
+let decodeBytes bs n =
   let BS(s,p,d,b) = bs in
   check_alignment b;
   check_byte_size s p n;
   (String.sub s p n, BS(s,p+n,0,0))
   
 (* Decode a 32-bits word in little-endian format*)
-let dWord32 bs =
+let decodeWord32 bs =
   let BS(s,p,d,b) = bs in
   check_alignment b;
   check_byte_size s p 4;
@@ -73,7 +77,7 @@ let dWord32 bs =
 (* Decode a Fixed width Integer of bit size [n] from a bit stream [bs].
    Returns a tuple (v,bs'), where [v] is the decoded integer value
    and [bs'] the updated bit stream. *)
-let dFI bs n = 
+let decodeFixInt bs n = 
   check_invariant bs;
   let BS(s,p,d,b) = bs in
   let rec decode p d b =
@@ -91,13 +95,13 @@ let dFI bs n =
    Decode from bit stream [bs] using [n] bits chucks. The function 
    returns a tuple (v,bs'), where [v] is the decoded integer value
    and [bs'] the updated bit stream.  *)
-let dVBR bs n =
+let decodeVBR bs n =
   check_invariant bs;
   let checkbit = 1 lsl (n-1) in
   let maskbits = ones (n-1) in
   let rec decLoop bs acc b =
     if b > intsize then error_intsize() else    
-    let (v,bs) = dFI bs n in
+    let (v,bs) = decodeFixInt bs n in
     let acc = ((v land maskbits) lsl b) lor acc in
     if (checkbit land v) != 0 then 
       decLoop bs acc (b+n-1)
@@ -106,7 +110,7 @@ let dVBR bs n =
   in decLoop bs 0 0
   
 (* Skip bits so that the bit stream points to a multiple of 32 bits. *)
-let dAlign32 bs =
+let decodeAlign32 bs =
   check_invariant bs;
   let BS(s,p,d,b) = bs in
   if p mod 4 = 0 && b = 0 then bs else
@@ -116,18 +120,18 @@ let dAlign32 bs =
     bitstream magic number. All data is checked for consistency *)
 let decode_header bitstr =
   let decode_ir_magic bs = 
-    let (str, bs) = dBytes bs 4 in
+    let (str, bs) = decodeBytes bs 4 in
     if str = "\x42\x43\xc0\xde" then bs else error_header()
   in
-  let (b0, bs) = dBytes bitstr 1 in 
+  let (b0, bs) = decodeBytes bitstr 1 in 
   if b0 = "\xde" then (* Includes header *)
-    let (b1, bs) = dBytes bs 3 in
+    let (b1, bs) = decodeBytes bs 3 in
     if b1 <> "\xc0\x17\x0b" then error_header() else
-    let (version,bs) = dWord32 bs in
+    let (version,bs) = decodeWord32 bs in
     if version != 0 then error_version version else
-    let (offset,bs) = dWord32 bs in
-    let (size,bs) = dWord32 bs in
-    let (cputype,bs) = dWord32 bs in
+    let (offset,bs) = decodeWord32 bs in
+    let (size,bs) = decodeWord32 bs in
+    let (cputype,bs) = decodeWord32 bs in
     if bit_pos bs != offset * 8 then error_header() else
     let BS(s,_,_,_) = bs in                                      (* TEMP *)
     printf "Header: offset=%d, size_info=%d, string_size=%d\n"   (* TEMP *)
@@ -136,44 +140,57 @@ let decode_header bitstr =
   else 
     decode_ir_magic bitstr (* No header included *)
     
+
 let rec decode_stream bs scopes =
   match scopes with
   | [] -> failwith "The scope list cannot be empty." 
   | (abbrev_len)::top_scopes -> (
-    let (v,bs) = dVBR bs abbrev_len in
+    let (v,bs) = decodeFixInt bs abbrev_len in
     match v with 
     | 0 -> (* END_BLOCK *) 
-      let bs = dAlign32 bs in
-      printf "---- END BLOCK -----\n";                              (* TEMP *)
+      let bs = decodeAlign32 bs in
+      printf "---- END BLOCK abbrevlen=%d-----\n" abbrev_len;                    (* TEMP *)
       decode_stream bs top_scopes
-    | 1 -> (* ENTER_SUBBLOCK *)
-      let (blockid,bs) = dVBR bs abbrev_len in
-      let (newabbrev_len, bs) = dVBR bs 4 in
-      let bs = dAlign32 bs in
-      let (blocklength, bs) = dWord32 bs in
-      printf "---- BEGIN BLOCK blockid=%d length=%d -----\n" blockid blocklength;  (* TEMP *)
+    | 1 -> (* ENTER_SUB_BLOCK *)
+      let (blockid,bs) = decodeVBR bs 8 in
+      let (newabbrev_len, bs) = decodeVBR bs 4 in
+      let bs = decodeAlign32 bs in
+      let (blocklength, bs) = decodeWord32 bs in
+      printf "---- BEGIN BLOCK abbrev_len=%d new_ablen=%d blockid=%d length=%d -----\n"  (* TEMP *)
+            abbrev_len newabbrev_len blockid blocklength;                            (* TEMP *)
       decode_stream bs (newabbrev_len::scopes)      
-    | 2 -> (* DEFINE_ABBREV *) failwith "DEFINE_ABBREV"
-    | 3 -> (* UNABBREV_RECORD *) failwith "UNABBREV_RECORD"
+    | 2 -> (* DEFINE_ABBREV *) 
+       bs
+      
+    | 3 -> (* UNABBREV_RECORD *)
+      let (code,bs) = decodeVBR bs 6 in
+      let (numops,bs) = decodeVBR bs 6 in
+      printf "---- UNABBREV_RECORD abbrev_len=%d code=%d numops=%d -----\n  ["   (* TEMP *)
+           abbrev_len code numops;                                               (* TEMP *)
+      let rec decodeOps bs n =
+        if n = 0 then [] else
+          let (op,bs) = decodeVBR bs 6 in
+          op::(decodeOps bs (n-1)) in
+      let ops = decodeOps bs numops in
+      List.iter (printf "%d,") ops; printf "]\n";                                (* TEMP *)                                                                   
+      decode_stream bs scopes
     | _ -> failwith "Unknown abbreviation!!!"
   )
 
 
+
 (**************** Exported functions *******************************)
 
-let print_bs bs = 
-  let BS(s,p,d,b) = bs in
-  printf "** p=%d d=%d b=%d" p d b
 
 let decode data =
   (* Create bitstream from byte string *)
   let bs = BS(data,0,0,0) in
   (* Decode the header *)
   let bs = decode_header bs in
-  print_bs bs;
+  print_bs "" bs;
   (* Decode stream content *)
   let bs = decode_stream bs [2]  in
-  print_bs bs
+  print_bs "" bs
 
   
 
@@ -181,12 +198,12 @@ let decode data =
   (*
   let BS(s,p,d,b) = bs in
   printf "String length length=%d, end_pos=%d (%x)\n" (String.length data) p p;
-  let bs = dAlign32 bs in
-  let (v1,bs) = dVBR bs 2 in
-  let (v2,bs) = dVBR bs 6 in
-  let (v3,bs) = dFI bs 4 in
-  let (v4,bs) = dFI bs 18 in
-  let (v5,bs) = dFI bs 8 in
+  let bs = decodeAlign32 bs in
+  let (v1,bs) = decodeVBR bs 2 in
+  let (v2,bs) = decodeVBR bs 6 in
+  let (v3,bs) = decodeFI bs 4 in
+  let (v4,bs) = decodeFI bs 18 in
+  let (v5,bs) = decodeFI bs 8 in
   printf "Decoded %d,%d,%d,%d,%d\n" v1 v2 v3 v4 v5
   *)
 
