@@ -29,6 +29,7 @@ let error_size() = raise (Bitcode_error "Illegal size of LLVM bitcode data.")
 let error_version v = raise (Bitcode_error (sprintf "LLVM Bitcode version %d is not supported." v))
 let error_intsize() = raise (Bitcode_error 
          (sprintf "The machine's word size of %d bits is not large enough." Sys.word_size))
+
                                                    
 (* Return an integer with [n] bits set *)
 let ones n = (1 lsl n) - 1 
@@ -110,8 +111,6 @@ let dAlign32 bs =
   let BS(s,p,d,b) = bs in
   if p mod 4 = 0 && b = 0 then bs else
   BS(s, (((p-1) / 4) + 1) * 4, 0, 0)
-  
-
       
 (** Decodes the bitcode header (if present) as well as the
     bitstream magic number. All data is checked for consistency *)
@@ -137,18 +136,49 @@ let decode_header bitstr =
   else 
     decode_ir_magic bitstr (* No header included *)
     
+let rec decode_stream bs scopes =
+  match scopes with
+  | [] -> failwith "The scope list cannot be empty." 
+  | (abbrev_len)::top_scopes -> (
+    let (v,bs) = dVBR bs abbrev_len in
+    match v with 
+    | 0 -> (* END_BLOCK *) 
+      let bs = dAlign32 bs in
+      printf "---- END BLOCK -----\n";                              (* TEMP *)
+      decode_stream bs top_scopes
+    | 1 -> (* ENTER_SUBBLOCK *)
+      let (blockid,bs) = dVBR bs abbrev_len in
+      let (newabbrev_len, bs) = dVBR bs 4 in
+      let bs = dAlign32 bs in
+      let (blocklength, bs) = dWord32 bs in
+      printf "---- BEGIN BLOCK blockid=%d length=%d -----\n" blockid blocklength;  (* TEMP *)
+      decode_stream bs (newabbrev_len::scopes)      
+    | 2 -> (* DEFINE_ABBREV *) failwith "DEFINE_ABBREV"
+    | 3 -> (* UNABBREV_RECORD *) failwith "UNABBREV_RECORD"
+    | _ -> failwith "Unknown abbreviation!!!"
+  )
 
 
 (**************** Exported functions *******************************)
 
+let print_bs bs = 
+  let BS(s,p,d,b) = bs in
+  printf "** p=%d d=%d b=%d" p d b
 
 let decode data =
-  let printbs bs =
-      let BS(s,p,d,b) = bs in
-      printf "** p=%d d=%d b=%d\n" p d b
-  in
+  (* Create bitstream from byte string *)
   let bs = BS(data,0,0,0) in
+  (* Decode the header *)
   let bs = decode_header bs in
+  print_bs bs;
+  (* Decode stream content *)
+  let bs = decode_stream bs [2]  in
+  print_bs bs
+
+  
+
+
+  (*
   let BS(s,p,d,b) = bs in
   printf "String length length=%d, end_pos=%d (%x)\n" (String.length data) p p;
   let bs = dAlign32 bs in
@@ -158,7 +188,7 @@ let decode data =
   let (v4,bs) = dFI bs 18 in
   let (v5,bs) = dFI bs 8 in
   printf "Decoded %d,%d,%d,%d,%d\n" v1 v2 v3 v4 v5
-
+  *)
 
 
 
