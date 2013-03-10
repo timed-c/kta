@@ -17,6 +17,15 @@ type decoded = int      (* Decoded but not used bits *)
 type decoded_bits = int (* Number of decoded bits *)
 type bitstream = BS of string * strpos * decoded * decoded_bits 
 
+(* Used in defining operands of abbreviations *)
+type abbrevOp =
+| AbbrevOpLiteral of int 
+| AbbrevOpFixed of int 
+| AbbrevOpVBR of int  
+| AbbrevOpArray
+| AbbrevOpChar6
+| AbbrevOpBlob
+
 
 (*************** Local functions **********************************)
 
@@ -139,7 +148,42 @@ let decode_header bitstr =
     decode_ir_magic bs
   else 
     decode_ir_magic bitstr (* No header included *)
-    
+
+(* Decodes definition of abbreviations. Returns a tuple [(ops,bs)] where
+   [ops] a list of abbreviation operands and [bs] is the bitstream. *)
+let decode_define_abbrev bs = 
+  let (numabbrevops,bs) = decodeVBR bs 5 in
+  let rec decodeOps bs n = 
+    if n = 0 then (bs,[]) else
+    let (abbrev_type,bs) = decodeFixedInt bs 1 in
+    if abbrev_type = 1 then 
+      let (litvalue, bs) = decodeVBR bs 8 in
+      let (ops,bs) = decodeOps bs (n-1) in
+      (bs,(AbbrevOpLiteral(litvalue)))::ops)
+    else
+      let (encoding,bs) = decodeFixedInt bs 3 in
+      (match encoding with
+      | 1 (* Fixed *) -> 
+        let (value,bs) = decodeVBR bs 5 in
+        let (bs,ops) = decodeOps bs (n-1) in
+        (bs,(AbbrevOpFixed(value))::ops)
+      | 2 (* VBR *) -> 
+        let (value,bs) = decodeVBR bs 5 in
+        let (bs,ops) = decodeOps bs (n-1) in
+        (bs, (AbbrevOpVBR(value))::ops)
+      | 3 (* Array *) -> 
+        let (bs,ops) = decodeOps bs (n-1) in
+        (bs, (AbbrevOpArray::ops)
+      | 4 (* Char6 *) ->
+        let (bs,ops) = decodeOps bs (n-1) in
+        (bs, (AbbrevOpChar6::ops)
+      | 5 (* Blob *) 
+        let (bs,ops) = decodeOps bs (n-1) in
+        (bs, (AbbrevOpBlob::ops)
+      )
+  in decodeOps bs numabbrevops 
+        
+
 
 let rec decode_stream bs scopes =
   match scopes with
@@ -160,8 +204,9 @@ let rec decode_stream bs scopes =
             abbrev_len newabbrev_len blockid blocklength;                            (* TEMP *)
       decode_stream bs (newabbrev_len::scopes)      
     | 2 -> (* DEFINE_ABBREV *) 
-       bs
-      
+      let = (ops,bs) decode_define_abbrev bs in
+      printf "---- DEFINE_ABBREV no_of_ops=%d -----\n" (List.length ops);       (* TEMP *)
+      decode_stream bs scopes
     | 3 -> (* UNABBREV_RECORD *)
       let (code,bs) = decodeVBR bs 6 in
       let (numops,bs) = decodeVBR bs 6 in
@@ -169,8 +214,8 @@ let rec decode_stream bs scopes =
            abbrev_len code numops;                                               (* TEMP *)
       let rec decodeOps bs n =
         if n = 0 then [] else
-          let (op,bs) = decodeVBR bs 6 in
-          op::(decodeOps bs (n-1)) in
+        let (op,bs) = decodeVBR bs 6 in
+        op::(decodeOps bs (n-1)) in
       let ops = decodeOps bs numops in
       List.iter (printf "%d,") ops; printf "]\n";                                (* TEMP *)                                                                   
       decode_stream bs scopes
