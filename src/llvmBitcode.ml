@@ -129,7 +129,6 @@ let decodeWord32 bs =
 let decodeFixedInt bs n = 
   check_invariant bs;
   let BS(s,p,d,b) = bs in
-  (* printf "Decoded %d bits... (p=%d,d=%d,b=%d)\n" n p d b; *)
   let rec decode p d b =
     if b > intsize then error_intsize() 
     else if b >= n then 
@@ -233,11 +232,7 @@ let decode_define_abbrev bs =
 let rec decode_abbrev_ops bs opsenc =  
   let decode_item bs itemcode =
     match itemcode with      
-    | AbbrevOpLiteral(literal_expected) -> 
-      (*let (literal,bs) = decodeVBR bs 8 in
-      if literal_expected <> literal then error_unexpected_literal literal literal_expected
-      else (literal,bs) *)
-      (literal_expected,bs)
+    | AbbrevOpLiteral(literal) -> (literal,bs)
     | AbbrevOpFixed(bitsize) -> decodeFixedInt bs bitsize 
     | AbbrevOpVBR(bitsize) -> decodeVBR bs bitsize 
     | AbbrevOpChar6 -> 
@@ -279,12 +274,10 @@ let rec decode_stream bs scopes =
   match scopes with
   | [] -> failwith "The scope list cannot be empty." 
   | (abbrevlen,blockid,endpos,abbrevlst)::top_scopes -> (
-    (* debug_print_bs "Before decode" bs;*)
     let (v,bs) = decodeFixedInt bs abbrevlen in
     match v with 
     | 0 (* END_BLOCK *) ->
       let bs = decodeAlign32 bs in
-      (* debug_print_bs "End block" bs;*) 
       if getBSPos bs != endpos then error_blocksize() else
       printf "****** END BLOCK '%s' abbrevlen=%d ******\n\n" (sprint_blockid blockid) abbrevlen;                     (* TEMP *)
       decode_stream bs top_scopes
@@ -293,17 +286,14 @@ let rec decode_stream bs scopes =
       let (newabbrevlen, bs) = decodeVBR bs 4 in
       let bs = decodeAlign32 bs in
       let (blocklength, bs) = decodeWord32 bs in
-      (* debug_print_bs "Begin block" bs;*)
       let blockpos = getBSPos bs in
       printf "****** BEGIN BLOCK '%s' blockid=%d length=%d abbrevlen=%d new_ablen=%d ******\n"  (* TEMP *)
             (sprint_blockid blockid) blockid (blocklength*4) abbrevlen newabbrevlen ;                            (* TEMP *)
       decode_stream bs ((newabbrevlen,blockid,blockpos+blocklength*4,[])::scopes)      
     | 2 (* DEFINE_ABBREV *) ->
-      (* debug_print_bs "Abbrev" bs; *)
       let (ops,bs) = decode_define_abbrev bs in
       printf "---- DEFINE_ABBREV id=%d no_of_ops=%d -----\n" 
         ((List.length abbrevlst)+4) (List.length ops);       (* TEMP *)
-      (* debug_print_abbrevops ops;*)
       decode_stream bs ((abbrevlen,blockid,endpos,abbrevlst@[ops])::top_scopes)
     | 3 (* UNABBREV_RECORD *) ->
       let (code,bs) = decodeVBR bs 6 in
@@ -320,11 +310,8 @@ let rec decode_stream bs scopes =
       List.iter (printf "%d,") ops; printf "]\n";                               (* TEMP *)                                                                   
       decode_stream bs scopes
     | abbrevId -> 
-      (* debug_print_bs "Abbrev" bs; *)
       try
-        (* printf "**** Length=%d ID=%d ***\n" (List.length abbrevlst) abbrevId; *)
         let opsenc = List.nth abbrevlst (abbrevId-4) in
-        (* debug_print_abbrevops opsenc; *)
         let (ops,bs) = decode_abbrev_ops bs opsenc in
         printf "---- ABBREV_RECORD abbrevlen=%d  -----\n  ["        (* TEMP *)
            abbrevlen;                                               (* TEMP *)
