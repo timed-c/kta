@@ -9,7 +9,7 @@ NOT-YET-IMPLEMENTED
 ====================
 - Floating-point instructions are not yet implemented. Some draft code are available 
   in file floating.ml. 
-
+- The bitcoder blob is not implemented. Have no good test cases.
 
 TO TEST 
 =================
