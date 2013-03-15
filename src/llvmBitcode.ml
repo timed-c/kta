@@ -288,12 +288,13 @@ let decode_stream bs bytesize =
         if getBSPos bs != endpos then error_blocksize() else (
         printf "****** END BLOCK '%s' abbrevlen=%d ******\n\n" (sprint_blockid blockid) abbrevlen;                     (* TEMP *)
         match top_scopes with
-          (pabbr,pid,ppos,pabbrl,p_blocks)::p_top_scopes ->
+        | (pabbr,pid,ppos,pabbrl,p_blocks)::p_top_scopes ->
             let p_blocks' = BcBlock(blockid,List.rev blocks)::p_blocks in 
             let top_scopes' = (pabbr,pid,ppos,pabbrl,p_blocks')::p_top_scopes in
             let BS(_,p,_,b) = bs in        
             if b = 0 && p = bytesize then List.rev p_blocks'
-            else decode_loop bs top_scopes' 0 blockinfomap)
+            else decode_loop bs top_scopes' 0 blockinfomap
+        | [] -> internal_error())
         
       | 1 (* ENTER_SUB_BLOCK *) ->
         let (blockid,bs) = decodeVBR bs 8 in
@@ -316,7 +317,7 @@ let decode_stream bs bytesize =
           let blockinfomap' = BlockInfoMap.add blockinfoid (abbrevlst'@[ops]) blockinfomap  in
           decode_loop bs scopes blockinfoid blockinfomap' 
         else
-          let scopes' = (abbrevlen,blockid,endpos,abbrevlst@[ops])::top_scopes in
+          let scopes' = (abbrevlen,blockid,endpos,abbrevlst@[ops],blocks)::top_scopes in
           decode_loop bs scopes' blockinfoid blockinfomap 
 
       | 3 (* UNABBREV_RECORD *) ->
@@ -354,7 +355,7 @@ let decode_stream bs bytesize =
     )    
     | _ -> internal_error() 
   in
-  decode_loop bs [(2,-1,0,[])] 0 (BlockInfoMap.empty) 
+  decode_loop bs [(2,-1,0,[],[])] 0 (BlockInfoMap.empty) 
   
 
 
