@@ -13,7 +13,7 @@ LLVM=
 all:
 
 %:
-	$(LLVM)clang -S -emit-llvm -O3 $@.c -o $@.ll
+	$(LLVM)clang -S -O3 -emit-llvm $@.c -o $@.ll
 	$(LLVM)llvm-as $@.ll -o $@.bc
 	$(LLVM)llvm-dis $@.bc -o $@2.ll
 

@@ -1,11 +1,12 @@
 
 
+open Ustring.Op
 
 exception Bitcode_error of string
 (** Exception raised if any error occurs when decoding a bitcode
     stream *)
 
-type blockid = int
+type blockid = int 
 (** Each block in the bitcode structure has an identifier *)
 
 type bcblock =
@@ -24,3 +25,9 @@ val decode : string -> bcblock list
     blocks). If any errors occur during decoding, exception
     [Bitcode_error s] is raised, where [s] is a string describing the
     error. *)
+
+
+val debug_sprint : bcblock list -> ustring
+(** Expression [debug_sprint lst] creates a unicode string
+    representation of a bitcode block list [lst]. Useful for giving a
+    raw debug output of a bitcode file. *)
