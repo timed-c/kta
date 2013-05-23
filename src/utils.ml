@@ -1,7 +1,7 @@
 
 
 
-
+(* Returns the last element *)
 let rec last xs =
   match xs with 
     | [] -> raise (Invalid_argument "Utils.last")
