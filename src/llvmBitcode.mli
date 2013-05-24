@@ -6,7 +6,11 @@ exception Bitcode_error of string
 (** Exception raised if any error occurs when decoding a bitcode
     stream *)
 
-type blockid = int 
+type blockid = BcBlockInfo      | BcBlockModule |
+               BcBlockParamattr | BcBlockConstants |
+               BcBlockFunction  | BcBlockValSymtab | 
+               BcBlockMetadata  | BcBlockMetaAtt |
+               BcBlockType      | BcBlockUselistId
 (** Each block in the bitcode structure has an identifier *)
 
 type bcblock =

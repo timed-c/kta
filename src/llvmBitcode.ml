@@ -8,7 +8,11 @@ open Ustring.Op
 
 exception Bitcode_error of string
 
-type blockid = int 
+type blockid = BcBlockInfo      | BcBlockModule |
+               BcBlockParamattr | BcBlockConstants |
+               BcBlockFunction  | BcBlockValSymtab | 
+               BcBlockMetadata  | BcBlockMetaAtt |
+               BcBlockType      | BcBlockUselistId
 
 type bcblock =
 | BcBlock  of blockid * bcblock list
@@ -61,21 +65,18 @@ let internal_error() = failwith "Internal error in BitCode decoder module."
 
 
 
-
-
 let sprint_blockid id =
   match id with
-  | 0 -> "BLOCKINFO"
-  | 8 -> "MODULE_BLOCK"
-  | 9 -> "PARAMATTR_BLOCK"
-  | 11 -> "CONSTANTS_BLOCK"
-  | 12 -> "FUNCTION_BLOCK"
-  | 14 -> "VALUE_SYMTAB_BLOCK"
-  | 15 -> "METADATA_BLOCK"
-  | 16 -> "METADATA_ATTACHMENT"
-  | 17 -> "TYPE_BLOCK"
-  | 18 -> "USELIST_BLOCK_ID"
-  | _  -> failwith (sprintf "Unknown block id %d" id)
+  | BcBlockInfo -> "BLOCKINFO"
+  | BcBlockModule -> "MODULE_BLOCK"
+  | BcBlockParamattr -> "PARAMATTR_BLOCK"
+  | BcBlockConstants -> "CONSTANTS_BLOCK"
+  | BcBlockFunction -> "FUNCTION_BLOCK"
+  | BcBlockValSymtab -> "VALUE_SYMTAB_BLOCK"
+  | BcBlockMetadata -> "METADATA_BLOCK"
+  | BcBlockMetaAtt -> "METADATA_ATTACHMENT"
+  | BcBlockType -> "TYPE_BLOCK"
+  | BcBlockUselistId -> "USELIST_BLOCK_ID"
 
 (* Converts a integer list to a string. If not an ascii char, insert ? *)
 let lst2str lst =
@@ -90,18 +91,18 @@ let sprintrec blockid lst =
     Ustring.concat (us",") (List.map ustring_of_int lst) 
   in
   match blockid,lst with
-  | 8,[1;v] -> us(sprintf "VERSION(%d)" v)
-  | 8,2::s -> us(sprintf "TRIPLE(\"%s\")" (lst2str s))
-  | 8,3::s -> us(sprintf "DATALAYOUT(\"%s\")" (lst2str s))
-  | 8,4::s -> us(sprintf "ASM(\"%s\")" (lst2str s))
-  | 8,5::s -> us(sprintf "SECTIONNAME(\"%s\")" (lst2str s))
-  | 8,6::s -> us(sprintf "DEPLIB(\"%s\")" (lst2str s))
-  | 8,7::rest -> us"GLOBALVAR(" ^. sprintints rest ^. us")"
-  | 8,8::rest -> us"FUNCTION(" ^. sprintints rest ^. us")"
-  | 8,9::rest -> us"ALIAS(" ^. sprintints rest ^. us")"
-  | 8,10::rest -> us"PURGEVALS(" ^. sprintints rest ^. us")"
-  | 8,11::rest -> us"GCNAME(" ^. sprintints rest ^. us")"
-  | 9,1::rest -> us"ENTRY(" ^. sprintints rest ^. us")"
+  | BcBlockModule,[1;v] -> us(sprintf "VERSION(%d)" v)
+  | BcBlockModule,2::s -> us(sprintf "TRIPLE(\"%s\")" (lst2str s))
+  | BcBlockModule,3::s -> us(sprintf "DATALAYOUT(\"%s\")" (lst2str s))
+  | BcBlockModule,4::s -> us(sprintf "ASM(\"%s\")" (lst2str s))
+  | BcBlockModule,5::s -> us(sprintf "SECTIONNAME(\"%s\")" (lst2str s))
+  | BcBlockModule,6::s -> us(sprintf "DEPLIB(\"%s\")" (lst2str s))
+  | BcBlockModule,7::rest -> us"GLOBALVAR(" ^. sprintints rest ^. us")"
+  | BcBlockModule,8::rest -> us"FUNCTION(" ^. sprintints rest ^. us")"
+  | BcBlockModule,9::rest -> us"ALIAS(" ^. sprintints rest ^. us")"
+  | BcBlockModule,10::rest -> us"PURGEVALS(" ^. sprintints rest ^. us")"
+  | BcBlockModule,11::rest -> us"GCNAME(" ^. sprintints rest ^. us")"
+  | BcBlockParamattr,1::rest -> us"ENTRY(" ^. sprintints rest ^. us")"
   | _,_ -> us"UNKNOWN(" ^. sprintints lst ^. us")"
 
 (** The recursive function used for debug printing a 
@@ -138,6 +139,23 @@ let debug_print_abbrevops ops =
     | AbbrevOpBlob -> "Blob"
   in 
   print_endline ("[" ^ (String.concat "," (List.map sprint_op ops)) ^ "]")
+
+
+(* Decode blick id *)
+let decode_blockid id =
+  match id with
+  | 0 -> BcBlockInfo
+  | 8 -> BcBlockModule
+  | 9 -> BcBlockParamattr
+  | 11 -> BcBlockConstants
+  | 12 -> BcBlockFunction
+  | 14 -> BcBlockValSymtab
+  | 15 -> BcBlockMetadata
+  | 16 -> BcBlockMetaAtt
+  | 17 -> BcBlockType
+  | 18 -> BcBlockUselistId
+  | _  -> failwith (sprintf "Unknown block id %d" id)
+
 
                                                    
 (* Return an integer with [n] bits set *)
@@ -336,7 +354,8 @@ let decode_stream bs bytesize =
     (*    printf "****** END BLOCK '%s' abbrevlen=%d ******\n\n" (sprint_blockid blockid) abbrevlen;                     (* TEMP *)*)
         match top_scopes with
         | (pabbr,pid,ppos,pabbrl,p_blocks)::p_top_scopes ->
-            let p_blocks' = BcBlock(blockid,List.rev blocks)::p_blocks in 
+            let bid = decode_blockid blockid in
+            let p_blocks' = BcBlock(bid,List.rev blocks)::p_blocks in 
             let top_scopes' = (pabbr,pid,ppos,pabbrl,p_blocks')::p_top_scopes in
             let BS(_,p,_,b) = bs in        
             if b = 0 && p = bytesize then List.rev p_blocks'
@@ -419,6 +438,6 @@ let decode data =
 
 
 let debug_sprint blst = 
-  sprintbc blst 0 (-1)
+  sprintbc blst 0 BcBlockModule
   
   
