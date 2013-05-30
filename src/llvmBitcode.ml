@@ -84,6 +84,13 @@ let lst2str lst =
   List.iteri (fun i v -> s.[i] <- if v > 0 && v < 127 then char_of_int v else '?') lst;
   s
 
+
+let sprint_binop op = us(
+  match op with 
+  | 0 -> "ADD"  | 1 -> "SUB"  | 2 -> "MUL" | 3 -> "UDIV" | 4 -> "SDIV"
+  | 5 -> "UREM" | 6 -> "SREM" | 7 -> "SHL" | 8 -> "LSHR" | 9 -> "ASHR"
+  | 10 -> "AND" | 11 -> "OR"  | 12 -> "XOR" | _ -> failwith "Unknown opcode")
+  
   
 (* String print a record *)
 let sprintrec blockid lst =
@@ -103,7 +110,14 @@ let sprintrec blockid lst =
   | BcBlockModule,10::rest -> us"PURGEVALS(" ^. sprintints rest ^. us")"
   | BcBlockModule,11::rest -> us"GCNAME(" ^. sprintints rest ^. us")"
   | BcBlockParamattr,1::rest -> us"ENTRY(" ^. sprintints rest ^. us")"
+  | BcBlockConstants,1::rest -> us"SETTYPE(" ^. sprintints rest ^. us")"
+  | BcBlockConstants,4::rest -> us"INTEGER(" ^. sprintints rest ^. us")"
+  | BcBlockFunction,1::rest -> us"DECLBLOCK(" ^. sprintints rest ^. us")"
+(*  | BcBlockFunction,2::opcode::ty::op1::op2::rest -> 
+       us"BINOP(" ^. sprint_binop opcode ^. us(sprintf ",%d,%d" op1 op2)  ^. us")" *)
   | _,_ -> us"UNKNOWN(" ^. sprintints lst ^. us")"
+
+ 
 
 (** The recursive function used for debug printing a 
     bitstream file. *)
