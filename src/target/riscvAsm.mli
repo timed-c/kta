@@ -5,7 +5,7 @@ open Ustring.Op
 type big_endian = bool
 
 (* Parse a RISC-V assembly text string *)
-val parse : ustring ->  RiscvISA.inst list
+val parse : ustring -> RiscvISA.inst list
 
 val sprint_inst : int -> RiscvISA.inst -> ustring
 (** Pretty print an RISC-V instruction. Expression 
@@ -14,7 +14,7 @@ val sprint_inst : int -> RiscvISA.inst -> ustring
     [a] in memory. 
     *)
 
-val sprint_inst_conf : int -> RiscvISA.addr2sid -> int -> RiscvISA.inst -> ustring
+(* val sprint_inst_conf : int -> RiscvISA.addr2sid -> int -> RiscvISA.inst -> ustring *)
 (** Configurable version of [sprint_inst]. Expression
     [sprint_inst_conf n map k i] returns a string where space characters 
     are inserted such that [n] number of characters are between the start of 

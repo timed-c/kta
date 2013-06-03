@@ -13,6 +13,9 @@ type big_endian = bool
 (*************** Local types and exceptions ***********************)
 
 
+module IntMap = Map.Make(struct type t = int let compare = compare end)  
+type addr2sid = sid IntMap.t 
+
 (* Needs to consider instrutions "move" (actually addi) beqz etc. *)
 
 (*************** Local functions **********************************)

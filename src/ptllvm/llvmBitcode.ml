@@ -3,6 +3,11 @@ open Utils
 open Printf
 open Ustring.Op
 
+(*
+//Use the following to test this module
+let blocks = LlvmBitcode.decode (Utils.read_binfile "llvmtest/minimal.bc") 
+uprint_endline (LlvmBitcode.debug_sprint blocks)
+*)
 
 (*************** Exported types and exceptions ********************)
 

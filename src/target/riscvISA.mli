@@ -13,13 +13,14 @@ type lineno = int   (* Line number if read from asm file, else 0. *)
 type filename = sid (* File name if known, else empty string. *)
 type instsize = int (* Number of bytes of the instruction, if known, else 9 *)
 type info = Info of lineno * filename * instsize 
-
+ 
 
 (* Pure map from addresses to string identifies. Addresses uses normal
    int, making it possible to compile 2^31 bytes of code on a 32-bits machine
    and 2^63 bytes of code on a 64 bit machine. *)
-module IntMap = Map.Make(struct type t = int let compare = compare end)
-type addr2sid = sid IntMap.t
+(* module type IntMap = Map.Make(struct type t = int let compare = compare end)  *)
+
+(* type addr2sid = sid IntMap.t *)
 
 (** Types for making the inst data type more descriptive *)
 type rd  = int
@@ -72,6 +73,8 @@ type inst =
 | ISys        of info * opSys * rd                       (* System instructions *)
 
 
+(*
+
 
 (** Is the integer register-immediate opcode a 32 bit instruction used only in RV64? *)
 let isIntImReg32 op = match op with
@@ -83,4 +86,4 @@ let isIntRegReg32 op = match op with
    OpREMW | OpREMUW -> true | _ -> false
 
 
-
+*)
