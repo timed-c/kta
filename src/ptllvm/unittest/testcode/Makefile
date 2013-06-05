@@ -1,22 +1,19 @@
 
 
 
-# LLVM=~/bin/llvm32/bin/
+include files.mk
 
-LLVM=
+F_LL = $(addsuffix .ll, $(FILES))
+F_C = $(addsuffix .c, $(FILES))
 
-# all:
-#	$(LLVM)clang -S -emit-llvm -O3 intrinsics.c -o intrinsics.ll
-#	$(LLVM)llvm-as intrinsics.ll -o intrinsics.bc
-#	$(LLVM)llvm-dis intrinsics.bc -o intrinsics2.ll
 
-all:
+all: $(F_LL)
 
-%:
-	$(LLVM)clang -S -O3 -emit-llvm $@.c -o $@.ll
-	$(LLVM)llvm-as $@.ll -o $@.bc
-	$(LLVM)llvm-dis $@.bc -o $@2.ll
+$(F_LL): $(F_C)
+	clang -S -O3 -emit-llvm $(subst .ll,.c,$@) -o $@
+	llvm-as $@ -o $(subst .ll,.bc,$@)
 
+.PHONY: clean
 
 clean:
 	rm -f *.ll *.bc
