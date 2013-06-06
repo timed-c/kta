@@ -1,6 +1,6 @@
 
+open LlvmAst
 
-
-val bcfile2ast : string -> int
+val bcfile2ast : string -> llModule
 
 

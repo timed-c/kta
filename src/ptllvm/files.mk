@@ -1,6 +1,6 @@
 
 LIB_NAME = ptllvm
-FILES = llvmBitcode llvmDecode
+FILES = llvmBitcode llvmPPrint llvmDecode 
 TEST_FILES = testLlvmDecode
 ONLY_MLI_FILES = llvmAst
 DIRS = ../utools/ /usr/local/llvm32/lib/ocaml
