@@ -4,8 +4,8 @@ open Ustring.Op
 open LlvmAst
 open Printf
 
-let string_of_label (LLabel(s)) = us"%" ^. us(s)
-let pure_string_of_label (LLabel(s)) = us(s)
+let string_of_label s = us"%" ^. us(s)
+let pure_string_of_label s = us(s)
 let string_of_id id = 
   match id with 
   | GlobalId(s) -> us"@" ^. us(s)

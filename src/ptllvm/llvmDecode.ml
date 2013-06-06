@@ -11,14 +11,6 @@ open Ustring.Op
 
 let mkGlobalId s = GlobalId(s)
 let mkLocalId s = LocalId(s)
-let mkLabel s = LLabel(s)
-let string_of_label (LLabel(s)) = "%" ^ s
-let pure_string_of_label (LLabel(s)) = s
-let string_of_id id = 
-  match id with 
-  | GlobalId(s) -> "@" ^ s
-  | LocalId(s) -> "%" ^ s
-
 
 
 (* TODO: Add the rest of the types *)
@@ -92,10 +84,10 @@ let foldinst inst (insts,phis) =
   | Llvm.Opcode.Br -> 
     let newi = 
       match Llvm.num_operands inst with
-      | 1 -> IBrUncond(mkLabel (Llvm.value_name (Llvm.operand inst 0)))
+      | 1 -> IBrUncond(Llvm.value_name (Llvm.operand inst 0))
       | 3 -> IBrCond(toAstVal (Llvm.operand inst 0),
-                     mkLabel (Llvm.value_name (Llvm.operand inst 1)),
-                     mkLabel (Llvm.value_name (Llvm.operand inst 2)))
+                     Llvm.value_name (Llvm.operand inst 1),
+                     Llvm.value_name (Llvm.operand inst 2))
       | _ -> failwith "Illegal branch arguments."
     in
       (newi::insts,phis)
@@ -128,7 +120,7 @@ let foldinst inst (insts,phis) =
       let id = mkLocalId (Llvm.value_name inst) in
       let ty = toAstTy (Llvm.type_of inst) in
       let inlst = List.map (fun (v,l) -> 
-        let label = mkLabel (Llvm.value_name (Llvm.value_of_block l)) in
+        let label = Llvm.value_name (Llvm.value_of_block l) in
         (toAstVal v, label)) (Llvm.incoming inst) 
       in
       (insts,LLPhi(id,ty,inlst)::phis)
@@ -136,7 +128,7 @@ let foldinst inst (insts,phis) =
 
 (* Help function when folding the list of basic blocks *)
 let foldblock bb lst = 
-  let label = mkLabel (Llvm.value_name (Llvm.value_of_block bb)) in
+  let label = Llvm.value_name (Llvm.value_of_block bb) in
   let (insts,phis) = Llvm.fold_right_instrs foldinst bb ([],[]) in
   LLBlock(label,phis,insts)::lst
   
@@ -153,7 +145,7 @@ let foldfunc llval (LLModule(globs,funcs)) =
 
 
 (** Creates an AST of a LLVM module. *)
-let makeAST llvmModule =
+let make_module_ast llvmModule =
   (* Start with an empty module *)
   let emptyModule = LLModule([],[]) in
 
@@ -170,7 +162,7 @@ let bcfile2ast filename =
     let buf = Llvm.MemoryBuffer.of_file filename in
     let m = Llvm_bitreader.parse_bitcode ctx buf in
     
-    let ast = makeAST m in    
+    let ast = make_module_ast m in    
     let _ = Llvm.MemoryBuffer.dispose buf in
     ast
     

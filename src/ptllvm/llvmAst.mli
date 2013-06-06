@@ -2,11 +2,12 @@
 
 open Printf
 
+open Ustring.Op
 (* --------------------------------------------------------------------------*)
 (*                      *** Labels and Identifiers ***                       *)
 (* --------------------------------------------------------------------------*)
 
-type llabel = LLabel of string
+type llabel = string
 type llId = 
 |  GlobalId of string
 |  LocalId of string
