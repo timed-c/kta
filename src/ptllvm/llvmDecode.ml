@@ -170,10 +170,7 @@ let bcfile2ast filename =
     let buf = Llvm.MemoryBuffer.of_file filename in
     let m = Llvm_bitreader.parse_bitcode ctx buf in
     
-    (* let _ = pprint_mod m in *)
-    let ast = makeAST m in
-    let _ = uprint_endline (LlvmPPrint.pprint_module ast) in
-    
+    let ast = makeAST m in    
     let _ = Llvm.MemoryBuffer.dispose buf in
     ast
     
