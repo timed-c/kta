@@ -1,7 +1,7 @@
 
 LIB_NAME = ptllvm
-FILES = llvmBitcode
-TEST_FILES = 
-ONLY_MLI_FILES = 
-DIRS = ../utools/
-DEP_LIBS = ../utools/utools.cmxa
+FILES = llvmBitcode llvmDecode
+TEST_FILES = testLlvmDecode
+ONLY_MLI_FILES = llvmAst
+DIRS = ../utools/ /usr/local/llvm32/lib/ocaml
+DEP_LIBS = utools.cmxa llvm.cmxa llvm_executionengine.cmxa llvm_bitreader.cmxa
