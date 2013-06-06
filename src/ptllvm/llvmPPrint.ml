@@ -12,7 +12,7 @@ let string_of_id id =
   | LocalId(s) -> us"%" ^. us(s)
 
 
-let rec ppType ty =
+let rec pprint_type ty =
   match ty with
   | TyVoid -> us"void"
   | TyInt(i) -> us"i" ^. ustring_of_int i
@@ -23,19 +23,19 @@ let rec ppType ty =
   | TyFP(FPTyfp128) -> us"fp128"
   | TyFP(FPTyppc_fp128) -> us"ppc_fp128"
   | TyFun(ret_ty,param_tys) -> 
-      ppType ret_ty ^. us" (" ^.
-      Ustring.concat (us",") (List.map ppType param_tys) ^. us")"
-  | TyPointer(ty2) -> ppType ty2 ^. us"*"
+      pprint_type ret_ty ^. us" (" ^.
+      Ustring.concat (us",") (List.map pprint_type param_tys) ^. us")"
+  | TyPointer(ty2) -> pprint_type ty2 ^. us"*"
  
 
-let ppConst c =
+let pprint_const c =
   match c with
-  | CInt(n,i) -> ppType (TyInt(n)) ^. us" " ^. us(Int64.to_string i)
+  | CInt(n,i) -> pprint_type (TyInt(n)) ^. us" " ^. us(Int64.to_string i)
 
-let ppVal v = 
+let pprint_val v = 
   match v with
   | VId(id) -> string_of_id id
-  | VConst(c) -> ppConst c
+  | VConst(c) -> pprint_const c
 
 let pprint_binop bop = us (
   match bop with 
@@ -58,12 +58,12 @@ let pprint_binop bop = us (
   | BopOr -> "or"
   | BopXor -> "xor")
 
-let ppFoldInst s inst = 
+let pp_fold_inst s inst = 
   let istr = 
     match inst with
    (* -- Terminator instructions -- *)
     | IRet -> us"ret (todo)"          
-    | IBrCond(c,tl,fl) -> us"br " ^. ppVal c ^.
+    | IBrCond(c,tl,fl) -> us"br " ^. pprint_val c ^.
            us", label " ^. string_of_label tl ^. 
            us", label " ^. string_of_label fl 
     | IBrUncond(l) -> us"br label " ^. string_of_label l
@@ -74,45 +74,45 @@ let ppFoldInst s inst =
     | IUnreachable -> us"unreachable (todo)"  
    (* -- Binary operations -- *)
     | IBinOp(id,bop,ty,op1,op2) ->
-        (string_of_id id) ^. us" = " ^. pprint_binop bop ^. us" " ^. ppType ty ^.
-          us" " ^. ppVal op1 ^. us", " ^. ppVal op2
+        (string_of_id id) ^. us" = " ^. pprint_binop bop ^. us" " ^. pprint_type ty ^.
+          us" " ^. pprint_val op1 ^. us", " ^. pprint_val op2
     | IInvalid -> us"invalid **"
     | _ -> us"unknown instruction (todo)"
   in
     s ^. us"  " ^. istr ^. us"\n"
     
-let ppFoldPhi s (LLPhi(id,ty,inlst)) = 
-  let lst = List.map (fun (v,l) -> us"[" ^. ppVal v ^. us", " ^. 
+let pp_fold_phi s (LLPhi(id,ty,inlst)) = 
+  let lst = List.map (fun (v,l) -> us"[" ^. pprint_val v ^. us", " ^. 
                       string_of_label l ^. us"]") inlst in
   let clst = Ustring.concat (us", ") lst in
   s ^. us"  " ^. string_of_id id ^. us" = phi " 
-  ^. ppType ty ^. us" " ^. clst ^. us"\n" 
+  ^. pprint_type ty ^. us" " ^. clst ^. us"\n" 
 
-let ppFoldBlock s (LLBlock(label,phis,insts)) = 
+let pp_fold_block s (LLBlock(label,phis,insts)) = 
     s ^. (pure_string_of_label label) ^. us":\n" ^.
-    (List.fold_left ppFoldPhi (us"") phis) ^.
-    (List.fold_left ppFoldInst (us"") insts) ^. us"\n"
+    (List.fold_left pp_fold_phi (us"") phis) ^.
+    (List.fold_left pp_fold_inst (us"") insts) ^. us"\n"
   
-let ppFoldFunc s (LLFunc(id,ty,ps,bbs)) =
+let pp_fold_func s (LLFunc(id,ty,ps,bbs)) =
   let decl = List.length bbs = 0 in
   s ^. (if decl then us"declare " else us"define ") ^.
-  ppType ty ^. us" " ^. string_of_id id ^.
+  pprint_type ty ^. us" " ^. string_of_id id ^.
   (if decl then us"" 
    else 
     us"{\n" ^.
-    (List.fold_left ppFoldBlock (us"") bbs) ^.
+    (List.fold_left pp_fold_block (us"") bbs) ^.
     us"}\n"
   ) ^. us"\n"
 
   
 let pprint_module (LLModule(globs,funcs)) =
-    List.fold_left ppFoldFunc (us"") funcs
+    List.fold_left pp_fold_func (us"") funcs
 
 (*
-let ppInst inst = ppFoldInst "" inst
-let ppPhi phi = ppFoldPhi "" phi
-let ppBlock block = ppFoldBlock "" block
-let ppFunc f = ppFoldFunc "" f
+let ppInst inst = pp_fold_inst "" inst
+let ppPhi phi = pp_fold_phi "" phi
+let ppBlock block = pp_fold_block "" block
+let ppFunc f = pp_fold_func "" f
 
 
 let pprint_lltype lltype = us(

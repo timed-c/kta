@@ -4,6 +4,15 @@ open Ustring.Op
 open LlvmAst
 
 
+val pprint_type : llType -> ustring
+(** Pretty print llvm type *)
+
+val pprint_const : llConst -> ustring
+(** Pretty print constant *)
+
+val pprint_val : llVal -> ustring
+(** Pretty print value *)
+
 val pprint_binop : llBinOp -> ustring
 (** Pretty print binary operator *)
 
