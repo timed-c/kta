@@ -49,9 +49,9 @@ let toAstVal v =
   | Llvm.ValueKind.BlockAddress -> failmsg "BlockAddress"
   | Llvm.ValueKind.ConstantAggregateZero -> failwith "todo ConstAggregateZero"
   | Llvm.ValueKind.ConstantArray -> failwith "todo ConstArray"
-  | Llvm.ValueKind.ConstantExpr -> failwith "todo ConstExpr"
+  | Llvm.ValueKind.ConstantExpr -> VConstExpr
   | Llvm.ValueKind.ConstantFP -> failwith "todo ConstFP"
-  | Llvm.ValueKind.ConstantInt -> 
+  | Llvm.ValueKind.ConstantInt ->  
     let bitwidth = Llvm.integer_bitwidth (Llvm.type_of v) in
     let int64 = 
       match Llvm.int64_of_const v with 
@@ -82,6 +82,13 @@ let toAstIcmpPred pred =
   | Some Llvm.Icmp.Slt -> IcmpSlt
   | Some Llvm.Icmp.Sle -> IcmpSle
   | None -> failwith "Icmp operation without predicate operation."
+
+(* Returns the return type of function type *)
+let ret_of_funtype ty = 
+  match ty with
+  | TyVoid -> ty
+  | TyPointer(TyFun(tyret,_)) -> tyret
+  | _ -> failwith "Not a return type."
 
 (* Help function when folding the list of instructions in a basic block *)
 let foldinst inst (insts,phis) =
@@ -165,8 +172,21 @@ let foldinst inst (insts,phis) =
         (toAstVal v, label)) (Llvm.incoming inst) 
       in
       (insts,LLPhi(id,ty,inlst)::phis)
+  | Llvm.Opcode.Call ->
+    let id = if Llvm.value_name inst = "" then None 
+      else Some (usid (Llvm.value_name inst)) in
+    let tail = Llvm.is_tail_call inst in
+    let ops = Llvm.num_operands inst in
+    let funop = Llvm.operand inst (ops - 1) in
+    let ret_ty = ret_of_funtype (toAstTy (Llvm.type_of funop)) in
+    let name = usid (Llvm.value_name funop) in
+    let rec build_args k = 
+      if k = ops - 1 then [] else
+        let op = Llvm.operand inst k in
+        (toAstTy (Llvm.type_of op), toAstVal op)::build_args (k+1)
+    in
+    (ICall(id, tail, ret_ty, name, build_args 0)::insts, phis)
 (*
-  |	Call
   |	Select
   |	UserOp1
   |	UserOp2

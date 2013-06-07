@@ -10,6 +10,7 @@
 *.ll
 *.bc
 *.out
+.#*
+#*
 .depend
 temp/
-.#*

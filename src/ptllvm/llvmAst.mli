@@ -11,6 +11,8 @@ type llabel = sid
 type llId = 
 |  GlobalId of sid
 |  LocalId of sid
+type llGloId = sid
+type llLocId = sid
 
 
 (* --------------------------------------------------------------------------*)
@@ -42,12 +44,13 @@ type llType =
 
 type llConst =
 | CInt of                  (* Integer constant *)
-  int *                       (* Bit width of the integer constant *)
-  Int64.t                     (* Integer value. We support up to 64 bits values *)
+    int *                     (* Bit width of the integer constant *)
+    Int64.t                   (* Integer value. We support up to 64 bits values *)
 
 type llVal =
-| VId    of llId           (* Identifier to a value *)
-| VConst of llConst        (* Constant value *)
+| VId        of llId       (* Identifier to a value *)
+| VConst     of llConst    (* Constant value *)
+| VConstExpr               (* Constant expression (todo) *)
 
 (* Opcodes for binary operator instructions *)
 type llBinOp = 
@@ -150,7 +153,12 @@ type llInst =
     llVal             (* Op2 *)
 | IFCmp           (* Compares floating point values *)
 | ISelect         (* Conditionally select without branching *)
-| ICall           (* Function call *)
+| ICall of        (* Function call *)
+    llLocId option *  (* Assignment id (always local). None if no assignment *) 
+    bool *            (* True if tail call *)
+    llType *          (* return type *)        
+    llGloId *          (* Function name (always global) *) 
+    (llType * llVal) list   (* List of arguments *)
 | IVAArg          (* Accessing the variable argument list *)
 | ILandingPad     (* The catch part of the LLVM exception mechanism *)
    (* -- Other not documented instructions *)

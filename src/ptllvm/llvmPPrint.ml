@@ -5,6 +5,8 @@ open LlvmAst
 open Printf
 
 let string_of_label id = us"%" ^. ustring_of_sid id
+let string_of_local_id id = us"%" ^. ustring_of_sid id
+let string_of_global_id id = us"@" ^. ustring_of_sid id
 let pure_string_of_label id = ustring_of_sid id
 let string_of_id id = 
   match id with 
@@ -35,6 +37,7 @@ let pprint_val v =
   match v with
   | VId(id) -> string_of_id id
   | VConst(c) -> pprint_const c
+  | VConstExpr -> us"<constexpr>"  (* TODO *)
 
 let pprint_binop bop = us (
   match bop with 
@@ -112,7 +115,14 @@ let pp_fold_inst s inst =
          ^. pprint_type ty ^. us" " ^. pprint_val op1 ^. us", " ^. pprint_val op2
     | IFCmp -> us"IFCmp (todo)"
     | ISelect -> us"ISelect (todo)"         
-    | ICall -> us"ICall (todo)" 
+    | ICall(id, tail, ret_ty, name, args) -> (
+        let arglst = List.map (fun (ty,id) -> pprint_type ty ^. us" " ^. 
+          pprint_val id) args in
+        (match id with None -> us"" | Some(ids) -> 
+        (string_of_local_id ids) ^. us" = ") ^.
+        us (if tail then "tail " else "") ^. us"call " ^. pprint_type ret_ty ^. 
+        us" " ^. string_of_global_id name ^. 
+        us"(" ^. Ustring.concat (us", ") arglst ^. us")")
     | IVAArg -> us"IVAArg (todo)" 
     | ILandingPad -> us"ILandingPad (todo)" 
    (* -- Other not documented instructions *)
