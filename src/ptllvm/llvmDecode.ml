@@ -9,8 +9,8 @@ open Ustring.Op
 (*                      *** Labels and Identifiers ***                       *)
 (* --------------------------------------------------------------------------*)
 
-let mkGlobalId s = GlobalId(s)
-let mkLocalId s = LocalId(s)
+let mkGlobalId s = GlobalId(usid s)
+let mkLocalId s = LocalId(usid s)
 
 
 (* TODO: Add the rest of the types *)
@@ -79,21 +79,23 @@ let foldinst inst (insts,phis) =
     (IBinOp(id, bop, ty, op1, op2)::insts, phis)
   in
   match Llvm.instr_opcode inst with
+   (* |	Invalid *)
    (* -- Terminator instructions *)
   | Llvm.Opcode.Ret -> (IRet::insts,phis)           
   | Llvm.Opcode.Br -> 
     let newi = 
       match Llvm.num_operands inst with
-      | 1 -> IBrUncond(Llvm.value_name (Llvm.operand inst 0))
+      | 1 -> IBrUncond (usid (Llvm.value_name (Llvm.operand inst 0)))
       | 3 -> IBrCond(toAstVal (Llvm.operand inst 0),
-                     Llvm.value_name (Llvm.operand inst 1),
-                     Llvm.value_name (Llvm.operand inst 2))
+                     usid (Llvm.value_name (Llvm.operand inst 1)),
+                     usid (Llvm.value_name (Llvm.operand inst 2)))
       | _ -> failwith "Illegal branch arguments."
     in
       (newi::insts,phis)
   | Llvm.Opcode.Switch -> (ISwitch::insts,phis)       
   | Llvm.Opcode.IndirectBr -> (IIndirectBr::insts,phis)
   | Llvm.Opcode.Invoke -> (IInvoke::insts,phis)
+   (* |	Invalid2 *)
   | Llvm.Opcode.Resume -> (IResume::insts,phis)
   | Llvm.Opcode.Unreachable -> (IUnreachable::insts,phis)
    (* -- Binary operations -- *)
@@ -114,21 +116,60 @@ let foldinst inst (insts,phis) =
   | Llvm.Opcode.And -> mkbop BopAnd  
   | Llvm.Opcode.Or -> mkbop BopOr   
   | Llvm.Opcode.Xor -> mkbop BopXor  
-
+(*
+  |	Alloca
+  |	Load
+  |	Store
+  |	GetElementPtr
+  |	Trunc
+  |	ZExt
+  |	SExt
+  |	FPToUI
+  |	FPToSI
+  |	UIToFP
+  |	SIToFP
+  |	FPTrunc
+  |	FPExt
+  |	PtrToInt
+  |	IntToPtr
+  |	BitCast
+*)
+(*  | LLvm.Opcode.ICmp ->     *)
+(*
+  |	FCmp
+*)
    (* -- Miscellaneous instructions -- *)
   | Llvm.Opcode.PHI -> 
       let id = mkLocalId (Llvm.value_name inst) in
       let ty = toAstTy (Llvm.type_of inst) in
       let inlst = List.map (fun (v,l) -> 
-        let label = Llvm.value_name (Llvm.value_of_block l) in
+        let label = usid (Llvm.value_name (Llvm.value_of_block l)) in
         (toAstVal v, label)) (Llvm.incoming inst) 
       in
       (insts,LLPhi(id,ty,inlst)::phis)
+(*
+  |	Call
+  |	Select
+  |	UserOp1
+  |	UserOp2
+  |	VAArg
+  |	ExtractElement
+  |	InsertElement
+  |	ShuffleVector
+  |	ExtractValue
+  |	InsertValue
+  |	Fence
+  |	AtomicCmpXchg
+  |	AtomicRMW
+  |	Resume
+  |	LandingPad
+  |	Unwind
+*)      
   | _ -> (IInvalid::insts,phis)  (* TODO: Make complete *)
 
 (* Help function when folding the list of basic blocks *)
 let foldblock bb lst = 
-  let label = Llvm.value_name (Llvm.value_of_block bb) in
+  let label = usid (Llvm.value_name (Llvm.value_of_block bb)) in
   let (insts,phis) = Llvm.fold_right_instrs foldinst bb ([],[]) in
   LLBlock(label,phis,insts)::lst
   

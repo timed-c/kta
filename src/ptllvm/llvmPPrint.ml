@@ -4,12 +4,12 @@ open Ustring.Op
 open LlvmAst
 open Printf
 
-let string_of_label s = us"%" ^. us(s)
-let pure_string_of_label s = us(s)
+let string_of_label id = us"%" ^. ustring_of_sid id
+let pure_string_of_label id = ustring_of_sid id
 let string_of_id id = 
   match id with 
-  | GlobalId(s) -> us"@" ^. us(s)
-  | LocalId(s) -> us"%" ^. us(s)
+  | GlobalId(id) -> us"@" ^. ustring_of_sid id
+  | LocalId(id) -> us"%" ^. ustring_of_sid id
 
 
 let rec pprint_type ty =

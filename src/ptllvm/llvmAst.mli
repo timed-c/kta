@@ -7,10 +7,10 @@ open Ustring.Op
 (*                      *** Labels and Identifiers ***                       *)
 (* --------------------------------------------------------------------------*)
 
-type llabel = string
+type llabel = sid
 type llId = 
-|  GlobalId of string
-|  LocalId of string
+|  GlobalId of sid
+|  LocalId of sid
 
 
 (* --------------------------------------------------------------------------*)
