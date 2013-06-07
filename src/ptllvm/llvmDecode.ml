@@ -69,6 +69,20 @@ let toAstVal v =
       VId(mkLocalId (Llvm.value_name v))
 
 
+let toAstIcmpPred pred = 
+  match pred with
+  | Some Llvm.Icmp.Eq  -> IcmpEq
+  | Some Llvm.Icmp.Ne  -> IcmpNe
+  | Some Llvm.Icmp.Ugt -> IcmpUgt
+  | Some Llvm.Icmp.Uge -> IcmpUge
+  | Some Llvm.Icmp.Ult -> IcmpUlt
+  | Some Llvm.Icmp.Ule -> IcmpUle
+  | Some Llvm.Icmp.Sgt -> IcmpSgt
+  | Some Llvm.Icmp.Sge -> IcmpSge
+  | Some Llvm.Icmp.Slt -> IcmpSlt
+  | Some Llvm.Icmp.Sle -> IcmpSle
+  | None -> failwith "Icmp operation without predicate operation."
+
 (* Help function when folding the list of instructions in a basic block *)
 let foldinst inst (insts,phis) =
   let mkbop bop =
@@ -79,7 +93,6 @@ let foldinst inst (insts,phis) =
     (IBinOp(id, bop, ty, op1, op2)::insts, phis)
   in
   match Llvm.instr_opcode inst with
-   (* |	Invalid *)
    (* -- Terminator instructions *)
   | Llvm.Opcode.Ret -> (IRet::insts,phis)           
   | Llvm.Opcode.Br -> 
@@ -95,7 +108,6 @@ let foldinst inst (insts,phis) =
   | Llvm.Opcode.Switch -> (ISwitch::insts,phis)       
   | Llvm.Opcode.IndirectBr -> (IIndirectBr::insts,phis)
   | Llvm.Opcode.Invoke -> (IInvoke::insts,phis)
-   (* |	Invalid2 *)
   | Llvm.Opcode.Resume -> (IResume::insts,phis)
   | Llvm.Opcode.Unreachable -> (IUnreachable::insts,phis)
    (* -- Binary operations -- *)
@@ -134,14 +146,20 @@ let foldinst inst (insts,phis) =
   |	IntToPtr
   |	BitCast
 *)
-(*  | LLvm.Opcode.ICmp ->     *)
+  | Llvm.Opcode.ICmp -> 
+    let id = mkLocalId (Llvm.value_name inst) in
+    let pred = toAstIcmpPred (Llvm.icmp_predicate inst) in
+    let ty = toAstTy (Llvm.type_of (Llvm.operand inst 0)) in
+    let op1 = toAstVal (Llvm.operand inst 0) in
+    let op2 = toAstVal (Llvm.operand inst 1) in
+    (ICmp(id, pred, ty, op1, op2)::insts, phis)
 (*
   |	FCmp
 *)
    (* -- Miscellaneous instructions -- *)
   | Llvm.Opcode.PHI -> 
       let id = mkLocalId (Llvm.value_name inst) in
-      let ty = toAstTy (Llvm.type_of inst) in
+      let ty = toAstTy (Llvm.type_of  inst) in
       let inlst = List.map (fun (v,l) -> 
         let label = usid (Llvm.value_name (Llvm.value_of_block l)) in
         (toAstVal v, label)) (Llvm.incoming inst) 
@@ -164,6 +182,8 @@ let foldinst inst (insts,phis) =
   |	Resume
   |	LandingPad
   |	Unwind
+  |	Invalid 
+  |	Invalid2 
 *)      
   | _ -> (IInvalid::insts,phis)  (* TODO: Make complete *)
 

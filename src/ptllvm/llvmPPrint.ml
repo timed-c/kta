@@ -26,11 +26,10 @@ let rec pprint_type ty =
       pprint_type ret_ty ^. us" (" ^.
       Ustring.concat (us",") (List.map pprint_type param_tys) ^. us")"
   | TyPointer(ty2) -> pprint_type ty2 ^. us"*"
- 
 
 let pprint_const c =
   match c with
-  | CInt(n,i) -> pprint_type (TyInt(n)) ^. us" " ^. us(Int64.to_string i)
+  | CInt(n,i) -> us(Int64.to_string i)
 
 let pprint_val v = 
   match v with
@@ -58,6 +57,20 @@ let pprint_binop bop = us (
   | BopOr -> "or"
   | BopXor -> "xor")
 
+
+let pprint_icmp_pred_op pred = us (
+  match pred with
+  | IcmpEq  -> "eq"
+  | IcmpNe  -> "ne"
+  | IcmpUgt -> "ugt"    
+  | IcmpUge -> "uge"
+  | IcmpUlt -> "ult"
+  | IcmpUle -> "ule"
+  | IcmpSgt -> "sgt"
+  | IcmpSge -> "sge"
+  | IcmpSlt -> "slt"
+  | IcmpSle -> "sle")
+
 let pp_fold_inst s inst = 
   let istr = 
     match inst with
@@ -76,14 +89,44 @@ let pp_fold_inst s inst =
     | IBinOp(id,bop,ty,op1,op2) ->
         (string_of_id id) ^. us" = " ^. pprint_binop bop ^. us" " ^. pprint_type ty ^.
           us" " ^. pprint_val op1 ^. us", " ^. pprint_val op2
-    | IInvalid -> us"invalid **"
-    | _ -> us"unknown instruction (todo)"
+   (* -- Vector operations -- *)
+    | IExtractElement -> us"IExtractElement (todo)"
+    | IInsertElement -> us"IInsertElement (todo)" 
+    | IShuffleVector -> us"IShuffleVector (todo)" 
+   (* -- Aggregate Operations -- *)
+    | IExtractValue -> us"IExtractValue (todo)"   
+    | IInsertValue -> us"IInsertValue (todo)"    
+   (* -- Memory Access and Addressing Operations -- *)
+    | IAlloca -> us"IAlloca (todo)"
+    | ILoad -> us"ILoad (todo)"
+    | IStore -> us"IStore (todo)" 
+    | IFence -> us"IFence (todo)"   
+    | ICmpXchg -> us"ICmpXchg (todo)"
+    | IAtomicRMW -> us"IAtomicRMW (todo)"  
+    | IGetElementPtr -> us"IGetElementPtr (todo)" 
+   (* -- Conversion operations -- *)
+    | IConvOp(_) -> us"IConvOp (todo)" 
+   (* -- Miscellaneous instructions -- *)
+    | ICmp(id,pred,ty,op1,op2) -> 
+        (string_of_id id) ^. us" = icmp " ^. pprint_icmp_pred_op pred ^. us" " 
+         ^. pprint_type ty ^. us" " ^. pprint_val op1 ^. us", " ^. pprint_val op2
+    | IFCmp -> us"IFCmp (todo)"
+    | ISelect -> us"ISelect (todo)"         
+    | ICall -> us"ICall (todo)" 
+    | IVAArg -> us"IVAArg (todo)" 
+    | ILandingPad -> us"ILandingPad (todo)" 
+   (* -- Other not documented instructions *)
+    | IInvalid -> us"IInvalid (todo)"
+    | IInvalid2 -> us"IInvalid2 (todo)"
+    | IUserOp1 -> us"IUserOp1 (todo)"
+    | IUserOp2 -> us"IUserOp2 (todo)"
+    | IUnwind -> us"IUnwind (todo)"
   in
     s ^. us"  " ^. istr ^. us"\n"
     
 let pp_fold_phi s (LLPhi(id,ty,inlst)) = 
-  let lst = List.map (fun (v,l) -> us"[" ^. pprint_val v ^. us", " ^. 
-                      string_of_label l ^. us"]") inlst in
+  let lst = List.map (fun (v,l) -> us"[ " ^. pprint_val v ^. us", " ^. 
+                      string_of_label l ^. us" ]") inlst in
   let clst = Ustring.concat (us", ") lst in
   s ^. us"  " ^. string_of_id id ^. us" = phi " 
   ^. pprint_type ty ^. us" " ^. clst ^. us"\n" 
@@ -108,38 +151,3 @@ let pp_fold_func s (LLFunc(id,ty,ps,bbs)) =
 let pprint_module (LLModule(globs,funcs)) =
     List.fold_left pp_fold_func (us"") funcs
 
-(*
-let ppInst inst = pp_fold_inst "" inst
-let ppPhi phi = pp_fold_phi "" phi
-let ppBlock block = pp_fold_block "" block
-let ppFunc f = pp_fold_func "" f
-
-
-let pprint_lltype lltype = us(
-    match Llvm.classify_type lltype with
-    | Llvm.TypeKind.Void -> "Void"
-    | Llvm.TypeKind.Half -> "Half"
-    | Llvm.TypeKind.Float -> "Float"
-    | Llvm.TypeKind.Double -> "Double"
-    | Llvm.TypeKind.X86fp80 -> "X86fp80"
-    | Llvm.TypeKind.Fp128 -> "Fp128"
-    | Llvm.TypeKind.Ppc_fp128 -> "Ppc_fp128"
-    | Llvm.TypeKind.Label -> "Label"
-    | Llvm.TypeKind.Integer -> "Integer"
-    | Llvm.TypeKind.Function -> "Function"
-    | Llvm.TypeKind.Struct -> "Struct"
-    | Llvm.TypeKind.Array -> "Array"
-    | Llvm.TypeKind.Pointer -> "Pointer"
-    | Llvm.TypeKind.Vector -> "Vector" 
-    | Llvm.TypeKind.Metadata -> "Metadata")
-
-let pprint_llval llval =
-   printf "%s : %s\n" (Llvm.value_name llval) (pprint_lltype (Llvm.type_of llval))
-
-
-let pprint_mod m = 
-    let _ = print_endline "-- Globals --" in
-    let _ = Llvm.iter_globals pprint_llval m in
-    let _ = print_endline "-- Functions --" in
-    Llvm.iter_functions pprint_llval m 
-*)
