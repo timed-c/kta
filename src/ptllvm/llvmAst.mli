@@ -161,6 +161,14 @@ type llInst =
     (llType * llVal) list   (* List of arguments *)
 | IVAArg          (* Accessing the variable argument list *)
 | ILandingPad     (* The catch part of the LLVM exception mechanism *)
+   (* -- PRET Timing Instructions *)
+| IPretGT of      (* Get time *)
+    llLocId          (* Assignment id *) 
+| IPretDU of      (* Delay until *)
+    llVal             (* Operand stating delay in nano seconds *)
+| IPretMT of      (* Beginning of MTFD *)    
+    llVal             (* Operand stating deadline in nano seconds *)
+| IPretFD         (* End of MTFD *)
    (* -- Other not documented instructions *)
 | IInvalid
 | IInvalid2

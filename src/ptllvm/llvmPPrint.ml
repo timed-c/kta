@@ -125,6 +125,11 @@ let pp_fold_inst s inst =
         us"(" ^. Ustring.concat (us", ") arglst ^. us")")
     | IVAArg -> us"IVAArg (todo)" 
     | ILandingPad -> us"ILandingPad (todo)" 
+   (* -- PRET Timing Instructions *)
+    | IPretGT(id) -> (string_of_local_id id) ^. us" = gt"
+    | IPretDU(op) -> us"du " ^. pprint_val op
+    | IPretMT(op) -> us"mt " ^. pprint_val op
+    | IPretFD -> us"fd"       
    (* -- Other not documented instructions *)
     | IInvalid -> us"IInvalid (todo)"
     | IInvalid2 -> us"IInvalid2 (todo)"

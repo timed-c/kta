@@ -173,19 +173,27 @@ let foldinst inst (insts,phis) =
       in
       (insts,LLPhi(id,ty,inlst)::phis)
   | Llvm.Opcode.Call ->
-    let id = if Llvm.value_name inst = "" then None 
+    let id = Llvm.value_name inst in
+    let idop = if id = "" then None 
       else Some (usid (Llvm.value_name inst)) in
     let tail = Llvm.is_tail_call inst in
     let ops = Llvm.num_operands inst in
     let funop = Llvm.operand inst (ops - 1) in
     let ret_ty = ret_of_funtype (toAstTy (Llvm.type_of funop)) in
-    let name = usid (Llvm.value_name funop) in
-    let rec build_args k = 
-      if k = ops - 1 then [] else
-        let op = Llvm.operand inst k in
-        (toAstTy (Llvm.type_of op), toAstVal op)::build_args (k+1)
-    in
-    (ICall(id, tail, ret_ty, name, build_args 0)::insts, phis)
+    ((match Llvm.value_name funop with
+     | "llvm.pret_gt" -> IPretGT(usid id)
+     | "llvm.pret_du" -> IPretDU(toAstVal (Llvm.operand inst 0))
+     | "llvm.pret_mt" -> IPretMT(toAstVal (Llvm.operand inst 0))
+     | "llvm.pret_fd" -> IPretFD
+     | _ -> (       
+       let name = usid (Llvm.value_name funop) in
+       let rec build_args k = 
+         if k = ops - 1 then [] else
+           let op = Llvm.operand inst k in
+           (toAstTy (Llvm.type_of op), toAstVal op)::build_args (k+1)
+       in 
+       ICall(idop, tail, ret_ty, name, build_args 0))
+     )::insts, phis)
 (*
   |	Select
   |	UserOp1
