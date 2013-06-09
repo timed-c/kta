@@ -120,7 +120,7 @@ type llInst =
 | IUnreachable   (* No defined semantics. Informs that the code is unreachable *)
    (* -- Binary operations -- TODO add 'nuw' and 'nsw' *)
 | IBinOp of      (* Various binary operations. See llBinOp *)
-    llId *            (* Assignment id *) 
+    llLocId *         (* Assignment id *) 
     llBinOp *         (* Binop *)
     llType *          (* Operand type *)        
     llVal *           (* Op1 *)
@@ -146,7 +146,7 @@ type llInst =
     llConvOp      (* Unary conversion operations *) 
    (* -- Miscellaneous instructions -- *)
 | ICmp of         (* Compares integers, integer vectors, or pointer values *)
-    llId *            (* Assignment id *) 
+    llLocId *         (* Assignment id *) 
     llIcmpPred *      (* Predicate for integer comparesion *) 
     llType *          (* Operand type *)        
     llVal *           (* Op1 *)
@@ -178,24 +178,28 @@ type llInst =
 
 
 type llPhi = LLPhi of
-     llId   *              (* Left hand side identifier *)
-     llType *              (* Type of incoming values *)
-     (llVal * llabel) list (* List of incoming value/label pair *)
+     llGloId *                (* Left hand side identifier *)
+     llType *                 (* Type of incoming values *)
+     (llVal * llabel) list    (* List of incoming value/label pair *)
 
 type llBlock = LLBlock of 
-     llabel *              (* Basic block label *)
-     llPhi list *          (* List of phi functions *) 
-     llInst list           (* List of instructions *)
+     llPhi list *             (* List of phi functions *) 
+     llInst list              (* List of instructions *)
 
 type llFunc = LLFunc of   
-     llId *                (* Function name *)
-     llType *              (* Return type *)
-     llParam list *        (* List of parameters *)
-     llBlock list          (* List of basic blocks *)
+     llType *                 (* Return type *)
+     llParam list *           (* List of parameters *)
+     (llabel * llBlock) list  (* List of labeled basic blocks *)
 
 type llModule = LLModule of
-     llGlobal list *       (* List of global variables *)
-     llFunc   list         (* List of function definitions and declarations *)
+     llGlobal list *          (* List of global variables *)
+     (llGloId * llFunc) list  (* List of named function definitions and declarations *)
+
+
+
+
+
+
 
 
 

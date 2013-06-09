@@ -93,7 +93,7 @@ let ret_of_funtype ty =
 (* Help function when folding the list of instructions in a basic block *)
 let foldinst inst (insts,phis) =
   let mkbop bop =
-    let id = mkLocalId (Llvm.value_name inst) in
+    let id = usid (Llvm.value_name inst) in
     let ty = toAstTy (Llvm.type_of inst) in
     let op1 = toAstVal (Llvm.operand inst 0) in
     let op2 = toAstVal (Llvm.operand inst 1) in
@@ -154,7 +154,7 @@ let foldinst inst (insts,phis) =
   |	BitCast
 *)
   | Llvm.Opcode.ICmp -> 
-    let id = mkLocalId (Llvm.value_name inst) in
+    let id = usid (Llvm.value_name inst) in
     let pred = toAstIcmpPred (Llvm.icmp_predicate inst) in
     let ty = toAstTy (Llvm.type_of (Llvm.operand inst 0)) in
     let op1 = toAstVal (Llvm.operand inst 0) in
@@ -165,7 +165,7 @@ let foldinst inst (insts,phis) =
 *)
    (* -- Miscellaneous instructions -- *)
   | Llvm.Opcode.PHI -> 
-      let id = mkLocalId (Llvm.value_name inst) in
+      let id = usid (Llvm.value_name inst) in
       let ty = toAstTy (Llvm.type_of  inst) in
       let inlst = List.map (fun (v,l) -> 
         let label = usid (Llvm.value_name (Llvm.value_of_block l)) in
@@ -219,17 +219,17 @@ let foldinst inst (insts,phis) =
 let foldblock bb lst = 
   let label = usid (Llvm.value_name (Llvm.value_of_block bb)) in
   let (insts,phis) = Llvm.fold_right_instrs foldinst bb ([],[]) in
-  LLBlock(label,phis,insts)::lst
+  (label,LLBlock(phis,insts))::lst
   
 (* Help functions when folding the function lists of a module *)
 let foldfunc llval (LLModule(globs,funcs)) =
-  let id = mkGlobalId (Llvm.value_name llval) in
+  let id = usid (Llvm.value_name llval) in
   let ty = toAstTy (Llvm.type_of llval) in
   let params = [] in
   let blocks = 
     if Llvm.is_declaration llval then []
     else Llvm.fold_right_blocks foldblock llval []  in  
-  let newfunc = LLFunc(id,ty,params,blocks) in
+  let newfunc = (id, LLFunc(ty,params,blocks)) in
   LLModule(globs,newfunc::funcs)
 
 

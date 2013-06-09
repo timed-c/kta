@@ -90,8 +90,8 @@ let pp_fold_inst s inst =
     | IUnreachable -> us"unreachable (todo)"  
    (* -- Binary operations -- *)
     | IBinOp(id,bop,ty,op1,op2) ->
-        (string_of_id id) ^. us" = " ^. pprint_binop bop ^. us" " ^. pprint_type ty ^.
-          us" " ^. pprint_val op1 ^. us", " ^. pprint_val op2
+        (string_of_local_id id) ^. us" = " ^. pprint_binop bop ^. us" " ^. 
+          pprint_type ty ^. us" " ^. pprint_val op1 ^. us", " ^. pprint_val op2
    (* -- Vector operations -- *)
     | IExtractElement -> us"IExtractElement (todo)"
     | IInsertElement -> us"IInsertElement (todo)" 
@@ -111,7 +111,7 @@ let pp_fold_inst s inst =
     | IConvOp(_) -> us"IConvOp (todo)" 
    (* -- Miscellaneous instructions -- *)
     | ICmp(id,pred,ty,op1,op2) -> 
-        (string_of_id id) ^. us" = icmp " ^. pprint_icmp_pred_op pred ^. us" " 
+        (string_of_local_id id) ^. us" = icmp " ^. pprint_icmp_pred_op pred ^. us" " 
          ^. pprint_type ty ^. us" " ^. pprint_val op1 ^. us", " ^. pprint_val op2
     | IFCmp -> us"IFCmp (todo)"
     | ISelect -> us"ISelect (todo)"         
@@ -143,18 +143,18 @@ let pp_fold_phi s (LLPhi(id,ty,inlst)) =
   let lst = List.map (fun (v,l) -> us"[ " ^. pprint_val v ^. us", " ^. 
                       string_of_label l ^. us" ]") inlst in
   let clst = Ustring.concat (us", ") lst in
-  s ^. us"  " ^. string_of_id id ^. us" = phi " 
+  s ^. us"  " ^. string_of_global_id id ^. us" = phi " 
   ^. pprint_type ty ^. us" " ^. clst ^. us"\n" 
 
-let pp_fold_block s (LLBlock(label,phis,insts)) = 
+let pp_fold_block s (label,LLBlock(phis,insts)) = 
     s ^. (pure_string_of_label label) ^. us":\n" ^.
     (List.fold_left pp_fold_phi (us"") phis) ^.
     (List.fold_left pp_fold_inst (us"") insts) ^. us"\n"
   
-let pp_fold_func s (LLFunc(id,ty,ps,bbs)) =
+let pp_fold_func s (id,(LLFunc(ty,ps,bbs))) =
   let decl = List.length bbs = 0 in
   s ^. (if decl then us"declare " else us"define ") ^.
-  pprint_type ty ^. us" " ^. string_of_id id ^.
+  pprint_type ty ^. us" " ^. string_of_global_id id ^.
   (if decl then us"" 
    else 
     us"{\n" ^.
