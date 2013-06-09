@@ -176,6 +176,12 @@ type llInst =
 | IUserOp2
 | IUnwind
 
+type archAnnotion = {
+  block_time : int;           (* Time to execute the block (normal blocks).
+                                 If call block, this is the setup time before
+                                 function invocation. *)
+  trans_time : int list;      (* Time for transition to next block. *)                
+}
 
 type llPhi = LLPhi of
      llGloId *                (* Left hand side identifier *)
@@ -184,7 +190,8 @@ type llPhi = LLPhi of
 
 type llBlock = LLBlock of 
      llPhi list *             (* List of phi functions *) 
-     llInst list              (* List of instructions *)
+     llInst list *            (* List of instructions *)
+     archAnnotion option      (* Annotations specific for the target architecture *)
 
 type llFunc = LLFunc of   
      llType *                 (* Return type *)

@@ -12,7 +12,6 @@ open Ustring.Op
 let mkGlobalId s = GlobalId(usid s)
 let mkLocalId s = LocalId(usid s)
 
-
 (* TODO: Add the rest of the types *)
 let rec toAstTy ty = 
   match Llvm.classify_type ty with
@@ -219,7 +218,7 @@ let foldinst inst (insts,phis) =
 let foldblock bb lst = 
   let label = usid (Llvm.value_name (Llvm.value_of_block bb)) in
   let (insts,phis) = Llvm.fold_right_instrs foldinst bb ([],[]) in
-  (label,LLBlock(phis,insts))::lst
+  (label,LLBlock(phis,insts,None))::lst
   
 (* Help functions when folding the function lists of a module *)
 let foldfunc llval (LLModule(globs,funcs)) =
