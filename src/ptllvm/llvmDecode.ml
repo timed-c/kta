@@ -37,19 +37,9 @@ let rec toAstTy ty =
 
 (* Convert from the API representation of value to a first class value *)
 let toAstVal v = 
-  let failmsg v = failwith (v ^ " is not a first class value") in 
   match Llvm.classify_value v with 
-  | Llvm.ValueKind.NullValue -> failwith "todo NullValue"
-  | Llvm.ValueKind.Argument -> failmsg "Argument"
-  | Llvm.ValueKind.BasicBlock -> failmsg "BasicBlock"
-  | Llvm.ValueKind.InlineAsm -> failmsg "InlineAsm"
-  | Llvm.ValueKind.MDNode -> failmsg "MDNode"
-  | Llvm.ValueKind.MDString -> failmsg "MDString"
-  | Llvm.ValueKind.BlockAddress -> failmsg "BlockAddress"
-  | Llvm.ValueKind.ConstantAggregateZero -> failwith "todo ConstAggregateZero"
-  | Llvm.ValueKind.ConstantArray -> failwith "todo ConstArray"
+  | Llvm.ValueKind.Argument -> VId(mkLocalId (Llvm.value_name v))
   | Llvm.ValueKind.ConstantExpr -> VConstExpr
-  | Llvm.ValueKind.ConstantFP -> failwith "todo ConstFP"
   | Llvm.ValueKind.ConstantInt ->  
     let bitwidth = Llvm.integer_bitwidth (Llvm.type_of v) in
     let int64 = 
@@ -57,15 +47,8 @@ let toAstVal v =
       | Some(i) -> i | None -> failwith "Integers larger than 64-bits are not supported." 
     in
       VConst(CInt(bitwidth, int64))
-  | Llvm.ValueKind.ConstantPointerNull -> failwith "todo ConstPointerNull"
-  | Llvm.ValueKind.ConstantStruct -> failwith "todo ConstStruct"
-  | Llvm.ValueKind.ConstantVector -> failwith "todo ConstVector"
-  | Llvm.ValueKind.Function  -> failmsg "Function "
-  | Llvm.ValueKind.GlobalAlias  -> failmsg "GlobalAlias"
-  | Llvm.ValueKind.GlobalVariable -> failwith "todo GlobalVariable"
-  | Llvm.ValueKind.UndefValue -> failmsg "UndefValue"
-  | Llvm.ValueKind.Instruction(op) -> 
-      VId(mkLocalId (Llvm.value_name v))
+  | Llvm.ValueKind.Instruction(op) -> VId(mkLocalId (Llvm.value_name v))
+  | _ -> failwith "todo: Value not yet supported"
 
 
 let toAstIcmpPred pred = 
@@ -213,6 +196,7 @@ let foldinst inst (insts,phis) =
   |	Invalid2 
 *)      
   | _ -> (IInvalid::insts,phis)  (* TODO: Make complete *)
+
 
 (* Help function when folding the list of basic blocks *)
 let foldblock bb lst = 

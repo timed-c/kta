@@ -1,21 +1,17 @@
 
 #include <stdio.h>
 
-/*
-int foo(int x){
-  return 2 * x;
-}
-*/
-extern long foo(char*,int,int) asm("llvm.pret_foo");
-extern void none() asm("llvm.pret_none");
-
-int main(){
+int looptest(int k){
   int j = 2;
   int i;
-  for(i=1; i< 10; i++){
+  for(i=1; i< k; i++){
     j = j+ i;
-    none();
-    printf("%d\n", (int)foo("hej",j,j));
   }
   return j;
+}
+
+int main(){
+  int k = 10;
+  printf("i=%d for k=%d\n", looptest(k), k);
+  return 0;
 }
