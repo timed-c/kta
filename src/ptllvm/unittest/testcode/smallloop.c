@@ -1,6 +1,10 @@
 
 #include <stdio.h>
 
+void foo(){
+  printf("foo\n");
+}
+
 int looptest(int k){
   int j = 2;
   int i;

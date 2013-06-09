@@ -78,7 +78,8 @@ let pp_fold_inst s inst =
   let istr = 
     match inst with
    (* -- Terminator instructions -- *)
-    | IRet -> us"ret (todo)"          
+    | IRet(None) -> us"ret void"
+    | IRet(Some(ty,v)) -> us "ret " ^. pprint_type ty ^. us" " ^. pprint_val v
     | IBrCond(c,tl,fl) -> us"br " ^. pprint_val c ^.
            us", label " ^. string_of_label tl ^. 
            us", label " ^. string_of_label fl 
@@ -149,7 +150,7 @@ let pp_fold_phi s (LLPhi(id,ty,inlst)) =
 let pp_fold_block s (label,LLBlock(phis,insts,archannot)) = 
     s ^. (pure_string_of_label label) ^. us":\n" ^.
     (List.fold_left pp_fold_phi (us"") phis) ^.
-    (List.fold_left pp_fold_inst (us"") insts) ^. us"\n"
+    (List.fold_left pp_fold_inst (us"") insts) 
   
 let pp_fold_func s (id,(LLFunc(ty,ps,bbs))) =
   let decl = List.length bbs = 0 in

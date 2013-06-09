@@ -106,7 +106,8 @@ type llIcmpPred =
 (* LLVM instructions *)
 type llInst = 
    (* -- Terminator instructions *)
-| IRet           (* Return from a function call *)
+| IRet of        (* Return from a function call *)
+    (llType * llVal) option 
 | IBrCond of     (* Conditional branch *)
     llVal *           (* Conditional value. Has type 'i1' *)
     llabel *          (* Label to true branch *)

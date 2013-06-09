@@ -83,7 +83,12 @@ let foldinst inst (insts,phis) =
   in
   match Llvm.instr_opcode inst with
    (* -- Terminator instructions *)
-  | Llvm.Opcode.Ret -> (IRet::insts,phis)           
+  | Llvm.Opcode.Ret -> 
+    if Llvm.num_operands inst = 0 then
+      (IRet(None)::insts,phis)
+    else
+      let i = Llvm.operand inst 0 in
+      (IRet(Some(toAstTy (Llvm.type_of i),toAstVal i))::insts,phis)           
   | Llvm.Opcode.Br -> 
     let newi = 
       match Llvm.num_operands inst with
