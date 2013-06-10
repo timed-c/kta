@@ -169,9 +169,12 @@ let pp_fold_block s (label,LLBlock(phis,insts,archannot)) =
     (List.fold_left pp_fold_inst (us"") insts) 
   
 let pp_fold_func s (id,(LLFunc(ty,ps,bbs))) =
+  let param_lst = List.map (fun (ty,id) -> 
+        pprint_type ty ^. us" " ^. string_of_local_id id) ps in
   let decl = List.length bbs = 0 in
   s ^. (if decl then us"declare " else us"define ") ^.
   pprint_type ty ^. us" " ^. string_of_global_id id ^.
+  us"(" ^. Ustring.concat (us", ") param_lst ^. us") " ^.
   (if decl then us"" 
    else 
     us"{\n" ^.

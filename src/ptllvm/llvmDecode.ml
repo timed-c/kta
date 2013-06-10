@@ -238,17 +238,23 @@ let foldinst (insts,phis) inst =
 
 
 (* Help function when folding the list of basic blocks *)
-let foldblock lst bb  = 
+let foldblock lst bb = 
   let label = usid (Llvm.value_name (Llvm.value_of_block bb)) in
   let (insts,phis) = Llvm.fold_left_instrs foldinst ([],[]) bb in
   (label,LLBlock(List.rev phis,List.rev insts,None))::lst
   
+(* Help function for folding function parameters *)
+let fold_param lst p = 
+  let ty = toAstTy (Llvm.type_of p) in
+  let id = usid (Llvm.value_name p) in
+  (ty,id)::lst
+
 (* Help functions when folding the function lists of a module *)
 let foldfunc llval (LLModule(globs,funcs)) =
   reset_assign_id();
   let id = usid (Llvm.value_name llval) in
-  let ty = toAstTy (Llvm.type_of llval) in
-  let params = [] in
+  let ty = ret_of_funtype (toAstTy (Llvm.type_of llval)) in
+  let params = List.rev (Llvm.fold_left_params fold_param [] llval) in
   let blocks = 
     if Llvm.is_declaration llval then []
     else Llvm.fold_left_blocks foldblock [] llval in  

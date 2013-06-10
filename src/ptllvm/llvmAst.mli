@@ -22,9 +22,6 @@ type llLocId = sid
 
 type  llGlobal = bool
 
-type llParam = bool
-
-
 type fpType =
 | FPTyHalf
 | FPTyFloat
@@ -182,26 +179,26 @@ type llInst =
 | IUnwind
 
 type archAnnotion = {
-  block_time : int;           (* Time to execute the block (normal blocks).
-                                 If call block, this is the setup time before
-                                 function invocation. *)
-  trans_time : int list;      (* Time for transition to next block. *)                
+  block_time : int;            (* Time to execute the block (normal blocks).
+                                  If call block, this is the setup time before
+                                  function invocation. *)
+  trans_time : int list;       (* Time for transition to next block. *)                
 }
 
 type llPhi = LLPhi of
-     llGloId *                (* Left hand side identifier *)
-     llType *                 (* Type of incoming values *)
-     (llVal * llabel) list    (* List of incoming value/label pair *)
+     llGloId *                 (* Left hand side identifier *)
+     llType *                  (* Type of incoming values *)
+     (llVal * llabel) list     (* List of incoming value/label pair *)
 
 type llBlock = LLBlock of 
-     llPhi list *             (* List of phi functions *) 
-     llInst list *            (* List of instructions *)
-     archAnnotion option      (* Annotations specific for the target architecture *)
+     llPhi list *              (* List of phi functions *) 
+     llInst list *             (* List of instructions *)
+     archAnnotion option       (* Annotations specific for the target architecture *)
 
 type llFunc = LLFunc of   
-     llType *                 (* Return type *)
-     llParam list *           (* List of parameters *)
-     (llabel * llBlock) list  (* List of labeled basic blocks *)
+     llType *                  (* Return type *)
+     (llType * llLocId) list * (* List of parameters *)
+     (llabel * llBlock) list   (* List of labeled basic blocks *)
 
 type llModule = LLModule of
      llGlobal list *          (* List of global variables *)
