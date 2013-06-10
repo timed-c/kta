@@ -9,7 +9,7 @@ int looptest(int k){
   int j = 2;
   int i;
   for(i=1; i< k; i++){
-    j = j+ i;
+    j = j+i;
   }
   return j;
 }
