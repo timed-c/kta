@@ -5,12 +5,35 @@ open LlvmAst
 open Ustring.Op
 
 
+
 (* --------------------------------------------------------------------------*)
 (*                      *** Labels and Identifiers ***                       *)
 (* --------------------------------------------------------------------------*)
 
 let mkGlobalId s = GlobalId(usid s)
 let mkLocalId s = LocalId(usid s)
+
+
+(* Mapping of numbered variables *)
+let (var_map : (Llvm.llvalue,int) Hashtbl.t) = Hashtbl.create 1024 
+let var_no = ref 0
+
+(* Generate assignment id. If unnamed temporaries, a new name is generated *)
+let mk_assign_id inst =
+  let id_str = Llvm.value_name inst in
+  if id_str = "" then ( 
+    (* Generate names for unnamed temporary variables *)
+    var_no := !var_no + 1;
+    Hashtbl.add var_map inst !var_no;
+    usid (string_of_int !var_no))
+  else usid id_str 
+
+(* Reset assignment count for unnamed temp names. 
+   Done each time a new function is reached. *)
+let reset_assign_id() =
+  var_no := 0;
+  Hashtbl.clear var_map  
+
 
 (* TODO: Add the rest of the types *)
 let rec toAstTy ty = 
@@ -47,7 +70,13 @@ let toAstVal v =
       | Some(i) -> i | None -> failwith "Integers larger than 64-bits are not supported." 
     in
       VConst(CInt(bitwidth, int64))
-  | Llvm.ValueKind.Instruction(op) -> VId(mkLocalId (Llvm.value_name v))
+  | Llvm.ValueKind.Instruction(op) -> 
+    let name = 
+      if Llvm.value_name v = "" then
+        string_of_int (try Hashtbl.find var_map v with Not_found -> 99999)
+      else Llvm.value_name v                 
+    in
+      VId(mkLocalId name)
   | _ -> failwith "todo: Value not yet supported"
 
 
@@ -72,11 +101,13 @@ let ret_of_funtype ty =
   | TyPointer(TyFun(tyret,_)) -> tyret
   | _ -> failwith "Not a return type."
 
+  
+
 (* Help function when folding the list of instructions in a basic block *)
-let foldinst inst (insts,phis) =
+let foldinst (insts,phis) inst =
   let mkbop bop =
-    let id = usid (Llvm.value_name inst) in
     let ty = toAstTy (Llvm.type_of inst) in
+    let id = mk_assign_id inst in
     let op1 = toAstVal (Llvm.operand inst 0) in
     let op2 = toAstVal (Llvm.operand inst 1) in
     (IBinOp(id, bop, ty, op1, op2)::insts, phis)
@@ -206,11 +237,12 @@ let foldinst inst (insts,phis) =
 (* Help function when folding the list of basic blocks *)
 let foldblock bb lst = 
   let label = usid (Llvm.value_name (Llvm.value_of_block bb)) in
-  let (insts,phis) = Llvm.fold_right_instrs foldinst bb ([],[]) in
-  (label,LLBlock(phis,insts,None))::lst
+  let (insts,phis) = Llvm.fold_left_instrs foldinst ([],[]) bb in
+  (label,LLBlock(List.rev phis,List.rev insts,None))::lst
   
 (* Help functions when folding the function lists of a module *)
 let foldfunc llval (LLModule(globs,funcs)) =
+  reset_assign_id();
   let id = usid (Llvm.value_name llval) in
   let ty = toAstTy (Llvm.type_of llval) in
   let params = [] in
