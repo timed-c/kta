@@ -60,6 +60,20 @@ let pprint_binop bop = us (
   | BopOr -> "or"
   | BopXor -> "xor")
 
+let pprint_conv_op cop = us (
+  match cop with
+  | CopTrunc -> "trunc"
+  | CopZExt -> "zext"
+  | CopSExt -> "sext"    
+  | CopFPTrunc -> "fptrunc"  
+  | CopFPExt -> "fpext"    
+  | CopFPToUI -> "fptoui"   
+  | CopFPToSI -> "fptosi"   
+  | CopUIToFP -> "uitofp"   
+  | CopSIToFP -> "sitofp"   
+  | CopPtrToInt -> "ptrtoint" 
+  | CopIntToPtr -> "inttoptr"
+  | CopBitCast -> "bitcast")      
 
 let pprint_icmp_pred_op pred = us (
   match pred with
@@ -80,7 +94,7 @@ let pp_fold_inst s inst =
    (* -- Terminator instructions -- *)
     | IRet(None) -> us"ret void"
     | IRet(Some(ty,v)) -> us "ret " ^. pprint_type ty ^. us" " ^. pprint_val v
-    | IBrCond(c,tl,fl) -> us"br " ^. pprint_val c ^.
+    | IBrCond(c,tl,fl) -> us"br i1 " ^. pprint_val c ^.
            us", label " ^. string_of_label tl ^. 
            us", label " ^. string_of_label fl 
     | IBrUncond(l) -> us"br label " ^. string_of_label l
@@ -109,7 +123,9 @@ let pp_fold_inst s inst =
     | IAtomicRMW -> us"IAtomicRMW (todo)"  
     | IGetElementPtr -> us"IGetElementPtr (todo)" 
    (* -- Conversion operations -- *)
-    | IConvOp(_) -> us"IConvOp (todo)" 
+    | IConvOp(id, cop, ty1, op1, ty2) -> 
+      (string_of_local_id id) ^. us" = " ^. pprint_conv_op cop ^. us" " ^.
+      pprint_type ty1 ^. us" " ^. pprint_val op1 ^. us" " ^. pprint_type ty2      
    (* -- Miscellaneous instructions -- *)
     | ICmp(id,pred,ty,op1,op2) -> 
         (string_of_local_id id) ^. us" = icmp " ^. pprint_icmp_pred_op pred ^. us" " 

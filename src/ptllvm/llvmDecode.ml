@@ -23,9 +23,9 @@ let mk_assign_id inst =
   let id_str = Llvm.value_name inst in
   if id_str = "" then ( 
     (* Generate names for unnamed temporary variables *)
+    Hashtbl.add var_map inst !var_no ;
     var_no := !var_no + 1;
-    Hashtbl.add var_map inst !var_no;
-    usid (string_of_int !var_no))
+    usid (string_of_int (!var_no - 1)))
   else usid id_str 
 
 (* Reset assignment count for unnamed temp names. 
@@ -112,6 +112,13 @@ let foldinst (insts,phis) inst =
     let op2 = toAstVal (Llvm.operand inst 1) in
     (IBinOp(id, bop, ty, op1, op2)::insts, phis)
   in
+  let mk_conv_op cop =
+    let id = mk_assign_id inst in    
+    let op1 = toAstVal (Llvm.operand inst 0) in
+    let ty1 = toAstTy (Llvm.type_of (Llvm.operand inst 0)) in
+    let ty2 = toAstTy (Llvm.type_of inst) in    
+    (IConvOp(id, cop, ty1, op1, ty2)::insts, phis)
+  in
   match Llvm.instr_opcode inst with
    (* -- Terminator instructions *)
   | Llvm.Opcode.Ret -> 
@@ -125,8 +132,8 @@ let foldinst (insts,phis) inst =
       match Llvm.num_operands inst with
       | 1 -> IBrUncond (usid (Llvm.value_name (Llvm.operand inst 0)))
       | 3 -> IBrCond(toAstVal (Llvm.operand inst 0),
-                     usid (Llvm.value_name (Llvm.operand inst 1)),
-                     usid (Llvm.value_name (Llvm.operand inst 2)))
+                     usid (Llvm.value_name (Llvm.operand inst 2)),
+                     usid (Llvm.value_name (Llvm.operand inst 1)))
       | _ -> failwith "Illegal branch arguments."
     in
       (newi::insts,phis)
@@ -149,28 +156,30 @@ let foldinst (insts,phis) inst =
   | Llvm.Opcode.SRem -> mkbop BopSRem 
   | Llvm.Opcode.FRem -> mkbop BopFRem 
   | Llvm.Opcode.Shl -> mkbop BopShl  
+  | Llvm.Opcode.LShr -> mkbop BopLShr  
   | Llvm.Opcode.AShr -> mkbop BopAShr 
   | Llvm.Opcode.And -> mkbop BopAnd  
   | Llvm.Opcode.Or -> mkbop BopOr   
   | Llvm.Opcode.Xor -> mkbop BopXor  
-(*
-  |	Alloca
-  |	Load
-  |	Store
-  |	GetElementPtr
-  |	Trunc
-  |	ZExt
-  |	SExt
-  |	FPToUI
-  |	FPToSI
-  |	UIToFP
-  |	SIToFP
-  |	FPTrunc
-  |	FPExt
-  |	PtrToInt
-  |	IntToPtr
-  |	BitCast
-*)
+   (* -- Memory Access and Addressing Operations -- *)
+  | Llvm.Opcode.Alloca -> failwith "Alloca (todo)"
+  | Llvm.Opcode.Load -> failwith "Load (todo)"
+  | Llvm.Opcode.Store -> failwith "Store (todo)"
+  | Llvm.Opcode.GetElementPtr -> failwith "GetElementPtr (todo)"
+   (* -- Conversion operations -- *)
+  | Llvm.Opcode.Trunc -> mk_conv_op CopTrunc
+  | Llvm.Opcode.ZExt -> mk_conv_op CopZExt
+  | Llvm.Opcode.SExt -> mk_conv_op CopSExt
+  | Llvm.Opcode.FPToUI -> mk_conv_op CopFPToUI
+  | Llvm.Opcode.FPToSI -> mk_conv_op CopFPToSI
+  | Llvm.Opcode.UIToFP -> mk_conv_op CopUIToFP
+  | Llvm.Opcode.SIToFP -> mk_conv_op CopSIToFP
+  | Llvm.Opcode.FPTrunc -> mk_conv_op CopFPTrunc
+  | Llvm.Opcode.FPExt -> mk_conv_op CopFPExt
+  | Llvm.Opcode.PtrToInt -> mk_conv_op CopPtrToInt
+  | Llvm.Opcode.IntToPtr -> mk_conv_op CopIntToPtr
+  | Llvm.Opcode.BitCast -> mk_conv_op CopBitCast
+   (* -- Miscellaneous instructions -- *)
   | Llvm.Opcode.ICmp -> 
     let id = usid (Llvm.value_name inst) in
     let pred = toAstIcmpPred (Llvm.icmp_predicate inst) in
@@ -178,9 +187,7 @@ let foldinst (insts,phis) inst =
     let op1 = toAstVal (Llvm.operand inst 0) in
     let op2 = toAstVal (Llvm.operand inst 1) in
     (ICmp(id, pred, ty, op1, op2)::insts, phis)
-(*
-  |	FCmp
-*)
+  | Llvm.Opcode.FCmp -> failwith "FCmp (todo)"
    (* -- Miscellaneous instructions -- *)
   | Llvm.Opcode.PHI -> 
       let id = usid (Llvm.value_name inst) in
@@ -212,30 +219,26 @@ let foldinst (insts,phis) inst =
        in 
        ICall(idop, tail, ret_ty, name, build_args 0))
      )::insts, phis)
-(*
-  |	Select
-  |	UserOp1
-  |	UserOp2
-  |	VAArg
-  |	ExtractElement
-  |	InsertElement
-  |	ShuffleVector
-  |	ExtractValue
-  |	InsertValue
-  |	Fence
-  |	AtomicCmpXchg
-  |	AtomicRMW
-  |	Resume
-  |	LandingPad
-  |	Unwind
-  |	Invalid 
-  |	Invalid2 
-*)      
-  | _ -> (IInvalid::insts,phis)  (* TODO: Make complete *)
+  | Llvm.Opcode.Select -> failwith "Select (todo)"
+  | Llvm.Opcode.UserOp1 -> failwith "UserOp1 (todo)"
+  | Llvm.Opcode.UserOp2 -> failwith "UserOp2 (todo)"
+  | Llvm.Opcode.VAArg -> failwith "VAArg (todo)"
+  | Llvm.Opcode.ExtractElement -> failwith "ExtractElement (todo)"
+  | Llvm.Opcode.InsertElement -> failwith "InsertElement (todo)"
+  | Llvm.Opcode.ShuffleVector -> failwith "ShuffleVector (todo)"
+  | Llvm.Opcode.ExtractValue -> failwith "ExtractValue (todo)"
+  | Llvm.Opcode.InsertValue -> failwith "InsertValue (todo)"
+  | Llvm.Opcode.Fence -> failwith "Fence (todo)"
+  | Llvm.Opcode.AtomicCmpXchg -> failwith "AtomicCmpXchg (todo)"
+  | Llvm.Opcode.AtomicRMW -> failwith "AtomicRMW (todo)"
+  | Llvm.Opcode.LandingPad -> failwith "LandingPad (todo)"
+  | Llvm.Opcode.Unwind -> failwith "Unwind (todo)"
+  | Llvm.Opcode.Invalid -> failwith "Invalid (todo)"
+  | Llvm.Opcode.Invalid2 -> failwith "Invalid2 (todo)"
 
 
 (* Help function when folding the list of basic blocks *)
-let foldblock bb lst = 
+let foldblock lst bb  = 
   let label = usid (Llvm.value_name (Llvm.value_of_block bb)) in
   let (insts,phis) = Llvm.fold_left_instrs foldinst ([],[]) bb in
   (label,LLBlock(List.rev phis,List.rev insts,None))::lst
@@ -248,8 +251,8 @@ let foldfunc llval (LLModule(globs,funcs)) =
   let params = [] in
   let blocks = 
     if Llvm.is_declaration llval then []
-    else Llvm.fold_right_blocks foldblock llval []  in  
-  let newfunc = (id, LLFunc(ty,params,blocks)) in
+    else Llvm.fold_left_blocks foldblock [] llval in  
+  let newfunc = (id, LLFunc(ty,params,List.rev blocks)) in
   LLModule(globs,newfunc::funcs)
 
 

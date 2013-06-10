@@ -144,7 +144,11 @@ type llInst =
 | IGetElementPtr  (* Get the address of a sub-element of an aggregate data structure *)
    (* -- Conversion operations -- *)
 | IConvOp of 
-    llConvOp      (* Unary conversion operations *) 
+    llLocId *     (* Assignment id *)
+    llConvOp *    (* Unary conversion operations *) 
+    llType *      (* Convert from type *)
+    llVal *       (* Value to convert *)
+    llType        (* To type *)    
    (* -- Miscellaneous instructions -- *)
 | ICmp of         (* Compares integers, integer vectors, or pointer values *)
     llLocId *         (* Assignment id *) 
