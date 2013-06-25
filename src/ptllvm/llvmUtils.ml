@@ -4,7 +4,7 @@ open LlvmAst
 open Ustring.Op
 
 exception Function_not_found of string * sid
-
+exception Illegal_llvm_code
 
 let const_int_val width v = VConst(CInt(width, Int64.of_int v))
 

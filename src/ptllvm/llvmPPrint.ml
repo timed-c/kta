@@ -160,7 +160,7 @@ let pp_fold_phi s (LLPhi(id,ty,inlst)) =
   let lst = List.map (fun (v,l) -> us"[ " ^. pprint_val v ^. us", " ^. 
                       string_of_label l ^. us" ]") inlst in
   let clst = Ustring.concat (us", ") lst in
-  s ^. us"  " ^. string_of_global_id id ^. us" = phi " 
+  s ^. us"  " ^. string_of_local_id id ^. us" = phi " 
   ^. pprint_type ty ^. us" " ^. clst ^. us"\n" 
 
 let pp_fold_block s (label,LLBlock(phis,insts)) = 

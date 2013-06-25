@@ -7,6 +7,7 @@ open Ustring.Op
 (*                      *** Labels and Identifiers ***                       *)
 (* --------------------------------------------------------------------------*)
 
+
 type llabel = sid
 type llId = 
 |  GlobalId of sid
@@ -180,7 +181,7 @@ type llInst =
 
 
 type llPhi = LLPhi of
-     llGloId *                 (* Left hand side identifier *)
+     llLocId *                 (* Left hand side identifier *)
      llType *                  (* Type of incoming values *)
      (llVal * llabel) list     (* List of incoming value/label pair *)
 
