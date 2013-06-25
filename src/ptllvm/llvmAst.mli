@@ -46,9 +46,10 @@ type llConst =
     Int64.t                   (* Integer value. We support up to 64 bits values *)
 
 type llVal =
-| VId        of llId       (* Identifier to a value *)
+| VId        of llId *     (* Identifier to a value *)
+                llType     (* Type of the identifier *)
 | VConst     of llConst    (* Constant value *)
-| VConstExpr               (* Constant expression (todo) *)
+| VConstExpr of llType     (* Constant expression (todo) *)
 
 (* Opcodes for binary operator instructions *)
 type llBinOp = 
@@ -160,8 +161,8 @@ type llInst =
     llLocId option *  (* Assignment id (always local). None if no assignment *) 
     bool *            (* True if tail call *)
     llType *          (* return type *)        
-    llGloId *          (* Function name (always global) *) 
-    (llType * llVal) list   (* List of arguments *)
+    llGloId *         (* Function name (always global) *) 
+    llVal list        (* List of arguments *)
 | IVAArg          (* Accessing the variable argument list *)
 | ILandingPad     (* The catch part of the LLVM exception mechanism *)
    (* -- PRET Timing Instructions *)
@@ -195,8 +196,8 @@ type llFunc = LLFunc of
      (llabel * llBlock) list   (* List of labeled basic blocks *)
 
 type llModule = LLModule of
-     llGlobal list *          (* List of global variables *)
-     (llGloId * llFunc) list  (* List of named function definitions and declarations *)
+     llGlobal list *           (* List of global variables *)
+     (llGloId * llFunc) list   (* List of named function definitions and declarations *)
 
 
 

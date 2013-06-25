@@ -61,8 +61,9 @@ let rec toAstTy ty =
 (* Convert from the API representation of value to a first class value *)
 let toAstVal v = 
   match Llvm.classify_value v with 
-  | Llvm.ValueKind.Argument -> VId(mkLocalId (Llvm.value_name v))
-  | Llvm.ValueKind.ConstantExpr -> VConstExpr
+  | Llvm.ValueKind.Argument -> VId(mkLocalId (Llvm.value_name v), 
+                                   toAstTy (Llvm.type_of v))
+  | Llvm.ValueKind.ConstantExpr -> VConstExpr(toAstTy(Llvm.type_of v))
   | Llvm.ValueKind.ConstantInt ->  
     let bitwidth = Llvm.integer_bitwidth (Llvm.type_of v) in
     let int64 = 
@@ -76,7 +77,7 @@ let toAstVal v =
         string_of_int (try Hashtbl.find var_map v with Not_found -> 99999)
       else Llvm.value_name v                 
     in
-      VId(mkLocalId name)
+      VId(mkLocalId name, toAstTy (Llvm.type_of v))
   | _ -> failwith "todo: Value not yet supported"
 
 
@@ -215,7 +216,7 @@ let foldinst (insts,phis) inst =
        let rec build_args k = 
          if k = ops - 1 then [] else
            let op = Llvm.operand inst k in
-           (toAstTy (Llvm.type_of op), toAstVal op)::build_args (k+1)
+           (toAstVal op)::build_args (k+1)
        in 
        ICall(idop, tail, ret_ty, name, build_args 0))
      )::insts, phis)

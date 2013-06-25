@@ -13,3 +13,10 @@ let get_fun m f =
   try List.assoc f lst with Not_found -> 
      raise (Function_not_found ((Ustring.to_utf8 (ustring_of_sid f)), f)) 
 
+
+let type_of_val v = 
+  match v with 
+  | VId(id,ty) -> ty
+  | VConst(CInt(bits,_)) -> TyInt(bits)
+  | VConstExpr(ty) -> ty
+    

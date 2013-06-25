@@ -3,6 +3,7 @@
 open Ustring.Op
 open LlvmAst
 open Printf
+open LlvmUtils
 
 let string_of_label id = us"%" ^. ustring_of_sid id
 let string_of_local_id id = us"%" ^. ustring_of_sid id
@@ -35,9 +36,9 @@ let pprint_const c =
 
 let pprint_val v = 
   match v with
-  | VId(id) -> string_of_id id
+  | VId(id,_) -> string_of_id id
   | VConst(c) -> pprint_const c
-  | VConstExpr -> us"<constexpr>"  (* TODO *)
+  | VConstExpr(_) -> us"<constexpr>" 
 
 let pprint_binop bop = us (
   match bop with 
@@ -133,7 +134,7 @@ let pp_fold_inst s inst =
     | IFCmp -> us"IFCmp (todo)"
     | ISelect -> us"ISelect (todo)"         
     | ICall(id, tail, ret_ty, name, args) -> (
-        let arglst = List.map (fun (ty,id) -> pprint_type ty ^. us" " ^. 
+        let arglst = List.map (fun id -> pprint_type (type_of_val id) ^. us" " ^. 
           pprint_val id) args in
         (match id with None -> us"" | Some(ids) -> 
         (string_of_local_id ids) ^. us" = ") ^.
