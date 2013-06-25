@@ -1,5 +1,6 @@
 
 open LlvmAst
+open Ustring.Op
 
 type time = int
 (** Time expressed in the given measured unit of time. Default is in

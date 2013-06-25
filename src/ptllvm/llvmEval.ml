@@ -2,10 +2,12 @@
 
 open Printf
 open LlvmAst
+open LlvmUtils
 open Ustring.Op
 
 
 (*************** Exported types and exceptions ********************)
+
 
 type time = int
 type btime = llabel -> llabel -> time
@@ -23,6 +25,6 @@ type btime = llabel -> llabel -> time
 
 (**************** Exported functions *******************************)
 
-
 let eval_fun m bt f args timeout =
+  let LLFunc(ret_ty, params, blocks) = get_fun m f in
   (0, VConst(CInt(1,Int64.zero)))
