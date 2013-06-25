@@ -163,7 +163,7 @@ let pp_fold_phi s (LLPhi(id,ty,inlst)) =
   s ^. us"  " ^. string_of_global_id id ^. us" = phi " 
   ^. pprint_type ty ^. us" " ^. clst ^. us"\n" 
 
-let pp_fold_block s (label,LLBlock(phis,insts,archannot)) = 
+let pp_fold_block s (label,LLBlock(phis,insts)) = 
     s ^. (pure_string_of_label label) ^. us":\n" ^.
     (List.fold_left pp_fold_phi (us"") phis) ^.
     (List.fold_left pp_fold_inst (us"") insts) 

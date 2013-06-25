@@ -241,7 +241,7 @@ let foldinst (insts,phis) inst =
 let foldblock lst bb = 
   let label = usid (Llvm.value_name (Llvm.value_of_block bb)) in
   let (insts,phis) = Llvm.fold_left_instrs foldinst ([],[]) bb in
-  (label,LLBlock(List.rev phis,List.rev insts,None))::lst
+  (label,LLBlock(List.rev phis,List.rev insts))::lst
   
 (* Help function for folding function parameters *)
 let fold_param lst p = 

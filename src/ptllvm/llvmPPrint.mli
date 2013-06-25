@@ -3,7 +3,6 @@
 open Ustring.Op
 open LlvmAst
 
-
 val pprint_type : llType -> ustring
 (** Pretty print llvm type *)
 
