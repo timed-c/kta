@@ -18,3 +18,9 @@ val get_fun : llModule -> llGloId -> llFunc
 
 val type_of_val : llVal -> llType 
 (** Returns the type of a specific value *)
+
+val const32 : int -> llConst
+(** Creates a constant 32 bit integer value *)
+
+
+ 

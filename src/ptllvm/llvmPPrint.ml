@@ -9,7 +9,8 @@ let string_of_label id = us"%" ^. ustring_of_sid id
 let string_of_local_id id = us"%" ^. ustring_of_sid id
 let string_of_global_id id = us"@" ^. ustring_of_sid id
 let pure_string_of_label id = ustring_of_sid id
-let string_of_id id = 
+
+let pprint_llid id = 
   match id with 
   | GlobalId(id) -> us"@" ^. ustring_of_sid id
   | LocalId(id) -> us"%" ^. ustring_of_sid id
@@ -36,7 +37,7 @@ let pprint_const c =
 
 let pprint_val v = 
   match v with
-  | VId(id,_) -> string_of_id id
+  | VId(id,_) -> pprint_llid id
   | VConst(c) -> pprint_const c
   | VConstExpr(_) -> us"<constexpr>" 
 

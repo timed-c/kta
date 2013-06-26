@@ -3,6 +3,9 @@
 open Ustring.Op
 open LlvmAst
 
+val pprint_llid : llId -> ustring 
+(** Pretty print llId *)
+
 val pprint_type : llType -> ustring
 (** Pretty print llvm type *)
 

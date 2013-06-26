@@ -66,11 +66,12 @@ let toAstVal v =
   | Llvm.ValueKind.ConstantExpr -> VConstExpr(toAstTy(Llvm.type_of v))
   | Llvm.ValueKind.ConstantInt ->  
     let bitwidth = Llvm.integer_bitwidth (Llvm.type_of v) in
-    let int64 = 
+    let intv = 
       match Llvm.int64_of_const v with 
-      | Some(i) -> i | None -> failwith "Integers larger than 64-bits are not supported." 
+      | Some(i) -> i 
+      | None -> failwith "Integers larger than 64-bits are not supported." 
     in
-      VConst(CInt(bitwidth, int64))
+      VConst(CInt(bitwidth, intv))
   | Llvm.ValueKind.Instruction(op) -> 
     let name = 
       if Llvm.value_name v = "" then

@@ -2,6 +2,8 @@
 open LlvmAst
 open Ustring.Op
 
+exception Eval_error_identfier_not_found of string 
+
 type time = int
 (** Time expressed in the given measured unit of time. Default is in
     nano seconds. *)

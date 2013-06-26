@@ -41,9 +41,9 @@ type llType =
 | TyPointer of llType      (* Pointer type of element type *)
 
 type llConst =
-| CInt of                  (* Integer constant *)
-    int *                     (* Bit width of the integer constant *)
-    Int64.t                   (* Integer value. We support up to 64 bits values *)
+| CInt of                  (* Integer constant. *)
+    int *                  (* Bit width of the integer constant *)
+    Int64.t                (* Integer value. We support up to 64 bits values *)
 
 type llVal =
 | VId        of llId *     (* Identifier to a value *)
