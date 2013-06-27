@@ -28,6 +28,7 @@ let env_add id v env = PMap.add id v env
 let env_find id env = PMap.find id env
 let utf8 sid = Ustring.to_utf8 (ustring_of_sid sid)
 
+(* Evaluate an expression to a constant. Looks up identifiers in the environment *)
 let eval_expr env e = 
   match e with 
   | VId(id,ty) -> (
@@ -38,6 +39,7 @@ let eval_expr env e =
   | VConst(c) -> c
   | VConstExpr(_) -> CInt(1,Int64.zero)   (* TODO *)
 
+(* Evaluating binary operators *)
 let eval_bop bop val1 val2 =
   match val1,val2 with
   | CInt(w,v1),CInt(_,v2) -> (
@@ -58,7 +60,8 @@ let eval_bop bop val1 val2 =
           -> raise Illegal_llvm_code)))
   | _ -> raise Illegal_llvm_code
 
-  
+
+(* Evaluate the predicate for comparison instruction *)  
 let eval_icmp_pred icmppred val1 val2 =
   match val1,val2 with
   | CInt(w,v1), CInt(_,v2) -> (
@@ -70,8 +73,14 @@ let eval_icmp_pred icmppred val1 val2 =
       | IcmpUge -> if Int64.compare v1 v2 >= 0 then Int64.one else Int64.zero
       | IcmpUlt -> if Int64.compare v1 v2 <  0 then Int64.one else Int64.zero
       | IcmpUle -> if Int64.compare v1 v2 <= 0 then Int64.one else Int64.zero
-      | IcmpSgt | IcmpSge | IcmpSlt | IcmpSle ->
-          failwith "Signed comparison not yet implemented")))
+      | IcmpSgt -> if Int64.compare (sign_ext_int64 v1 w) (sign_ext_int64 v2 w) > 0
+                   then Int64.one else Int64.zero
+      | IcmpSge -> if Int64.compare (sign_ext_int64 v1 w) (sign_ext_int64 v2 w) >= 0
+                   then Int64.one else Int64.zero
+      | IcmpSlt -> if Int64.compare (sign_ext_int64 v1 w) (sign_ext_int64 v2 w) < 0
+                   then Int64.one else Int64.zero
+      | IcmpSle -> if Int64.compare (sign_ext_int64 v1 w) (sign_ext_int64 v2 w) <= 0
+                   then Int64.one else Int64.zero)))
   | _ -> raise Illegal_llvm_code
 
 
@@ -96,29 +105,38 @@ let rec eval_inst instlst env  =
     eval_inst lst env'  
   | _ -> failwith "Instruction not implemented."
 
-(*
+
 (* Evaluate phi functions *)
-let eval_phi phis src_label env =
-  let foldfun env (LLPhi(id,ty,
-  List.fold_left (fun 
-*)
-  
+let eval_phi phis src_label env_orig =
+  let foldfun env (LLPhi(id,ty,lvpairs)) =
+    let e = try List.assoc src_label lvpairs with _ -> raise Illegal_llvm_code in
+    env_add (LocalId(id)) (eval_expr env_orig e) env
+  in
+    List.fold_left foldfun env_orig phis
 
-  
 
-(*
-let eval_block instlst src_label block_label env timeout =  
-let eval_cfg blocks src_label block_label env timeout =
-*)
+(* Evaluate the graph if basic blocks in a function *)
+let rec eval_blocks blocks src_label block_label env = 
+  let LLBlock(phis,insts) = 
+    try List.assoc block_label blocks with _ -> raise Illegal_llvm_code in
+  (* Evaluate phi functions, if not the source node *)
+  let env = match src_label with  | None -> env
+    | Some l -> eval_phi phis l env in
+  (* Evaluate instructions in block *)
+  match eval_inst insts env with
+  | InstRet(None) -> None
+  | InstRet(Some v) -> Some v 
+  | InstBranch(next_l,env') -> eval_blocks blocks (Some block_label) next_l env'
+ 
 
-let eval_function blocks params args env timeout =
-  (* Get first block in function *)
-  let start = match blocks with b::_ -> b | _ -> raise Illegal_llvm_code in  
+(* Evaluate a function *)
+let eval_function blocks params args env  =
   (* Augment environment with arguments *)
   let parargs = try List.combine params args with _ -> raise Illegal_llvm_code in
-  let env = List.fold_left (fun e ((ty,id), v) -> env_add id v e) env parargs in 
-  
-  (1, VConst(CInt(1,Int64.zero)))
+  let env = List.fold_left (fun e ((ty,id), v) -> env_add (LocalId(id)) v e) env parargs in 
+  (* Get first block in function and evaluate blocks*)
+  let (start_l,b) = match blocks with b::_ -> b | _ -> raise Illegal_llvm_code in  
+  eval_blocks blocks None start_l env   
 
 
 (**************** Exported functions *******************************)
@@ -127,5 +145,8 @@ let eval_fun m bt f args timeout =
   (* Find function to execute *)
   let LLFunc(_,params,blocks) = get_fun m f in
   (* Evaluate function *)
-  eval_function blocks params args env_new timeout
+  (0, eval_function blocks params args env_new)
   
+
+
+

@@ -16,6 +16,8 @@ val test_str : string -> string -> string -> unit
 
 val test_ustr : string -> ustring -> ustring -> unit
 
+val test_ustr : string -> ustring -> ustring -> unit
+
 val result : unit -> unit
 (** Print out the unit test results on the screen *)
 

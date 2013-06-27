@@ -23,4 +23,7 @@ val const32 : int -> llConst
 (** Creates a constant 32 bit integer value *)
 
 
+val sign_ext_int64 : int64 -> int -> int64
+(** [sign_ext_int64 v n] sign extends a value [v] assumed to 
+    hold [n] number of bits. *)
  

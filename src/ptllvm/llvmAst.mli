@@ -184,7 +184,7 @@ type llInst =
 type llPhi = LLPhi of
      llLocId *                 (* Left hand side identifier *)
      llType *                  (* Type of incoming values *)
-     (llVal * llabel) list     (* List of incoming value/label pair *)
+     (llabel * llVal) list     (* List of incoming label/value pair *)
 
 type llBlock = LLBlock of 
      llPhi list *              (* List of phi functions *) 

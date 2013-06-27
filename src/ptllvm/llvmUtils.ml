@@ -20,4 +20,8 @@ let type_of_val v =
   | VConstExpr(ty) -> ty
 
 let const32 v = CInt(32,Int64.of_int v)
+
+let sign_ext_int64 v n =
+  if (Int64.logand (Int64.shift_right_logical v (n-1)) Int64.one) = Int64.zero then v 
+  else Int64.logor (Int64.shift_left (Int64.minus_one) n) v
     

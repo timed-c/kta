@@ -1,4 +1,4 @@
 
 
 FILES = bsort100 floattest intrinsics minimal periodic \
-timedblock timedloop smallloop
+timedblock timedloop integerloops

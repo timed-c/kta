@@ -196,7 +196,7 @@ let foldinst (insts,phis) inst =
       let ty = toAstTy (Llvm.type_of  inst) in
       let inlst = List.map (fun (v,l) -> 
         let label = usid (Llvm.value_name (Llvm.value_of_block l)) in
-        (toAstVal v, label)) (Llvm.incoming inst) 
+        (label,toAstVal v)) (Llvm.incoming inst) 
       in
       (insts,LLPhi(id,ty,inlst)::phis)
   | Llvm.Opcode.Call ->

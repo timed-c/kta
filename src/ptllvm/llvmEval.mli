@@ -14,7 +14,8 @@ type btime = llabel -> llabel -> time
     equal to [b2], then the returned time is the time it takes to
     execute [b1] without branching. *)
 
-val eval_fun : llModule -> btime -> llGloId -> llVal list -> time -> (time * llVal)
+val eval_fun : llModule -> btime -> llGloId -> llConst list -> 
+  time -> (time * llConst option)
 (** Expression [eval_fun m bt f args timeout] evaluates function [f]
     that is defined in module [m] using the argument list
     [args]. Timing of basic blocks are defined using function

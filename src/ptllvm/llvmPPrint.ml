@@ -159,7 +159,7 @@ let pp_fold_inst s inst =
     s ^. us"  " ^. istr ^. us"\n"
     
 let pp_fold_phi s (LLPhi(id,ty,inlst)) = 
-  let lst = List.map (fun (v,l) -> us"[ " ^. pprint_val v ^. us", " ^. 
+  let lst = List.map (fun (l,v) -> us"[ " ^. pprint_val v ^. us", " ^. 
                       string_of_label l ^. us" ]") inlst in
   let clst = Ustring.concat (us", ") lst in
   s ^. us"  " ^. string_of_local_id id ^. us" = phi " 
