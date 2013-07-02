@@ -19,6 +19,7 @@ val get_fun : llModule -> llGloId -> llFunc
 val type_of_val : llVal -> llType 
 (** Returns the type of a specific value *)
 
+
 val const32 : int -> llConst
 (** Creates a constant 32 bit integer value *)
 
@@ -26,4 +27,8 @@ val const32 : int -> llConst
 val sign_ext_int64 : int64 -> int -> int64
 (** [sign_ext_int64 v n] sign extends a value [v] assumed to 
     hold [n] number of bits. *)
+
  
+val  mask_int64 : int64 -> int -> int64
+(** [mask_int64 v n] keeps the [n] least significant bits of value [v] and
+    sets the rest of the bits to 0 *)

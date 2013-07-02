@@ -151,7 +151,7 @@ type llInst =
    (* -- Miscellaneous instructions -- *)
 | ICmp of         (* Compares integers, integer vectors, or pointer values *)
     llLocId *         (* Assignment id *) 
-    llIcmpPred *      (* Predicate for integer comparesion *) 
+    llIcmpPred *      (* Predicate for integer comparison *) 
     llType *          (* Operand type *)        
     llVal *           (* Op1 *)
     llVal             (* Op2 *)

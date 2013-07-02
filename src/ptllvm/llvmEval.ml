@@ -46,16 +46,16 @@ let eval_bop bop val1 val2 =
     let andval = Int64.of_int ((1 lsl w)-1) in
     CInt(w,Int64.logand andval (
       match bop with     
-      | BopAdd -> Int64.add v1 v2
-      | BopSub -> Int64.sub v1 v2
-      | BopMul -> Int64.mul v1 v2
+      | BopAdd -> mask_int64 (Int64.add v1 v2) w
+      | BopSub ->  mask_int64 (Int64.sub v1 v2) w
+      | BopMul ->  mask_int64 (Int64.mul v1 v2) w
       | BopUDiv | BopSDiv | BopURem | BopSRem -> failwith "TODO bop"
-      | BopShl -> Int64.shift_left v1 (Int64.to_int v2)
-      | BopLShr -> Int64.shift_right_logical v1 (Int64.to_int v2)
-      | BopAShr -> Int64.shift_right v1 (Int64.to_int v2)
-      | BopAnd -> Int64.logand v1 v2
-      | BopOr -> Int64.logor v1 v2
-      | BopXor -> Int64.logxor v1 v2
+      | BopShl ->  mask_int64 (Int64.shift_left v1 (Int64.to_int v2)) w
+      | BopLShr ->  mask_int64 (Int64.shift_right_logical v1 (Int64.to_int v2)) w
+      | BopAShr ->  mask_int64 (Int64.shift_right v1 (Int64.to_int v2)) w
+      | BopAnd ->  mask_int64 (Int64.logand v1 v2) w
+      | BopOr ->  mask_int64 (Int64.logor v1 v2) w 
+      | BopXor ->  mask_int64 (Int64.logxor v1 v2) w
       | BopFAdd | BopFSub | BopFMul | BopFDiv | BopFRem 
           -> raise Illegal_llvm_code)))
   | _ -> raise Illegal_llvm_code
