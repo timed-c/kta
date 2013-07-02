@@ -28,6 +28,7 @@ let env_add id v env = PMap.add id v env
 let env_find id env = PMap.find id env
 let utf8 sid = Ustring.to_utf8 (ustring_of_sid sid)
 
+
 (* Evaluate an expression to a constant. Looks up identifiers in the environment *)
 let eval_expr env e = 
   match e with 
@@ -38,6 +39,7 @@ let eval_expr env e =
       raise (Eval_error_identfier_not_found (Ustring.to_utf8 ids)))
   | VConst(c) -> c
   | VConstExpr(_) -> CInt(1,Int64.zero)   (* TODO *)
+
 
 (* Evaluating binary operators *)
 let eval_bop bop val1 val2 =
@@ -81,8 +83,28 @@ let eval_icmp_pred icmppred val1 val2 =
                    then Int64.one else Int64.zero
       | IcmpSle -> if Int64.compare (sign_ext_int64 v1 w) (sign_ext_int64 v2 w) <= 0
                    then Int64.one else Int64.zero)))
-  | _ -> raise Illegal_llvm_code
+  | _ -> failwith "Not yet implemented."
 
+
+(* Evaluate conversion operations *)
+let eval_conv_op convop ty1 val1 ty2 =
+  match ty1,val1,ty2 with 
+  | TyInt(w1),CInt(w2,v1),TyInt(w3) -> (
+    match convop with 
+    | CopTrunc -> CInt(w3,mask_int64 v1 w3)
+    | CopZExt -> CInt(w3, v1)
+    | CopSExt -> failwith "todo"
+    | CopFPTrunc -> failwith "todo"
+    | CopFPExt -> failwith "todo"
+    | CopFPToUI -> failwith "todo"
+    | CopFPToSI -> failwith "todo"
+    | CopUIToFP -> failwith "todo"
+    | CopSIToFP -> failwith "todo"
+    | CopPtrToInt -> failwith "todo"
+    | CopIntToPtr -> failwith "todo"
+    | CopBitCast -> failwith "todo")
+  | _ -> failwith "Not yet implemented."
+  
 
 (* Evaluate a list of instructions *)
 let rec eval_inst instlst env  =
@@ -98,7 +120,11 @@ let rec eval_inst instlst env  =
   | IBinOp(id,bop,ty,v1,v2)::lst -> 
     let nval = eval_bop bop (eval_expr env v1) (eval_expr env v2) in
     let env' = env_add (LocalId(id)) nval env in
-    eval_inst lst env'  
+    eval_inst lst env'        
+  | IConvOp(id,convop,ty1,v,ty2)::lst -> 
+    let nval = eval_conv_op convop ty1 (eval_expr env v) ty2 in
+    let env' = env_add (LocalId(id)) nval env in
+    eval_inst lst env'
   | ICmp(id,pred,ty,v1,v2)::lst ->
     let nval = eval_icmp_pred pred (eval_expr env v1) (eval_expr env v2) in
     let env' = env_add (LocalId(id)) nval env in

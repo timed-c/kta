@@ -31,13 +31,13 @@ let main =
   init "Test llvm decode and pretty print";
 
   let ast = LlvmDecode.bcfile2ast "unittest/testcode/integerloops.bc" in
-  uprint_endline (LlvmPPrint.pprint_module ast);  
+  (*uprint_endline (LlvmPPrint.pprint_module ast);   *)
 
   (* Test looptest1 *)
   let fname = "looptest1" in
   let args = [const32 10] in
   let (t,res) = LlvmEval.eval_fun ast btime (usid fname) args (-1) in
-  test_llvm_int_res "Function looptest2()" res 7257600;
+  test_llvm_int_res "Function looptest1()" res 47;
 
 
   (* Test looptest2 *)
