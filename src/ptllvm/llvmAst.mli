@@ -39,6 +39,9 @@ type llType =
     llType *                    (* Return type *)
     llType list                 (* List of parameter types *)
 | TyPointer of llType      (* Pointer type of element type *)
+| TyArray of int *              (* No of elements *)
+             llType             (* Element type *)
+             
 
 type llConst =
 | CInt of                  (* Integer constant. *)
@@ -133,9 +136,16 @@ type llInst =
 | IExtractValue   (* Extract member element *)
 | IInsertValue    (* Insert element *)
    (* -- Memory Access and Addressing Operations -- *)
-| IAlloca         (* Allocate memory on the stack. Automatically released when
+| IAlloca  of     (* Allocate memory on the stack. Automatically released when
                         a function returns. *)
-| ILoad           (* Load data from memory *) 
+    llLocId *     (* Assignment id *)
+    int *         (* Number of elements *)
+    llType *      (* Type of the element *)
+    int           (* Alignment. If zero, no alignment is specified. *)  
+| ILoad of         (* Load data from memory *) 
+    llLocId *     (* Assignment id *)
+    llType *      (* Type of the loaded element *)
+    llVal         (* The pointer value *)
 | IStore          (* Store data to memory *)
 | IFence          (* Synchronization using a fence *)
 | ICmpXchg        (* Atomic modification of memory *)

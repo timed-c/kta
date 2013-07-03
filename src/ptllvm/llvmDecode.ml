@@ -6,6 +6,8 @@ open Ustring.Op
 
 
 
+exception Llvm_api_error
+
 (* --------------------------------------------------------------------------*)
 (*                      *** Labels and Identifiers ***                       *)
 (* --------------------------------------------------------------------------*)
@@ -53,7 +55,8 @@ let rec toAstTy ty =
       Array.fold_right (fun t lst -> (toAstTy t)::lst) (Llvm.param_types ty) [] in 
     TyFun(retty,paramty)
   | Llvm.TypeKind.Struct -> failwith "todo struct"
-  | Llvm.TypeKind.Array -> failwith "todo array"
+  | Llvm.TypeKind.Array -> TyArray(Llvm.array_length ty, 
+                                   toAstTy (Llvm.element_type ty))
   | Llvm.TypeKind.Pointer -> TyPointer(toAstTy (Llvm.element_type ty))
   | Llvm.TypeKind.Vector -> failwith "todo vector"
   | Llvm.TypeKind.Metadata -> failwith "todo metadata"
@@ -80,6 +83,7 @@ let toAstVal v =
     in
       VId(mkLocalId name, toAstTy (Llvm.type_of v))
   | _ -> failwith "todo: Value not yet supported"
+
 
 
 let toAstIcmpPred pred = 
@@ -164,10 +168,21 @@ let foldinst (insts,phis) inst =
   | Llvm.Opcode.Or -> mkbop BopOr   
   | Llvm.Opcode.Xor -> mkbop BopXor  
    (* -- Memory Access and Addressing Operations -- *)
-  | Llvm.Opcode.Alloca -> failwith "Alloca (todo)"
-  | Llvm.Opcode.Load -> failwith "Load (todo)"
-  | Llvm.Opcode.Store -> failwith "Store (todo)"
-  | Llvm.Opcode.GetElementPtr -> failwith "GetElementPtr (todo)"
+  | Llvm.Opcode.Alloca -> 
+      let id = mk_assign_id inst in 
+      let ty = Llvm.type_of inst in 
+      let align = 0 in (* TODO: add alignment *) (
+      match toAstTy ty with
+      | TyPointer(TyArray(elems,elem_ty)) -> 
+        (IAlloca(id,elems,elem_ty,align)::insts,phis)
+      | _ -> raise Llvm_api_error)
+  | Llvm.Opcode.Load -> 
+      let id = mk_assign_id inst in 
+      let ty = toAstTy (Llvm.type_of inst) in 
+      let ptr = toAstVal (Llvm.operand inst 0) in      
+      (ILoad(id,ty,ptr)::insts,phis)
+  | Llvm.Opcode.Store -> (IStore::insts,phis)
+  | Llvm.Opcode.GetElementPtr -> (IGetElementPtr::insts,phis)
    (* -- Conversion operations -- *)
   | Llvm.Opcode.Trunc -> mk_conv_op CopTrunc
   | Llvm.Opcode.ZExt -> mk_conv_op CopZExt
@@ -193,7 +208,7 @@ let foldinst (insts,phis) inst =
    (* -- Miscellaneous instructions -- *)
   | Llvm.Opcode.PHI -> 
       let id = usid (Llvm.value_name inst) in
-      let ty = toAstTy (Llvm.type_of  inst) in
+      let ty = toAstTy (Llvm.type_of inst) in
       let inlst = List.map (fun (v,l) -> 
         let label = usid (Llvm.value_name (Llvm.value_of_block l)) in
         (label,toAstVal v)) (Llvm.incoming inst) 

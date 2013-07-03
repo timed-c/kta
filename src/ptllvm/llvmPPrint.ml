@@ -30,6 +30,8 @@ let rec pprint_type ty =
       pprint_type ret_ty ^. us" (" ^.
       Ustring.concat (us",") (List.map pprint_type param_tys) ^. us")"
   | TyPointer(ty2) -> pprint_type ty2 ^. us"*"
+  | TyArray(elems,ty) -> us"[" ^. ustring_of_int elems ^. us" x " ^.
+                         pprint_type ty ^. us"]"
 
 let pprint_const c =
   match c with
@@ -117,8 +119,13 @@ let pp_fold_inst s inst =
     | IExtractValue -> us"IExtractValue (todo)"   
     | IInsertValue -> us"IInsertValue (todo)"    
    (* -- Memory Access and Addressing Operations -- *)
-    | IAlloca -> us"IAlloca (todo)"
-    | ILoad -> us"ILoad (todo)"
+    | IAlloca(id,elems,ty,align) -> 
+        (string_of_local_id id) ^. us" = alloca [" ^. ustring_of_int elems ^.
+        us" x " ^. pprint_type ty ^. us"]" ^.
+        (if align != 0 then us", align " ^. ustring_of_int align else us"")
+    | ILoad(id,ty,ptr) -> 
+        (string_of_local_id id) ^. us" = load " ^. pprint_type (TyPointer ty) ^. 
+          us" " ^. pprint_val ptr
     | IStore -> us"IStore (todo)" 
     | IFence -> us"IFence (todo)"   
     | ICmpXchg -> us"ICmpXchg (todo)"
