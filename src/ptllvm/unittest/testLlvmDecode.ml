@@ -24,6 +24,13 @@ let test_llvm_int_res name res expint =
   in
     test name r 
 
+let test_llvm_void_res name res =
+  let r = match res with 
+    | Some(_) -> false
+    | None -> true
+  in
+    test name r 
+
 
 
 let main = 
@@ -50,13 +57,19 @@ let main =
   (* ------------------------------------------------------------------- *)
 
   let ast = LlvmDecode.bcfile2ast "unittest/testcode/functioncalls.bc" in
-  (* uprint_endline (LlvmPPrint.pprint_module ast);   *)
+  (* uprint_endline (LlvmPPrint.pprint_module ast);  *)
 
   (* Test functest1. Tests function call with several arguments. *)
   let fname = "functest1" in
   let args = [const32 77] in
   let (t,res) = LlvmEval.eval_fun ast btime (usid fname) args (-1) in
   test_llvm_int_res "Function functest1()" res 6006;
+
+  (* Test functest2. Test a void function with no parameters *)
+  let fname = "functest2" in
+  let args = [] in
+  let (t,res) = LlvmEval.eval_fun ast btime (usid fname) args (-1) in
+  test_llvm_void_res "Function functest2()" res;
 
 
   (* ------------------------------------------------------------------- *)
