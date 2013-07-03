@@ -186,7 +186,15 @@ let foldinst (insts,phis) inst =
       let v = toAstVal (Llvm.operand inst 0) in          
       let ptr = toAstVal (Llvm.operand inst 1) in          
       (IStore(v,ty,ptr)::insts,phis)
-  | Llvm.Opcode.GetElementPtr -> (IGetElementPtr::insts,phis)
+  | Llvm.Opcode.GetElementPtr -> 
+      let rec make_indices n max =
+        if n = max then [] 
+        else (toAstVal (Llvm.operand inst n))::(make_indices (n+1) max) in
+      let id = mk_assign_id inst in 
+      let ty = toAstTy (Llvm.type_of (Llvm.operand inst 0)) in 
+      let ptr = toAstVal (Llvm.operand inst 0) in          
+      let indices = make_indices 1 (Llvm.num_operands inst) in
+      (IGetElementPtr(id,ty,ptr,indices)::insts,phis)
    (* -- Conversion operations -- *)
   | Llvm.Opcode.Trunc -> mk_conv_op CopTrunc
   | Llvm.Opcode.ZExt -> mk_conv_op CopZExt

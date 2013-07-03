@@ -132,7 +132,11 @@ let pp_fold_inst s inst =
     | IFence -> us"IFence (todo)"   
     | ICmpXchg -> us"ICmpXchg (todo)"
     | IAtomicRMW -> us"IAtomicRMW (todo)"  
-    | IGetElementPtr -> us"IGetElementPtr (todo)" 
+    | IGetElementPtr(id,ty,ptr,indices) -> 
+      (string_of_local_id id) ^. us" = getelementptr " ^. pprint_type ty ^.
+      us" " ^. pprint_val ptr ^. 
+        (List.fold_left (fun a v -> a ^. us", " ^. pprint_type (type_of_val v) ^.
+                        us" " ^. pprint_val v) (us"") indices) 
    (* -- Conversion operations -- *)
     | IConvOp(id, cop, ty1, op1, ty2) -> 
       (string_of_local_id id) ^. us" = " ^. pprint_conv_op cop ^. us" " ^.

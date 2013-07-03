@@ -1,0 +1,9 @@
+
+
+TODO
+
+- Alignment for alloca
+- Alignment for load
+- Add poined values
+- Add vectors
+- Add floating point

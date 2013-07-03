@@ -37,3 +37,4 @@ val read_binfile : string -> string
 (** Call [read_binfile n] reads the binary file with filename [n] and
     returns the binary data as a string. Exception [Sys_error] is raised
     if the file cannot be found or cannot be read. *)
+
