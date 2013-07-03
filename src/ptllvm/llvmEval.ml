@@ -60,7 +60,6 @@ let eval_bop bop val1 val2 =
       | BopXor ->  mask_int64 (Int64.logxor v1 v2) w
       | BopFAdd | BopFSub | BopFMul | BopFDiv | BopFRem 
           -> raise Illegal_llvm_code)))
-  | _ -> raise Illegal_llvm_code
 
 
 (* Evaluate the predicate for comparison instruction *)  
@@ -83,7 +82,6 @@ let eval_icmp_pred icmppred val1 val2 =
                    then Int64.one else Int64.zero
       | IcmpSle -> if Int64.compare (sign_ext_int64 v1 w) (sign_ext_int64 v2 w) <= 0
                    then Int64.one else Int64.zero)))
-  | _ -> failwith "Not yet implemented."
 
 
 (* Evaluate conversion operations *)
@@ -107,7 +105,7 @@ let eval_conv_op convop ty1 val1 ty2 =
   
 
 (* Evaluate a list of instructions *)
-let rec eval_inst instlst env  =
+let rec eval_inst m instlst env  =
   match instlst with
   | IRet(None)::[] -> InstRet(None)
   | IRet(Some(_,e))::[] -> InstRet(Some(eval_expr env e)) 
@@ -120,20 +118,28 @@ let rec eval_inst instlst env  =
   | IBinOp(id,bop,ty,v1,v2)::lst -> 
     let nval = eval_bop bop (eval_expr env v1) (eval_expr env v2) in
     let env' = env_add (LocalId(id)) nval env in
-    eval_inst lst env'        
+    eval_inst m lst env'        
   | IConvOp(id,convop,ty1,v,ty2)::lst -> 
     let nval = eval_conv_op convop ty1 (eval_expr env v) ty2 in
     let env' = env_add (LocalId(id)) nval env in
-    eval_inst lst env'
+    eval_inst m lst env'
   | ICmp(id,pred,ty,v1,v2)::lst ->
     let nval = eval_icmp_pred pred (eval_expr env v1) (eval_expr env v2) in
     let env' = env_add (LocalId(id)) nval env in
-    eval_inst lst env'  
+    eval_inst m lst env'  
+  | ICall(id_opt,tail,ty,f,args)::lst -> 
+    let args' = List.map (eval_expr env) args in
+    let LLFunc(_,params,blocks) = get_fun m f in (
+    match eval_function m blocks params args' env,id_opt with
+    | None,None -> eval_inst m lst env
+    | Some nval,Some id -> let env' = env_add (LocalId(id)) nval env in
+                   eval_inst m lst env'
+    | _,_ -> raise Illegal_llvm_code)
   | _ -> failwith "Instruction not implemented."
 
 
 (* Evaluate phi functions *)
-let eval_phi phis src_label env_orig =
+and eval_phi phis src_label env_orig =
   let foldfun env (LLPhi(id,ty,lvpairs)) =
     let e = try List.assoc src_label lvpairs with _ -> raise Illegal_llvm_code in
     env_add (LocalId(id)) (eval_expr env_orig e) env
@@ -141,28 +147,28 @@ let eval_phi phis src_label env_orig =
     List.fold_left foldfun env_orig phis
 
 
-(* Evaluate the graph if basic blocks in a function *)
-let rec eval_blocks blocks src_label block_label env = 
+(* Evaluate the graph if basic blocks in a function. Returns an option value. *)
+and eval_blocks m blocks src_label block_label env = 
   let LLBlock(phis,insts) = 
     try List.assoc block_label blocks with _ -> raise Illegal_llvm_code in
   (* Evaluate phi functions, if not the source node *)
   let env = match src_label with  | None -> env
     | Some l -> eval_phi phis l env in
   (* Evaluate instructions in block *)
-  match eval_inst insts env with
+  match eval_inst m insts env with
   | InstRet(None) -> None
   | InstRet(Some v) -> Some v 
-  | InstBranch(next_l,env') -> eval_blocks blocks (Some block_label) next_l env'
+  | InstBranch(next_l,env') -> eval_blocks m blocks (Some block_label) next_l env'
  
 
 (* Evaluate a function *)
-let eval_function blocks params args env  =
+and eval_function m blocks params args env  =
   (* Augment environment with arguments *)
   let parargs = try List.combine params args with _ -> raise Illegal_llvm_code in
   let env = List.fold_left (fun e ((ty,id), v) -> env_add (LocalId(id)) v e) env parargs in 
   (* Get first block in function and evaluate blocks*)
   let (start_l,b) = match blocks with b::_ -> b | _ -> raise Illegal_llvm_code in  
-  eval_blocks blocks None start_l env   
+  eval_blocks m blocks None start_l env   
 
 
 (**************** Exported functions *******************************)
@@ -171,7 +177,7 @@ let eval_fun m bt f args timeout =
   (* Find function to execute *)
   let LLFunc(_,params,blocks) = get_fun m f in
   (* Evaluate function *)
-  (0, eval_function blocks params args env_new)
+  (0, eval_function m blocks params args env_new)
   
 
 

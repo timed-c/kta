@@ -1,5 +1,4 @@
 
-
 open Ustring.Op
 open Utest
 open LlvmAst
@@ -28,7 +27,9 @@ let test_llvm_int_res name res expint =
 
 
 let main = 
-  init "Test llvm decode and pretty print";
+  init "Test llvm decode and evaluation.";
+
+  (* ------------------------------------------------------------------- *)
 
   let ast = LlvmDecode.bcfile2ast "unittest/testcode/integerloops.bc" in
   (*uprint_endline (LlvmPPrint.pprint_module ast);   *)
@@ -46,6 +47,29 @@ let main =
   let (t,res) = LlvmEval.eval_fun ast btime (usid fname) args (-1) in
   test_llvm_int_res "Function looptest2()" res 7257600;
 
+  (* ------------------------------------------------------------------- *)
+
+  let ast = LlvmDecode.bcfile2ast "unittest/testcode/functioncalls.bc" in
+  (* uprint_endline (LlvmPPrint.pprint_module ast);   *)
+
+  (* Test functest1. Tests function call with several arguments. *)
+  let fname = "functest1" in
+  let args = [const32 77] in
+  let (t,res) = LlvmEval.eval_fun ast btime (usid fname) args (-1) in
+  test_llvm_int_res "Function functest1()" res 6006;
+
+
+  (* ------------------------------------------------------------------- *)
 
   result()
+
+
+
+
+
+
+
+
+
+
 
