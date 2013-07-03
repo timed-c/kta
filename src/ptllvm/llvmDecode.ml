@@ -167,7 +167,7 @@ let foldinst (insts,phis) inst =
   | Llvm.Opcode.And -> mkbop BopAnd  
   | Llvm.Opcode.Or -> mkbop BopOr   
   | Llvm.Opcode.Xor -> mkbop BopXor  
-   (* -- Memory Access and Addressing Operations -- *)
+   (* -- Stack Memory Access and Addressing Operations -- *)
   | Llvm.Opcode.Alloca -> 
       let id = mk_assign_id inst in 
       let ty = Llvm.type_of inst in 
@@ -181,7 +181,11 @@ let foldinst (insts,phis) inst =
       let ty = toAstTy (Llvm.type_of inst) in 
       let ptr = toAstVal (Llvm.operand inst 0) in      
       (ILoad(id,ty,ptr)::insts,phis)
-  | Llvm.Opcode.Store -> (IStore::insts,phis)
+  | Llvm.Opcode.Store -> 
+      let ty = toAstTy (Llvm.type_of (Llvm.operand inst 0)) in 
+      let v = toAstVal (Llvm.operand inst 0) in          
+      let ptr = toAstVal (Llvm.operand inst 1) in          
+      (IStore(v,ty,ptr)::insts,phis)
   | Llvm.Opcode.GetElementPtr -> (IGetElementPtr::insts,phis)
    (* -- Conversion operations -- *)
   | Llvm.Opcode.Trunc -> mk_conv_op CopTrunc

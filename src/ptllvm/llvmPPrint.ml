@@ -126,7 +126,9 @@ let pp_fold_inst s inst =
     | ILoad(id,ty,ptr) -> 
         (string_of_local_id id) ^. us" = load " ^. pprint_type (TyPointer ty) ^. 
           us" " ^. pprint_val ptr
-    | IStore -> us"IStore (todo)" 
+    | IStore(v,ty,ptr) -> 
+        us"store " ^. pprint_type ty ^. us" " ^. pprint_val v ^. us", " ^.
+          pprint_type (TyPointer ty) ^. us" " ^. pprint_val ptr
     | IFence -> us"IFence (todo)"   
     | ICmpXchg -> us"ICmpXchg (todo)"
     | IAtomicRMW -> us"IAtomicRMW (todo)"  
