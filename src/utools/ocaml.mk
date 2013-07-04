@@ -15,10 +15,10 @@ $(F_LIB): $(F_CMX)
 .SUFFIXES: .ml .mli .cmi .cmx
 
 .mli.cmi:
-	ocamlopt $(INCL_DIRS) -c $<
+	ocamlopt -warn-error +8 $(INCL_DIRS) -c $<
 
 .ml.cmx:
-	ocamlopt $(INCL_DIRS) -c $<
+	ocamlopt -warn-error +8 $(INCL_DIRS) -c $<
 
 
 .PHONY: test

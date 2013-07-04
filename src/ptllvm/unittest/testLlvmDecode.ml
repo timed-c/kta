@@ -76,14 +76,21 @@ let main =
 
 
   let ast = LlvmDecode.bcfile2ast "unittest/testcode/stackdata.bc" in
-  uprint_endline (LlvmPPrint.pprint_module ast);  
+  (* uprint_endline (LlvmPPrint.pprint_module ast);  *)
+
+  (* Test addnums)  *)
+  let fname = "addnums" in
+  let args = [const32 7] in
+  let (t,res) = LlvmEval.eval_fun ast btime (usid fname) args (-1) in
+  test_llvm_int_res "Function addnums()" res 215;
+
 
   (* Test simple_array_access.  *)
-(*  let fname = "simple_array_access" in
+  let fname = "simple_array_access" in
   let args = [const32 3; const32 3] in
   let (t,res) = LlvmEval.eval_fun ast btime (usid fname) args (-1) in
-  test_llvm_int_res "Function simple_array_access()" res 6006;
-*)
+  test_llvm_int_res "Function simple_array_access()" res 3;
+
 
   (* ------------------------------------------------------------------- *)
 

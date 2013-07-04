@@ -29,6 +29,9 @@ val sign_ext_int64 : int64 -> int -> int64
     hold [n] number of bits. *)
 
  
-val  mask_int64 : int64 -> int -> int64
+val mask_int64 : int64 -> int -> int64
 (** [mask_int64 v n] keeps the [n] least significant bits of value [v] and
     sets the rest of the bits to 0 *)
+
+val default_constval : llType -> llConst
+(** Returns the default constant value for a specific type, if it exists *)

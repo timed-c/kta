@@ -31,24 +31,34 @@ type fpType =
 | FPTyfp128
 | FPTyppc_fp128
 
-type llType = 
+and llType = 
 | TyVoid
 | TyInt of int             (* Integer with n number of bits *)
 | TyFP  of fpType          (* Floating point types *)
 | TyFun of                 (* Function type *) 
-    llType *                    (* Return type *)
-    llType list                 (* List of parameter types *)
+    llType *                 (* Return type *)
+    llType list              (* List of parameter types *)
 | TyPointer of llType      (* Pointer type of element type *)
-| TyArray of int *              (* No of elements *)
-             llType             (* Element type *)
+| TyArray of               (* Array type *)
+    int *                    (* No of elements *)
+    llType                   (* Element type *)
              
 
-type llConst =
-| CInt of                  (* Integer constant. *)
-    int *                  (* Bit width of the integer constant *)
-    Int64.t                (* Integer value. We support up to 64 bits values *)
+and llData =
+| DArray of 
+    (llData ref) array 
+| DConst of llConst
+    
 
-type llVal =
+and llConst =
+| CInt of                  (* Integer constant. *)
+    int *                    (* Bit width of the integer constant *)
+    Int64.t                  (* Integer value. We support up to 64 bits values *)
+| CPtr of                  (* A pointer to a allocated data structure. *)
+    llData ref               (* A reference to a data item *) 
+    
+
+and llVal =
 | VId        of llId *     (* Identifier to a value *)
                 llType     (* Type of the identifier *)
 | VConst     of llConst    (* Constant value *)

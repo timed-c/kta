@@ -60,6 +60,7 @@ let eval_bop bop val1 val2 =
       | BopXor ->  mask_int64 (Int64.logxor v1 v2) w
       | BopFAdd | BopFSub | BopFMul | BopFDiv | BopFRem 
           -> raise Illegal_llvm_code)))
+  | CPtr(_),_ | _,CPtr(_) -> raise Illegal_llvm_code
 
 
 (* Evaluate the predicate for comparison instruction *)  
@@ -82,6 +83,7 @@ let eval_icmp_pred icmppred val1 val2 =
                    then Int64.one else Int64.zero
       | IcmpSle -> if Int64.compare (sign_ext_int64 v1 w) (sign_ext_int64 v2 w) <= 0
                    then Int64.one else Int64.zero)))
+  | CPtr(_),_ | _,CPtr(_) -> raise Illegal_llvm_code
 
 
 (* Evaluate conversion operations *)
@@ -117,6 +119,35 @@ let rec eval_inst m instlst env  =
   | IBrUncond(l)::[] -> InstBranch(l,env)
   | IBinOp(id,bop,ty,v1,v2)::lst -> 
     let nval = eval_bop bop (eval_expr env v1) (eval_expr env v2) in
+    let env' = env_add (LocalId(id)) nval env in
+    eval_inst m lst env'        
+  | IAlloca(id,elems,ty,_)::lst ->
+    let rec mklst n = 
+      if n = 0 then [] else (ref (DConst(default_constval ty)))::(mklst (n-1)) in
+    let nval = CPtr(ref (DArray(Array.of_list (mklst elems)))) in
+    let env' = env_add (LocalId(id)) nval env in
+    eval_inst m lst env'        
+  | ILoad(id,ty,e)::lst ->
+    let nval = (match (eval_expr env e) with
+                | CPtr(d) -> (match !d with 
+                              | DConst(c) -> c
+                              | _ -> raise Illegal_llvm_code)
+                | _ -> raise Illegal_llvm_code) in
+    let env' = env_add (LocalId(id)) nval env in
+    eval_inst m lst env'        
+  | IStore(e1,ty,e2)::lst ->
+    let v1 = eval_expr env e1 in
+    (match eval_expr env e2 with 
+     | CPtr(dref) -> dref := DConst(v1) 
+     | _ -> raise Illegal_llvm_code);
+    eval_inst m lst env        
+  | IGetElementPtr(id,ty,ptr,indices)::lst -> 
+    let nval = (match eval_expr env ptr,indices with
+                | CPtr(d),_::iexp::_ -> 
+                  (match !d,eval_expr env iexp with
+                   | DArray(a),CInt(_,n) -> CPtr(Array.get a (Int64.to_int n))
+                   | _ -> failwith "fail")   (** TODO: This is a very temporary solution. *)
+                | _ -> failwith "fail") in
     let env' = env_add (LocalId(id)) nval env in
     eval_inst m lst env'        
   | IConvOp(id,convop,ty1,v,ty2)::lst -> 

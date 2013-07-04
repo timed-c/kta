@@ -15,11 +15,19 @@ let get_fun m f =
      raise (Function_not_found ((Ustring.to_utf8 (ustring_of_sid f)), f)) 
 
 
-let type_of_val v = 
+let rec type_of_val v = 
   match v with 
   | VId(id,ty) -> ty
   | VConst(CInt(bits,_)) -> TyInt(bits)
+  | VConst(CPtr(d)) -> type_of_dataval (!d)
   | VConstExpr(ty) -> ty
+  
+
+and type_of_dataval v =
+  match v with 
+  | DArray(a) -> 
+    type_of_dataval (!(try a.(0) with _ -> raise Illegal_llvm_code))
+  | DConst(c) -> type_of_val (VConst(c))
 
 
 let const32 v = CInt(32,Int64.of_int v)
@@ -32,3 +40,9 @@ let sign_ext_int64 v n =
 
 let mask_int64 v n =
         Int64.logand  v (Int64.sub (Int64.shift_left (Int64.one) n) Int64.one)
+
+let default_constval ty =
+  match ty with
+  | TyInt(w) -> CInt(w,Int64.zero)
+  | _ -> failwith "Cannot create default value of this type."
+

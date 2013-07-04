@@ -36,6 +36,7 @@ let rec pprint_type ty =
 let pprint_const c =
   match c with
   | CInt(n,i) -> us(Int64.to_string i)
+  | CPtr(_) -> us"CPtr"
 
 let pprint_val v = 
   match v with
