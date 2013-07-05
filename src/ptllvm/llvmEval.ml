@@ -32,13 +32,13 @@ let utf8 sid = Ustring.to_utf8 (ustring_of_sid sid)
 (* Evaluate an expression to a constant. Looks up identifiers in the environment *)
 let eval_expr env e = 
   match e with 
-  | VId(id,ty) -> (
+  | ExpId(id,ty) -> (
     try env_find id env 
     with Not_found -> 
       let ids = pprint_llid id in
       raise (Eval_error_identfier_not_found (Ustring.to_utf8 ids)))
-  | VConst(c) -> c
-  | VConstExpr(_) -> CInt(1,Int64.zero)   (* TODO *)
+  | ExpConst(c) -> c
+  | ExpConstExpr(_) -> CInt(1,Int64.zero)   (* TODO *)
 
 
 (* Evaluating binary operators *)

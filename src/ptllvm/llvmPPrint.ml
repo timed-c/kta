@@ -40,9 +40,9 @@ let pprint_const c =
 
 let pprint_val v = 
   match v with
-  | VId(id,_) -> pprint_llid id
-  | VConst(c) -> pprint_const c
-  | VConstExpr(_) -> us"<constexpr>" 
+  | ExpId(id,_) -> pprint_llid id
+  | ExpConst(c) -> pprint_const c
+  | ExpConstExpr(_) -> us"<constexpr>" 
 
 let pprint_binop bop = us (
   match bop with 

@@ -64,9 +64,9 @@ let rec toAstTy ty =
 (* Convert from the API representation of value to a first class value *)
 let toAstVal v = 
   match Llvm.classify_value v with 
-  | Llvm.ValueKind.Argument -> VId(mkLocalId (Llvm.value_name v), 
+  | Llvm.ValueKind.Argument -> ExpId(mkLocalId (Llvm.value_name v), 
                                    toAstTy (Llvm.type_of v))
-  | Llvm.ValueKind.ConstantExpr -> VConstExpr(toAstTy(Llvm.type_of v))
+  | Llvm.ValueKind.ConstantExpr -> ExpConstExpr(toAstTy(Llvm.type_of v))
   | Llvm.ValueKind.ConstantInt ->  
     let bitwidth = Llvm.integer_bitwidth (Llvm.type_of v) in
     let intv = 
@@ -74,14 +74,14 @@ let toAstVal v =
       | Some(i) -> i 
       | None -> failwith "Integers larger than 64-bits are not supported." 
     in
-      VConst(CInt(bitwidth, intv))
+      ExpConst(CInt(bitwidth, intv))
   | Llvm.ValueKind.Instruction(op) -> 
     let name = 
       if Llvm.value_name v = "" then
         string_of_int (try Hashtbl.find var_map v with Not_found -> 99999)
       else Llvm.value_name v                 
     in
-      VId(mkLocalId name, toAstTy (Llvm.type_of v))
+      ExpId(mkLocalId name, toAstTy (Llvm.type_of v))
   | _ -> failwith "todo: Value not yet supported"
 
 

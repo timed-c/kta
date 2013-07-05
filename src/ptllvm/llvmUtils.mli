@@ -6,7 +6,7 @@ open Ustring.Op
 exception Function_not_found of string * sid
 exception Illegal_llvm_code
 
-val const_int_val : int -> int -> llVal 
+val const_int_val : int -> int -> llExp 
 (** Expression [const_int_val w v] creates a constant integer value with bit
     width [w] and value [v]. *)
 
@@ -16,7 +16,7 @@ val get_fun : llModule -> llGloId -> llFunc
     Raises exception [Function_not_found] if the function cannot be found. *)
 
 
-val type_of_val : llVal -> llType 
+val type_of_val : llExp -> llType 
 (** Returns the type of a specific value *)
 
 

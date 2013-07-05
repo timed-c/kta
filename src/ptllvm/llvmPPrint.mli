@@ -12,8 +12,8 @@ val pprint_type : llType -> ustring
 val pprint_const : llConst -> ustring
 (** Pretty print constant *)
 
-val pprint_val : llVal -> ustring
-(** Pretty print value *)
+val pprint_val : llExp -> ustring
+(** Pretty print expression *)
 
 val pprint_binop : llBinOp -> ustring
 (** Pretty print binary operator *)
@@ -23,3 +23,5 @@ val pprint_icmp_pred_op : llIcmpPred -> ustring
 
 val pprint_module : llModule -> ustring
 (** Pretty print a module *)
+
+

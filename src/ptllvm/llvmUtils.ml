@@ -6,7 +6,7 @@ open Ustring.Op
 exception Function_not_found of string * sid
 exception Illegal_llvm_code
 
-let const_int_val width v = VConst(CInt(width, Int64.of_int v))
+let const_int_val width v = ExpConst(CInt(width, Int64.of_int v))
 
 
 let get_fun m f = 
@@ -17,17 +17,17 @@ let get_fun m f =
 
 let rec type_of_val v = 
   match v with 
-  | VId(id,ty) -> ty
-  | VConst(CInt(bits,_)) -> TyInt(bits)
-  | VConst(CPtr(d)) -> type_of_dataval (!d)
-  | VConstExpr(ty) -> ty
+  | ExpId(id,ty) -> ty
+  | ExpConst(CInt(bits,_)) -> TyInt(bits)
+  | ExpConst(CPtr(d)) -> type_of_dataval (!d)
+  | ExpConstExpr(ty) -> ty
   
 
 and type_of_dataval v =
   match v with 
   | DArray(a) -> 
     type_of_dataval (!(try a.(0) with _ -> raise Illegal_llvm_code))
-  | DConst(c) -> type_of_val (VConst(c))
+  | DConst(c) -> type_of_val (ExpConst(c))
 
 
 let const32 v = CInt(32,Int64.of_int v)
