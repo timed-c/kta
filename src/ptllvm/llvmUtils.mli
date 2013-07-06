@@ -16,12 +16,8 @@ val get_fun : llModule -> llGloId -> llFunc
     Raises exception [Function_not_found] if the function cannot be found. *)
 
 
-val type_of_val : llExp -> llType 
-(** Returns the type of a specific value *)
-
-
-val const32 : int -> llConst
-(** Creates a constant 32 bit integer value *)
+val type_of_exp : llExp -> llType 
+(** Returns the type of a specific expression *)
 
 
 val sign_ext_int64 : int64 -> int -> int64
@@ -33,5 +29,3 @@ val mask_int64 : int64 -> int -> int64
 (** [mask_int64 v n] keeps the [n] least significant bits of value [v] and
     sets the rest of the bits to 0 *)
 
-val default_constval : llType -> llConst
-(** Returns the default constant value for a specific type, if it exists *)

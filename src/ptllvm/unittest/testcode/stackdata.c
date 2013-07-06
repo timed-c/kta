@@ -37,17 +37,40 @@ int idx(int* v, int n)
   return v[n];
 }
 
-int simple_matrix_access2(int x, int y, int x2, int y2, int k)
+int less_simple_matrix_access(int x, int y, int x2, int y2, int k)
 {
   int m[8][12];
-  int* p;
+  int* pm[20];
+  int* p; 
   int s;
   m[x][y] = k;
   m[x][y+1] = k;
   p = m[x2];
-  s = p[y2] + idx(p,y2+1);
+  pm[x] = m[x2];
+  s = p[y2] + idx(pm[x2],y2+1);
   return s;
 }
+
+/*
+typedef struct{
+  int  age;
+  char name[20];
+  int  numbers[10];
+} person;
+
+void update_person(person* p)
+{
+  p->age = 35;
+  p->numbers[7] = 77;
+}
+
+int simple_struct_access(int k)
+{
+  person p;
+  update_person(&p);
+  return p.numbers[k];                         
+}
+*/
 
 
 int main()
@@ -55,6 +78,8 @@ int main()
   printf("addnums(7) = %d\n", addnums(7));
   printf("simple_array_access(3,3) = %d\n", simple_array_access(3,3));
   printf("simple_matrix_access(4,5,4,5,10) = %d\n", simple_matrix_access(4,5,4,5,10));
-  printf("simple_matrix_access2(4,5,4,5,10) = %d\n", simple_matrix_access2(4,4,4,4,10));
+  printf("less_simple_matrix_access(4,5,4,5,10) = %d\n", 
+         less_simple_matrix_access(4,4,4,4,10));
+  /* printf("simple_struct_access(7) = %d\n", simple_struct_access(7)); */
   return 0;
 }

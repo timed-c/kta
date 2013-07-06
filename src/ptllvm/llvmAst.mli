@@ -44,19 +44,24 @@ and llType =
     llType                   (* Element type *)
              
 
+(*
 and llData =
 | DArray of 
     (llData ref) array 
 | DConst of llConst
-    
+*)  
 
 and llConst =
 | CInt of                  (* Integer constant. *)
     int *                    (* Bit width of the integer constant *)
     Int64.t                  (* Integer value. We support up to 64 bits values *)
+
+(*
 | CPtr of                  (* A pointer to a allocated data structure. *)
     llData ref               (* A reference to a data item *) 
-    
+*)
+
+   
 (** llExp are expressions appearing in LLVM code, which have yet not been evaluated
     to a value. These expressions are the same things as called Values in the LLVM Ocaml
     API, but to avoid confusion with runtime values, we call them expressions here. *)
@@ -150,8 +155,7 @@ type llInst =
    (* -- Memory Access and Addressing Operations -- *)
 | IAlloca  of       (* Allocate stack memory. Auto release when functions return. *)
     llLocId *         (* Assignment id *)
-    int *             (* Number of elements *)
-    llType *          (* Type of the element *)
+    llType *          (* Type that should be allocated (array or struct) *)
     int               (* Alignment. If zero, no alignment is specified. *)  
 | ILoad of          (* Load data from memory *) 
     llLocId *         (* Assignment id *)

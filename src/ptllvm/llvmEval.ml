@@ -11,14 +11,21 @@ open LlvmPPrint
 
 exception Eval_error_identfier_not_found of string 
 
+type llVal =
+| VConst of       (* Constant value *)
+    llConst         (* Constant. See llvmAst.mli *)
+| VPtr of         (* Pointer. Modeled using an index and a mutable array *)
+    int *           (* Index to where in the array the pointer points *)
+    llVal array     (* Array of constants. *)
+
 type time = int
 type btime = llabel -> llabel -> time
 
 (*************** Local types and exceptions ***********************)
 
 type instTy = 
-| InstRet    of llConst option 
-| InstBranch of llabel * (llId,llConst) PMap.t
+| InstRet    of llVal option 
+| InstBranch of llabel * (llId,llVal) PMap.t
 
 
 (*************** Local functions **********************************)
@@ -37,16 +44,16 @@ let eval_expr env e =
     with Not_found -> 
       let ids = pprint_llid id in
       raise (Eval_error_identfier_not_found (Ustring.to_utf8 ids)))
-  | ExpConst(c) -> c
-  | ExpConstExpr(_) -> CInt(1,Int64.zero)   (* TODO *)
+  | ExpConst(c) -> VConst(c)
+  | ExpConstExpr(_) -> VConst(CInt(1,Int64.zero))   (* TODO *)
 
 
 (* Evaluating binary operators *)
 let eval_bop bop val1 val2 =
   match val1,val2 with
-  | CInt(w,v1),CInt(_,v2) -> (
+  | VConst(CInt(w,v1)),VConst(CInt(_,v2)) -> (
     let andval = Int64.of_int ((1 lsl w)-1) in
-    CInt(w,Int64.logand andval (
+    VConst(CInt(w,Int64.logand andval (
       match bop with     
       | BopAdd -> mask_int64 (Int64.add v1 v2) w
       | BopSub ->  mask_int64 (Int64.sub v1 v2) w
@@ -59,15 +66,15 @@ let eval_bop bop val1 val2 =
       | BopOr ->  mask_int64 (Int64.logor v1 v2) w 
       | BopXor ->  mask_int64 (Int64.logxor v1 v2) w
       | BopFAdd | BopFSub | BopFMul | BopFDiv | BopFRem 
-          -> raise Illegal_llvm_code)))
-  | CPtr(_),_ | _,CPtr(_) -> raise Illegal_llvm_code
+          -> raise Illegal_llvm_code))))
+  | _ -> raise Illegal_llvm_code
 
 
 (* Evaluate the predicate for comparison instruction *)  
 let eval_icmp_pred icmppred val1 val2 =
   match val1,val2 with
-  | CInt(w,v1), CInt(_,v2) -> (
-    CInt(1, (
+  | VConst(CInt(w,v1)), VConst(CInt(_,v2)) -> (
+    VConst(CInt(1, (
       match icmppred with
       | IcmpEq  -> if Int64.compare v1 v2 == 0 then Int64.one else Int64.zero
       | IcmpNe  -> if Int64.compare v1 v2 != 0 then Int64.one else Int64.zero
@@ -82,14 +89,14 @@ let eval_icmp_pred icmppred val1 val2 =
       | IcmpSlt -> if Int64.compare (sign_ext_int64 v1 w) (sign_ext_int64 v2 w) < 0
                    then Int64.one else Int64.zero
       | IcmpSle -> if Int64.compare (sign_ext_int64 v1 w) (sign_ext_int64 v2 w) <= 0
-                   then Int64.one else Int64.zero)))
-  | CPtr(_),_ | _,CPtr(_) -> raise Illegal_llvm_code
+                   then Int64.one else Int64.zero))))
+  | _ -> raise Illegal_llvm_code
 
 
 (* Evaluate conversion operations *)
 let eval_conv_op convop ty1 val1 ty2 =
   match ty1,val1,ty2 with 
-  | TyInt(w1),CInt(w2,v1),TyInt(w3) -> (
+  | TyInt(w1),VConst(CInt(w2,v1)),TyInt(w3) -> (VConst(
     match convop with 
     | CopTrunc -> CInt(w3,mask_int64 v1 w3)
     | CopZExt -> CInt(w3, v1)
@@ -102,7 +109,7 @@ let eval_conv_op convop ty1 val1 ty2 =
     | CopSIToFP -> failwith "todo"
     | CopPtrToInt -> failwith "todo"
     | CopIntToPtr -> failwith "todo"
-    | CopBitCast -> failwith "todo")
+    | CopBitCast -> failwith "todo"))
   | _ -> failwith "Not yet implemented."
   
 
@@ -113,41 +120,60 @@ let rec eval_inst m instlst env  =
   | IRet(Some(_,e))::[] -> InstRet(Some(eval_expr env e)) 
   | IBrCond(exp,l1,l2)::[] -> (
     match eval_expr env exp with
-    | CInt(1,v) when Int64.to_int v = 1 -> InstBranch(l1,env)
-    | CInt(1,v) when Int64.to_int v = 0 -> InstBranch(l2,env)
+    | VConst(CInt(1,v)) when Int64.to_int v = 1 -> InstBranch(l1,env)
+    | VConst(CInt(1,v)) when Int64.to_int v = 0 -> InstBranch(l2,env)
     | _ -> raise Illegal_llvm_code)
   | IBrUncond(l)::[] -> InstBranch(l,env)
   | IBinOp(id,bop,ty,v1,v2)::lst -> 
     let nval = eval_bop bop (eval_expr env v1) (eval_expr env v2) in
     let env' = env_add (LocalId(id)) nval env in
     eval_inst m lst env'        
-  | IAlloca(id,elems,ty,_)::lst ->
-    let rec mklst n = 
-      if n = 0 then [] else (ref (DConst(default_constval ty)))::(mklst (n-1)) in
-    let nval = CPtr(ref (DArray(Array.of_list (mklst elems)))) in
+  | IAlloca(id,ty,_)::lst ->
+    let rec mklst ty rep acc = 
+      if rep > 0 then
+        match ty with 
+        | TyInt(w) -> mklst ty (rep-1) (VConst(CInt(w,Int64.zero))::acc)
+        | TyPointer(ty2) -> 
+            mklst ty (rep-1) ((VPtr(0, Array.make 0 (VConst(CInt(0,Int64.zero)))))::acc)
+        | TyArray(n,elemty) -> mklst elemty n acc
+        | _ -> failwith "Type not yet supported"
+      else List.rev acc in
+    let nval = VPtr(0,Array.of_list (mklst ty 1 [])) in
     let env' = env_add (LocalId(id)) nval env in
     eval_inst m lst env'        
   | ILoad(id,ty,e)::lst ->
     let nval = (match (eval_expr env e) with
-                | CPtr(d) -> (match !d with 
-                              | DConst(c) -> c
-                              | _ -> raise Illegal_llvm_code)
+                | VPtr(idx,arr) -> Array.get arr idx
                 | _ -> raise Illegal_llvm_code) in
     let env' = env_add (LocalId(id)) nval env in
     eval_inst m lst env'        
   | IStore(e1,ty,e2)::lst ->
     let v1 = eval_expr env e1 in
     (match eval_expr env e2 with 
-     | CPtr(dref) -> dref := DConst(v1) 
+     | VPtr(idx,arr) -> Array.set arr idx v1 
      | _ -> raise Illegal_llvm_code);
-    eval_inst m lst env        
+    eval_inst m lst env          
   | IGetElementPtr(id,ty,ptr,indices)::lst -> 
-    let nval = (match eval_expr env ptr,indices with
-                | CPtr(d),_::iexp::_ -> 
-                  (match !d,eval_expr env iexp with
-                   | DArray(a),CInt(_,n) -> CPtr(Array.get a (Int64.to_int n))
-                   | _ -> failwith "fail")   (** TODO: This is a very temporary solution. *)
-                | _ -> failwith "fail") in
+    let rec elems_in_type ty =
+      match ty with
+      | TyInt(w) -> 1
+      | TyPointer(ty2) -> elems_in_type ty2
+      | TyArray(n,elem_ty) -> n * (elems_in_type elem_ty)
+      | _ -> failwith "Type is not supported in getelementptr"
+    in      
+    let rec adv_index idx ty indices =
+      match ty,indices with
+      | TyPointer(ty2),VConst(CInt(_,_))::lst -> adv_index idx ty2 lst
+      | TyArray(elems,elem_ty),VConst(CInt(_,n))::lst ->
+          adv_index (idx + elems_in_type elem_ty) elem_ty lst
+      | _,[] -> idx
+      | _,_ -> raise Illegal_llvm_code
+    in 
+    let nval = (
+      match eval_expr env ptr with
+      | VPtr(idx,arr) -> 
+        VPtr(adv_index idx ty (List.map (eval_expr env) indices), arr)
+      | _ -> raise Illegal_llvm_code) in
     let env' = env_add (LocalId(id)) nval env in
     eval_inst m lst env'        
   | IConvOp(id,convop,ty1,v,ty2)::lst -> 
@@ -203,6 +229,9 @@ and eval_function m blocks params args env  =
 
 
 (**************** Exported functions *******************************)
+
+let v32 v = VConst(CInt(32,Int64.of_int v))
+
 
 let eval_fun m bt f args timeout =
   (* Find function to execute *)

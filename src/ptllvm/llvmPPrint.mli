@@ -12,7 +12,7 @@ val pprint_type : llType -> ustring
 val pprint_const : llConst -> ustring
 (** Pretty print constant *)
 
-val pprint_val : llExp -> ustring
+val pprint_exp : llExp -> ustring
 (** Pretty print expression *)
 
 val pprint_binop : llBinOp -> ustring

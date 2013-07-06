@@ -173,8 +173,8 @@ let foldinst (insts,phis) inst =
       let ty = Llvm.type_of inst in 
       let align = 0 in (* TODO: add alignment *) (
       match toAstTy ty with
-      | TyPointer(TyArray(elems,elem_ty)) -> 
-        (IAlloca(id,elems,elem_ty,align)::insts,phis)
+      | TyPointer(ty2) -> 
+        (IAlloca(id,ty2,align)::insts,phis)
       | _ -> raise Llvm_api_error)
   | Llvm.Opcode.Load -> 
       let id = mk_assign_id inst in 

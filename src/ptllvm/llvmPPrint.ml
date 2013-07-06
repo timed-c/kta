@@ -36,10 +36,9 @@ let rec pprint_type ty =
 let pprint_const c =
   match c with
   | CInt(n,i) -> us(Int64.to_string i)
-  | CPtr(_) -> us"CPtr"
 
-let pprint_val v = 
-  match v with
+let pprint_exp e = 
+  match e with
   | ExpId(id,_) -> pprint_llid id
   | ExpConst(c) -> pprint_const c
   | ExpConstExpr(_) -> us"<constexpr>" 
@@ -98,8 +97,8 @@ let pp_fold_inst s inst =
     match inst with
    (* -- Terminator instructions -- *)
     | IRet(None) -> us"ret void"
-    | IRet(Some(ty,v)) -> us "ret " ^. pprint_type ty ^. us" " ^. pprint_val v
-    | IBrCond(c,tl,fl) -> us"br i1 " ^. pprint_val c ^.
+    | IRet(Some(ty,v)) -> us "ret " ^. pprint_type ty ^. us" " ^. pprint_exp v
+    | IBrCond(c,tl,fl) -> us"br i1 " ^. pprint_exp c ^.
            us", label " ^. string_of_label tl ^. 
            us", label " ^. string_of_label fl 
     | IBrUncond(l) -> us"br label " ^. string_of_label l
@@ -111,7 +110,7 @@ let pp_fold_inst s inst =
    (* -- Binary operations -- *)
     | IBinOp(id,bop,ty,op1,op2) ->
         (string_of_local_id id) ^. us" = " ^. pprint_binop bop ^. us" " ^. 
-          pprint_type ty ^. us" " ^. pprint_val op1 ^. us", " ^. pprint_val op2
+          pprint_type ty ^. us" " ^. pprint_exp op1 ^. us", " ^. pprint_exp op2
    (* -- Vector operations -- *)
     | IExtractElement -> us"IExtractElement (todo)"
     | IInsertElement -> us"IInsertElement (todo)" 
@@ -120,37 +119,36 @@ let pp_fold_inst s inst =
     | IExtractValue -> us"IExtractValue (todo)"   
     | IInsertValue -> us"IInsertValue (todo)"    
    (* -- Memory Access and Addressing Operations -- *)
-    | IAlloca(id,elems,ty,align) -> 
-        (string_of_local_id id) ^. us" = alloca [" ^. ustring_of_int elems ^.
-        us" x " ^. pprint_type ty ^. us"]" ^.
+    | IAlloca(id,ty,align) -> 
+        (string_of_local_id id) ^. us" = alloca " ^. pprint_type ty ^.
         (if align != 0 then us", align " ^. ustring_of_int align else us"")
     | ILoad(id,ty,ptr) -> 
         (string_of_local_id id) ^. us" = load " ^. pprint_type (TyPointer ty) ^. 
-          us" " ^. pprint_val ptr
+          us" " ^. pprint_exp ptr
     | IStore(v,ty,ptr) -> 
-        us"store " ^. pprint_type ty ^. us" " ^. pprint_val v ^. us", " ^.
-          pprint_type (TyPointer ty) ^. us" " ^. pprint_val ptr
+        us"store " ^. pprint_type ty ^. us" " ^. pprint_exp v ^. us", " ^.
+          pprint_type (TyPointer ty) ^. us" " ^. pprint_exp ptr
     | IFence -> us"IFence (todo)"   
     | ICmpXchg -> us"ICmpXchg (todo)"
     | IAtomicRMW -> us"IAtomicRMW (todo)"  
     | IGetElementPtr(id,ty,ptr,indices) -> 
       (string_of_local_id id) ^. us" = getelementptr " ^. pprint_type ty ^.
-      us" " ^. pprint_val ptr ^. 
-        (List.fold_left (fun a v -> a ^. us", " ^. pprint_type (type_of_val v) ^.
-                        us" " ^. pprint_val v) (us"") indices) 
+      us" " ^. pprint_exp ptr ^. 
+        (List.fold_left (fun a e -> a ^. us", " ^. pprint_type (type_of_exp e) ^.
+                        us" " ^. pprint_exp e) (us"") indices) 
    (* -- Conversion operations -- *)
     | IConvOp(id, cop, ty1, op1, ty2) -> 
       (string_of_local_id id) ^. us" = " ^. pprint_conv_op cop ^. us" " ^.
-      pprint_type ty1 ^. us" " ^. pprint_val op1 ^. us" " ^. pprint_type ty2      
+      pprint_type ty1 ^. us" " ^. pprint_exp op1 ^. us" " ^. pprint_type ty2      
    (* -- Miscellaneous instructions -- *)
     | ICmp(id,pred,ty,op1,op2) -> 
         (string_of_local_id id) ^. us" = icmp " ^. pprint_icmp_pred_op pred ^. us" " 
-         ^. pprint_type ty ^. us" " ^. pprint_val op1 ^. us", " ^. pprint_val op2
+         ^. pprint_type ty ^. us" " ^. pprint_exp op1 ^. us", " ^. pprint_exp op2
     | IFCmp -> us"IFCmp (todo)"
     | ISelect -> us"ISelect (todo)"         
     | ICall(id, tail, ret_ty, name, args) -> (
-        let arglst = List.map (fun id -> pprint_type (type_of_val id) ^. us" " ^. 
-          pprint_val id) args in
+        let arglst = List.map (fun id -> pprint_type (type_of_exp id) ^. us" " ^. 
+          pprint_exp id) args in
         (match id with None -> us"" | Some(ids) -> 
         (string_of_local_id ids) ^. us" = ") ^.
         us (if tail then "tail " else "") ^. us"call " ^. pprint_type ret_ty ^. 
@@ -160,8 +158,8 @@ let pp_fold_inst s inst =
     | ILandingPad -> us"ILandingPad (todo)" 
    (* -- PRET Timing Instructions *)
     | IPretGT(id) -> (string_of_local_id id) ^. us" = gt"
-    | IPretDU(op) -> us"du " ^. pprint_val op
-    | IPretMT(op) -> us"mt " ^. pprint_val op
+    | IPretDU(op) -> us"du " ^. pprint_exp op
+    | IPretMT(op) -> us"mt " ^. pprint_exp op
     | IPretFD -> us"fd"       
    (* -- Other not documented instructions *)
     | IInvalid -> us"IInvalid (todo)"
@@ -173,7 +171,7 @@ let pp_fold_inst s inst =
     s ^. us"  " ^. istr ^. us"\n"
     
 let pp_fold_phi s (LLPhi(id,ty,inlst)) = 
-  let lst = List.map (fun (l,v) -> us"[ " ^. pprint_val v ^. us", " ^. 
+  let lst = List.map (fun (l,v) -> us"[ " ^. pprint_exp v ^. us", " ^. 
                       string_of_label l ^. us" ]") inlst in
   let clst = Ustring.concat (us", ") lst in
   s ^. us"  " ^. string_of_local_id id ^. us" = phi " 
