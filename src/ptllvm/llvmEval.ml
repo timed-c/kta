@@ -36,6 +36,11 @@ let env_find id env = PMap.find id env
 let utf8 sid = Ustring.to_utf8 (ustring_of_sid sid)
 
 
+let pprint_val v =
+  match v with
+  | VConst(c) -> pprint_const c
+  | VPtr(i,a) -> us"VPtr(" ^. ustring_of_int i ^. us")"
+
 (* Evaluate an expression to a constant. Looks up identifiers in the environment *)
 let eval_expr env e = 
   match e with 
@@ -143,7 +148,8 @@ let rec eval_inst m instlst env  =
     eval_inst m lst env'        
   | ILoad(id,ty,e)::lst ->
     let nval = (match (eval_expr env e) with
-                | VPtr(idx,arr) -> Array.get arr idx
+                | VPtr(idx,arr) -> 
+                  Array.get arr idx
                 | _ -> raise Illegal_llvm_code) in
     let env' = env_add (LocalId(id)) nval env in
     eval_inst m lst env'        
@@ -165,14 +171,15 @@ let rec eval_inst m instlst env  =
       match ty,indices with
       | TyPointer(ty2),VConst(CInt(_,_))::lst -> adv_index idx ty2 lst
       | TyArray(elems,elem_ty),VConst(CInt(_,n))::lst ->
-          adv_index (idx + elems_in_type elem_ty) elem_ty lst
+          adv_index ((Int64.to_int n) * (idx + elems_in_type elem_ty)) elem_ty lst
       | _,[] -> idx
       | _,_ -> raise Illegal_llvm_code
     in 
     let nval = (
       match eval_expr env ptr with
       | VPtr(idx,arr) -> 
-        VPtr(adv_index idx ty (List.map (eval_expr env) indices), arr)
+        let idx' = adv_index idx ty (List.map (eval_expr env) indices) in
+        VPtr(idx', arr)
       | _ -> raise Illegal_llvm_code) in
     let env' = env_add (LocalId(id)) nval env in
     eval_inst m lst env'        
