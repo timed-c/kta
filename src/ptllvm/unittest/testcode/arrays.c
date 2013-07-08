@@ -44,7 +44,7 @@ int less_simple_matrix_access(int x, int y, int x2, int y2, int k)
   int* p; 
   int s;
   m[x][y] = k;
-  m[x][y+1] = k;
+  m[x][y+1] = k+5;
   p = m[x2];
   pm[x] = m[x2];
   s = p[y2] + idx(pm[x2],y2+1);

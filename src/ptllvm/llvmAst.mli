@@ -31,7 +31,7 @@ type fpType =
 | FPTyfp128
 | FPTyppc_fp128
 
-and llType = 
+type llType = 
 | TyVoid
 | TyInt of int             (* Integer with n number of bits *)
 | TyFP  of fpType          (* Floating point types *)
@@ -43,29 +43,15 @@ and llType =
     int *                    (* No of elements *)
     llType                   (* Element type *)
              
-
-(*
-and llData =
-| DArray of 
-    (llData ref) array 
-| DConst of llConst
-*)  
-
-and llConst =
+type llConst =
 | CInt of                  (* Integer constant. *)
     int *                    (* Bit width of the integer constant *)
     Int64.t                  (* Integer value. We support up to 64 bits values *)
 
-(*
-| CPtr of                  (* A pointer to a allocated data structure. *)
-    llData ref               (* A reference to a data item *) 
-*)
-
-   
 (** llExp are expressions appearing in LLVM code, which have yet not been evaluated
     to a value. These expressions are the same things as called Values in the LLVM Ocaml
     API, but to avoid confusion with runtime values, we call them expressions here. *)
-and llExp =
+type llExp =
 | ExpId        of llId *     (* Identifier to a value *)
                   llType     (* Type of the identifier *)
 | ExpConst     of llConst    (* Constant value *)

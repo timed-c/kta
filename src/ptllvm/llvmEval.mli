@@ -12,6 +12,7 @@ type llVal =
     int *           (* Index to where in the array the pointer points *)
     llVal array     (* Array of constants. *)
 
+
 type time = int
 (** Time expressed in the given measured unit of time. Default is in
     nano seconds. *)
@@ -22,10 +23,11 @@ type btime = llabel -> llabel -> time
     equal to [b2], then the returned time is the time it takes to
     execute [b1] without branching. *)
 
-
 val v32 : int -> llVal
 (** Creates a constant 32 bit integer value *)
 
+val pprint_val : llVal -> ustring
+(** Pretty prints a runtime value *)
 
 val eval_fun : llModule -> btime -> llGloId -> llVal list -> 
   time -> (time * llVal option)
@@ -38,3 +40,7 @@ val eval_fun : llModule -> btime -> llGloId -> llVal list ->
     a tuple [(t,v)], where [t] is the time it took to execute the
     function and where [v] is the returned value. *)
 
+val enable_debug : unit -> unit
+(** Turn on debug printing for the evaluation module. When evaluating a
+    a function or a module, debug information will be printed to 
+    standard output. *)

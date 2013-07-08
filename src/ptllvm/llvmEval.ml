@@ -30,6 +30,8 @@ type instTy =
 
 (*************** Local functions **********************************)
 
+let _debug = ref false
+
 let env_new = PMap.empty
 let env_add id v env = PMap.add id v env
 let env_find id env = PMap.find id env
@@ -40,6 +42,7 @@ let pprint_val v =
   match v with
   | VConst(c) -> pprint_const c
   | VPtr(i,a) -> us"VPtr(" ^. ustring_of_int i ^. us")"
+
 
 (* Evaluate an expression to a constant. Looks up identifiers in the environment *)
 let eval_expr env e = 
@@ -121,44 +124,65 @@ let eval_conv_op convop ty1 val1 ty2 =
 (* Evaluate a list of instructions *)
 let rec eval_inst m instlst env  =
   match instlst with
+  (** IRet **)
   | IRet(None)::[] -> InstRet(None)
   | IRet(Some(_,e))::[] -> InstRet(Some(eval_expr env e)) 
+  (** IBrCond **)
   | IBrCond(exp,l1,l2)::[] -> (
     match eval_expr env exp with
     | VConst(CInt(1,v)) when Int64.to_int v = 1 -> InstBranch(l1,env)
     | VConst(CInt(1,v)) when Int64.to_int v = 0 -> InstBranch(l2,env)
     | _ -> raise Illegal_llvm_code)
+  (** IBrUncond **)
   | IBrUncond(l)::[] -> InstBranch(l,env)
+  (** IBinOp **)
   | IBinOp(id,bop,ty,v1,v2)::lst -> 
     let nval = eval_bop bop (eval_expr env v1) (eval_expr env v2) in
     let env' = env_add (LocalId(id)) nval env in
+    if !_debug then
+      uprint_endline (us"DEBUG: %" ^. ustring_of_sid id ^. us"=" ^. 
+      pprint_val nval ^. us" " ^. pprint_binop bop);
     eval_inst m lst env'        
-  | IAlloca(id,ty,_)::lst ->
+  (** IAlloc **)
+  | IAlloca(id,ty,_)::lst ->            
     let rec mklst ty rep acc = 
-      if rep > 0 then
-        match ty with 
-        | TyInt(w) -> mklst ty (rep-1) (VConst(CInt(w,Int64.zero))::acc)
-        | TyPointer(ty2) -> 
-            mklst ty (rep-1) ((VPtr(0, Array.make 0 (VConst(CInt(0,Int64.zero)))))::acc)
-        | TyArray(n,elemty) -> mklst elemty n acc
-        | _ -> failwith "Type not yet supported"
-      else List.rev acc in
-    let nval = VPtr(0,Array.of_list (mklst ty 1 [])) in
+      if rep = 0 then acc 
+      else let acc = mklst ty (rep-1) acc in      
+           match ty with 
+           | TyInt(w) -> VConst(CInt(w,Int64.zero))::acc
+           | TyPointer(ty2) -> 
+               (VPtr(0, Array.make 0 (VConst(CInt(0,Int64.zero)))))::acc
+           | TyArray(n,elemty) -> mklst elemty n acc
+           | _ -> failwith "Type not yet supported"
+    in
+    if !_debug then 
+      uprint_endline (us"DEBUG: %" ^. ustring_of_sid id ^. us" alloca length=" ^. 
+      ustring_of_int (List.length (mklst ty 1 [])) ^. us" ty=" ^. pprint_type ty);
+    let nval = VPtr(0,Array.of_list (List.rev (mklst ty 1 []))) in
     let env' = env_add (LocalId(id)) nval env in
     eval_inst m lst env'        
   | ILoad(id,ty,e)::lst ->
-    let nval = (match (eval_expr env e) with
-                | VPtr(idx,arr) -> 
-                  Array.get arr idx
+    let  nval = (match (eval_expr env e) with
+                | VPtr(idx,arr) -> ( 
+                  let v = Array.get arr idx in
+                  if !_debug then 
+                    uprint_endline (us"DEBUG: %" ^. ustring_of_sid id ^. us"=" ^. 
+                    pprint_val v ^. us" load idx=" ^. ustring_of_int idx); v)
                 | _ -> raise Illegal_llvm_code) in
     let env' = env_add (LocalId(id)) nval env in
     eval_inst m lst env'        
-  | IStore(e1,ty,e2)::lst ->
+  (** IStore **)
+  | IStore(e1,ty,e2)::lst ->              
     let v1 = eval_expr env e1 in
     (match eval_expr env e2 with 
-     | VPtr(idx,arr) -> Array.set arr idx v1 
+     | VPtr(idx,arr) -> 
+       if !_debug then 
+         uprint_endline (us"DEBUG: store idx=" ^. ustring_of_int idx ^. 
+                         us" val=" ^. pprint_val v1);
+       Array.set arr idx v1; 
      | _ -> raise Illegal_llvm_code);
     eval_inst m lst env          
+  (** GetElementPtr **)
   | IGetElementPtr(id,ty,ptr,indices)::lst -> 
     let rec elems_in_type ty =
       match ty with
@@ -169,28 +193,34 @@ let rec eval_inst m instlst env  =
     in      
     let rec adv_index idx ty indices =
       match ty,indices with
-      | TyPointer(ty2),VConst(CInt(_,_))::lst -> adv_index idx ty2 lst
+      | TyPointer(ty2),VConst(CInt(_,n))::lst -> adv_index (idx+Int64.to_int n) ty2 lst
       | TyArray(elems,elem_ty),VConst(CInt(_,n))::lst ->
-          adv_index ((Int64.to_int n) * (idx + elems_in_type elem_ty)) elem_ty lst
+          adv_index (idx + (Int64.to_int n) * (elems_in_type elem_ty)) elem_ty lst
       | _,[] -> idx
       | _,_ -> raise Illegal_llvm_code
     in 
     let nval = (
       match eval_expr env ptr with
-      | VPtr(idx,arr) -> 
+      | VPtr(idx,arr) ->         
         let idx' = adv_index idx ty (List.map (eval_expr env) indices) in
+        if !_debug then 
+          uprint_endline (us"DEBUG: %" ^. ustring_of_sid id ^. us"=" ^.
+          ustring_of_int idx' ^. us" getelementptr" ^. us" ty=" ^. pprint_type ty);
         VPtr(idx', arr)
       | _ -> raise Illegal_llvm_code) in
     let env' = env_add (LocalId(id)) nval env in
     eval_inst m lst env'        
+  (** IConvOp **)
   | IConvOp(id,convop,ty1,v,ty2)::lst -> 
     let nval = eval_conv_op convop ty1 (eval_expr env v) ty2 in
     let env' = env_add (LocalId(id)) nval env in
     eval_inst m lst env'
+  (** ICmp **)
   | ICmp(id,pred,ty,v1,v2)::lst ->
     let nval = eval_icmp_pred pred (eval_expr env v1) (eval_expr env v2) in
     let env' = env_add (LocalId(id)) nval env in
     eval_inst m lst env'  
+  (** ICall **)
   | ICall(id_opt,tail,ty,f,args)::lst -> 
     let args' = List.map (eval_expr env) args in
     let LLFunc(_,params,blocks) = get_fun m f in (
@@ -239,13 +269,12 @@ and eval_function m blocks params args env  =
 
 let v32 v = VConst(CInt(32,Int64.of_int v))
 
-
 let eval_fun m bt f args timeout =
   (* Find function to execute *)
   let LLFunc(_,params,blocks) = get_fun m f in
   (* Evaluate function *)
   (0, eval_function m blocks params args env_new)
   
-
+let enable_debug() = _debug := true
 
 
