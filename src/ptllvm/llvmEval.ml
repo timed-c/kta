@@ -74,8 +74,8 @@ let eval_bop bop val1 val2 =
       | BopOr ->  mask_int64 (Int64.logor v1 v2) w 
       | BopXor ->  mask_int64 (Int64.logxor v1 v2) w
       | BopFAdd | BopFSub | BopFMul | BopFDiv | BopFRem 
-          -> raise Illegal_llvm_code))))
-  | _ -> raise Illegal_llvm_code
+          -> raise (Illegal_llvm_code "eval_bop 1")))))
+  | _ -> raise (Illegal_llvm_code "eval_bop 2")
 
 
 (* Evaluate the predicate for comparison instruction *)  
@@ -98,7 +98,7 @@ let eval_icmp_pred icmppred val1 val2 =
                    then Int64.one else Int64.zero
       | IcmpSle -> if Int64.compare (sign_ext_int64 v1 w) (sign_ext_int64 v2 w) <= 0
                    then Int64.one else Int64.zero))))
-  | _ -> raise Illegal_llvm_code
+  | _ -> raise (Illegal_llvm_code "eval_icmp_pred")
 
 
 (* Evaluate conversion operations *)
@@ -132,7 +132,7 @@ let rec eval_inst m instlst env  =
     match eval_expr env exp with
     | VConst(CInt(1,v)) when Int64.to_int v = 1 -> InstBranch(l1,env)
     | VConst(CInt(1,v)) when Int64.to_int v = 0 -> InstBranch(l2,env)
-    | _ -> raise Illegal_llvm_code)
+    | _ -> raise (Illegal_llvm_code "eval_inst"))
   (** IBrUncond **)
   | IBrUncond(l)::[] -> InstBranch(l,env)
   (** IBinOp **)
@@ -153,7 +153,9 @@ let rec eval_inst m instlst env  =
            | TyPointer(ty2) -> 
                (VPtr(0, Array.make 0 (VConst(CInt(0,Int64.zero)))))::acc
            | TyArray(n,elemty) -> mklst elemty n acc
-           | _ -> failwith "Type not yet supported"
+           | TyStruct(tys) -> 
+               List.fold_left (fun a ty -> mklst ty 1 a) acc tys 
+           | _ -> failwith "llvmEval.ml IAlloc: Type not yet supported"
     in
     if !_debug then 
       uprint_endline (us"DEBUG: %" ^. ustring_of_sid id ^. us" alloca length=" ^. 
@@ -168,7 +170,7 @@ let rec eval_inst m instlst env  =
                   if !_debug then 
                     uprint_endline (us"DEBUG: %" ^. ustring_of_sid id ^. us"=" ^. 
                     pprint_val v ^. us" load idx=" ^. ustring_of_int idx); v)
-                | _ -> raise Illegal_llvm_code) in
+                | _ -> raise (Illegal_llvm_code "eval_inst ILoad")) in
     let env' = env_add (LocalId(id)) nval env in
     eval_inst m lst env'        
   (** IStore **)
@@ -180,15 +182,16 @@ let rec eval_inst m instlst env  =
          uprint_endline (us"DEBUG: store idx=" ^. ustring_of_int idx ^. 
                          us" val=" ^. pprint_val v1);
        Array.set arr idx v1; 
-     | _ -> raise Illegal_llvm_code);
+     | _ -> raise (Illegal_llvm_code "eval_inst IStore"));
     eval_inst m lst env          
-  (** GetElementPtr **)
+  (** IGetElementPtr **)
   | IGetElementPtr(id,ty,ptr,indices)::lst -> 
     let rec elems_in_type ty =
       match ty with
       | TyInt(w) -> 1
       | TyPointer(ty2) -> elems_in_type ty2
       | TyArray(n,elem_ty) -> n * (elems_in_type elem_ty)
+      | TyStruct(tys) -> List.fold_left (+) 0 (List.map elems_in_type tys)
       | _ -> failwith "Type is not supported in getelementptr"
     in      
     let rec adv_index idx ty indices =
@@ -196,8 +199,16 @@ let rec eval_inst m instlst env  =
       | TyPointer(ty2),VConst(CInt(_,n))::lst -> adv_index (idx+Int64.to_int n) ty2 lst
       | TyArray(elems,elem_ty),VConst(CInt(_,n))::lst ->
           adv_index (idx + (Int64.to_int n) * (elems_in_type elem_ty)) elem_ty lst
+      | TyStruct(tys),VConst(CInt(_,n))::lst ->
+        let rec traverse_struct k idx tys =
+          match tys with
+          | ty::tys2 -> if k = Int64.to_int n then adv_index idx ty lst 
+                       else traverse_struct (k+1) (idx + elems_in_type ty) tys2
+          | [] -> raise (Illegal_llvm_code "eval_inst IGetElementPtr adv_index 1")
+        in
+          traverse_struct 0 idx tys
       | _,[] -> idx
-      | _,_ -> raise Illegal_llvm_code
+      | _,_ -> raise (Illegal_llvm_code "eval_inst IGetElementPtr adv_index 2")
     in 
     let nval = (
       match eval_expr env ptr with
@@ -207,7 +218,7 @@ let rec eval_inst m instlst env  =
           uprint_endline (us"DEBUG: %" ^. ustring_of_sid id ^. us"=" ^.
           ustring_of_int idx' ^. us" getelementptr" ^. us" ty=" ^. pprint_type ty);
         VPtr(idx', arr)
-      | _ -> raise Illegal_llvm_code) in
+      | _ -> raise (Illegal_llvm_code "eval_inst IGetElementPtr nval")) in
     let env' = env_add (LocalId(id)) nval env in
     eval_inst m lst env'        
   (** IConvOp **)
@@ -228,14 +239,15 @@ let rec eval_inst m instlst env  =
     | None,None -> eval_inst m lst env
     | Some nval,Some id -> let env' = env_add (LocalId(id)) nval env in
                    eval_inst m lst env'
-    | _,_ -> raise Illegal_llvm_code)
+    | _,_ -> raise (Illegal_llvm_code "eval_inst ICall"))
   | _ -> failwith "Instruction not implemented."
 
 
 (* Evaluate phi functions *)
 and eval_phi phis src_label env_orig =
   let foldfun env (LLPhi(id,ty,lvpairs)) =
-    let e = try List.assoc src_label lvpairs with _ -> raise Illegal_llvm_code in
+    let e = try List.assoc src_label lvpairs with _ -> 
+      raise (Illegal_llvm_code "eval_phi") in
     env_add (LocalId(id)) (eval_expr env_orig e) env
   in
     List.fold_left foldfun env_orig phis
@@ -244,7 +256,8 @@ and eval_phi phis src_label env_orig =
 (* Evaluate the graph if basic blocks in a function. Returns an option value. *)
 and eval_blocks m blocks src_label block_label env = 
   let LLBlock(phis,insts) = 
-    try List.assoc block_label blocks with _ -> raise Illegal_llvm_code in
+    try List.assoc block_label blocks with _ -> 
+      raise (Illegal_llvm_code "eval_blocks") in
   (* Evaluate phi functions, if not the source node *)
   let env = match src_label with  | None -> env
     | Some l -> eval_phi phis l env in
@@ -258,10 +271,13 @@ and eval_blocks m blocks src_label block_label env =
 (* Evaluate a function *)
 and eval_function m blocks params args env  =
   (* Augment environment with arguments *)
-  let parargs = try List.combine params args with _ -> raise Illegal_llvm_code in
-  let env = List.fold_left (fun e ((ty,id), v) -> env_add (LocalId(id)) v e) env parargs in 
+  let parargs = try List.combine params args with _ -> 
+    raise (Illegal_llvm_code "eval_function 1") in
+  let env = List.fold_left (fun e ((ty,id), v) -> 
+    env_add (LocalId(id)) v e) env parargs in 
   (* Get first block in function and evaluate blocks*)
-  let (start_l,b) = match blocks with b::_ -> b | _ -> raise Illegal_llvm_code in  
+  let (start_l,b) = match blocks with b::_ -> b | _ -> 
+    raise (Illegal_llvm_code "eval_function 2") in  
   eval_blocks m blocks None start_l env   
 
 

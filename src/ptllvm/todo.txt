@@ -7,3 +7,4 @@ TODO
 - Add poined values
 - Add vectors
 - Add floating point
+- Add global type declarartions (named types). Now, they are all inlined. 

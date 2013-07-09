@@ -42,6 +42,8 @@ type llType =
 | TyArray of               (* Array type *)
     int *                    (* No of elements *)
     llType                   (* Element type *)
+| TyStruct of              (* Struct type *)
+    llType list              (* List of types in the structure *)
              
 type llConst =
 | CInt of                  (* Integer constant. *)

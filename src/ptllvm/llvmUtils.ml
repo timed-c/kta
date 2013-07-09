@@ -4,7 +4,7 @@ open LlvmAst
 open Ustring.Op
 
 exception Function_not_found of string * sid
-exception Illegal_llvm_code
+exception Illegal_llvm_code of string
 
 let const_int_val width v = ExpConst(CInt(width, Int64.of_int v))
 
@@ -21,15 +21,6 @@ let rec type_of_exp e =
   | ExpConst(CInt(bits,_)) -> TyInt(bits)
   | ExpConstExpr(ty) -> ty
   
-
-(*
-and type_of_dataval v =
-  match v with 
-  | DArray(a) -> 
-    type_of_dataval (!(try a.(0) with _ -> raise Illegal_llvm_code))
-  | DConst(c) -> type_of_val (ExpConst(c))
-*)
-
 
 let sign_ext_int64 v n =
   if (Int64.logand (Int64.shift_right_logical v (n-1)) Int64.one) = Int64.zero then v 

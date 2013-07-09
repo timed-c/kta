@@ -41,7 +41,7 @@ let test_llvm_void_res name res =
 let main = 
   init "Test llvm decode and evaluation.";
 
-  (* ------------------------------------------------------------------- *)
+  (* -------------------- INTEGER LOOPS ------------------------------- *)
 
   let ast = LlvmDecode.bcfile2ast "unittest/testcode/integerloops.bc" in
   (*uprint_endline (LlvmPPrint.pprint_module ast);   *)
@@ -52,14 +52,13 @@ let main =
   let (t,res) = LlvmEval.eval_fun ast btime (usid fname) args (-1) in
   test_llvm_int_res "Function looptest1()" res 47;
 
-
   (* Test looptest2 *)
   let fname = "looptest2" in
   let args = [v32 10] in
   let (t,res) = LlvmEval.eval_fun ast btime (usid fname) args (-1) in
   test_llvm_int_res "Function looptest2()" res 7257600;
 
-  (* ------------------------------------------------------------------- *)
+  (* ------------------ FUNCTION CALLS -------------------------------- *)
 
   let ast = LlvmDecode.bcfile2ast "unittest/testcode/functioncalls.bc" in
   (* uprint_endline (LlvmPPrint.pprint_module ast);  *)
@@ -76,9 +75,7 @@ let main =
   let (t,res) = LlvmEval.eval_fun ast btime (usid fname) args (-1) in
   test_llvm_void_res "Function functest2()" res;
 
-
-  (* ------------------------------------------------------------------- *)
-
+  (* ---------------------- ARRAYS ---------------------------------- *)
 
   let ast = LlvmDecode.bcfile2ast "unittest/testcode/arrays.bc" in
   (* uprint_endline (LlvmPPrint.pprint_module ast); *)
@@ -107,6 +104,16 @@ let main =
   let (t,res) = LlvmEval.eval_fun ast btime (usid fname) args (-1) in
   test_llvm_int_res "Function less_simple_matrix_access()" res 25;
 
+  (* --------------------- STRUCTS ------------------------------------ *)
+
+  let ast = LlvmDecode.bcfile2ast "unittest/testcode/structs.bc" in
+  (* uprint_endline (LlvmPPrint.pprint_module ast); *)
+
+  (* Test addnums)  *)
+  let fname = "simple_struct_access" in
+  let args = [v32 7] in
+  let (t,res) = LlvmEval.eval_fun ast btime (usid fname) args (-1) in
+  test_llvm_int_res "Function simple_struct_access()" res 77; 
 
 
   (* ------------------------------------------------------------------- *)

@@ -54,7 +54,8 @@ let rec toAstTy ty =
     let paramty = 
       Array.fold_right (fun t lst -> (toAstTy t)::lst) (Llvm.param_types ty) [] in 
     TyFun(retty,paramty)
-  | Llvm.TypeKind.Struct -> failwith "todo struct"
+  | Llvm.TypeKind.Struct -> 
+     TyStruct(List.map toAstTy (Array.to_list (Llvm.struct_element_types ty)))
   | Llvm.TypeKind.Array -> TyArray(Llvm.array_length ty, 
                                    toAstTy (Llvm.element_type ty))
   | Llvm.TypeKind.Pointer -> TyPointer(toAstTy (Llvm.element_type ty))

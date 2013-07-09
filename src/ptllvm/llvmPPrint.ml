@@ -32,6 +32,8 @@ let rec pprint_type ty =
   | TyPointer(ty2) -> pprint_type ty2 ^. us"*"
   | TyArray(elems,ty) -> us"[" ^. ustring_of_int elems ^. us" x " ^.
                          pprint_type ty ^. us"]"
+  | TyStruct(tys) -> 
+      us"{" ^. Ustring.concat (us", ") (List.map pprint_type tys) ^. us"}"
 
 let pprint_const c =
   match c with
