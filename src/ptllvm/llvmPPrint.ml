@@ -104,7 +104,13 @@ let pp_fold_inst s inst =
            us", label " ^. string_of_label tl ^. 
            us", label " ^. string_of_label fl 
     | IBrUncond(l) -> us"br label " ^. string_of_label l
-    | ISwitch -> us"switch (todo)"        
+    | ISwitch(comp,ldefault,cases) -> 
+        us"switch " ^. pprint_type (type_of_exp comp) ^. us" " ^.
+        pprint_exp comp ^. us", label " ^. string_of_label ldefault ^. us" [\n" ^.
+        (List.fold_left (fun a (e,l) -> us"    " ^. 
+                        pprint_type (type_of_exp e) ^.
+                        us" " ^. pprint_exp e ^. us", label " ^. 
+                        string_of_label l ^. us"\n") (us"") cases) ^. us"  ]"
     | IIndirectBr -> us"indirectbr (todo)"    
     | IInvoke -> us"invoke (todo)"      
     | IResume -> us"resume (todo)"        

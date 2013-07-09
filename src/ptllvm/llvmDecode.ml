@@ -3,7 +3,7 @@
 open Printf
 open LlvmAst
 open Ustring.Op
-
+open LlvmPPrint
 
 
 exception Llvm_api_error
@@ -63,11 +63,22 @@ let rec toAstTy ty =
   | Llvm.TypeKind.Metadata -> failwith "todo metadata"
 
 (* Convert from the API representation of value to a first class value *)
-let toAstVal v = 
+let rec toAstVal v = 
+  let fail s = failwith ("todo: Value kind " ^ s ^ " is not yet supported.") in
   match Llvm.classify_value v with 
+  | Llvm.ValueKind.NullValue -> fail "NullValue"
   | Llvm.ValueKind.Argument -> ExpId(mkLocalId (Llvm.value_name v), 
                                    toAstTy (Llvm.type_of v))
+  | Llvm.ValueKind.BasicBlock -> fail "BasicBlock"
+  | Llvm.ValueKind.InlineAsm -> fail "InlineAsm"
+  | Llvm.ValueKind.MDNode -> fail "MDNode"
+  | Llvm.ValueKind.MDString -> fail "MDString"
+  | Llvm.ValueKind.BlockAddress -> fail "BlockAddress"
+  | Llvm.ValueKind.ConstantAggregateZero -> fail "ConstantAggregateZero"
+  | Llvm.ValueKind.ConstantArray -> 
+        fail (string_of_int (Array.length (Llvm.params v)))
   | Llvm.ValueKind.ConstantExpr -> ExpConstExpr(toAstTy(Llvm.type_of v))
+  | Llvm.ValueKind.ConstantFP -> fail "ConstantFP"
   | Llvm.ValueKind.ConstantInt ->  
     let bitwidth = Llvm.integer_bitwidth (Llvm.type_of v) in
     let intv = 
@@ -76,6 +87,13 @@ let toAstVal v =
       | None -> failwith "Integers larger than 64-bits are not supported." 
     in
       ExpConst(CInt(bitwidth, intv))
+  | Llvm.ValueKind.ConstantPointerNull -> fail "ConstantPointerNull"
+  | Llvm.ValueKind.ConstantStruct -> fail "ConstantStruct"
+  | Llvm.ValueKind.ConstantVector -> fail "ConstantVector"
+  | Llvm.ValueKind.Function -> fail "Function"
+  | Llvm.ValueKind.GlobalAlias -> fail "GlobalAlias"
+  | Llvm.ValueKind.GlobalVariable -> fail "GlobalVariable"
+  | Llvm.ValueKind.UndefValue -> fail "UndefValue"
   | Llvm.ValueKind.Instruction(op) -> 
     let name = 
       if Llvm.value_name v = "" then
@@ -83,8 +101,6 @@ let toAstVal v =
       else Llvm.value_name v                 
     in
       ExpId(mkLocalId name, toAstTy (Llvm.type_of v))
-  | _ -> failwith "todo: Value not yet supported"
-
 
 
 let toAstIcmpPred pred = 
@@ -144,7 +160,14 @@ let foldinst (insts,phis) inst =
       | _ -> failwith "Illegal branch arguments."
     in
       (newi::insts,phis)
-  | Llvm.Opcode.Switch -> (ISwitch::insts,phis)       
+  | Llvm.Opcode.Switch -> 
+    let comp = toAstVal (Llvm.operand inst 0) in
+    let ldefault = usid (Llvm.value_name (Llvm.value_of_block 
+                         (Llvm.switch_default_dest inst))) in
+    printf "***** Number = %d\n" (Llvm.num_operands inst);
+    let cases = [(toAstVal (Llvm.const_extractvalue (Llvm.operand inst 0) ([|0|]) ), 
+                  usid (Llvm.value_name (Llvm.operand inst 2)))] in
+    (ISwitch(comp,ldefault,cases)::insts,phis)       
   | Llvm.Opcode.IndirectBr -> (IIndirectBr::insts,phis)
   | Llvm.Opcode.Invoke -> (IInvoke::insts,phis)
   | Llvm.Opcode.Resume -> (IResume::insts,phis)

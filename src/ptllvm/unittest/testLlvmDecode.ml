@@ -109,12 +109,30 @@ let main =
   let ast = LlvmDecode.bcfile2ast "unittest/testcode/structs.bc" in
   (* uprint_endline (LlvmPPrint.pprint_module ast); *)
 
-  (* Test addnums)  *)
+  (* Test simple_struct_access)  *)
   let fname = "simple_struct_access" in
   let args = [v32 7] in
   let (t,res) = LlvmEval.eval_fun ast btime (usid fname) args (-1) in
   test_llvm_int_res "Function simple_struct_access()" res 77; 
 
+
+  (* --------------------- SWITCHES ------------------------------------ *)
+(*
+  let ast = LlvmDecode.bcfile2ast "unittest/testcode/switches.bc" in
+  uprint_endline (LlvmPPrint.pprint_module ast); 
+
+  (* Test simple_switch(222))  *)
+  let fname = "simple_switch" in
+  let args = [v32 222] in
+  let (t,res) = LlvmEval.eval_fun ast btime (usid fname) args (-1) in
+  test_llvm_int_res "Function simple_switch(222)" res 98568; 
+
+  (* Test simple_switch(93))  *)
+  let fname = "simple_switch" in
+  let args = [v32 93] in
+  let (t,res) = LlvmEval.eval_fun ast btime (usid fname) args (-1) in
+  test_llvm_int_res "Function simple_switch(93)" res 16; 
+*)
 
   (* ------------------------------------------------------------------- *)
 
