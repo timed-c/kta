@@ -1,6 +1,7 @@
 
 #include <stdio.h>
 
+
 int addnums(int k)
 {
   int a[10];
@@ -52,6 +53,19 @@ int less_simple_matrix_access(int x, int y, int x2, int y2, int k)
 }
 
 
+int numbers[] = {4,1,66,1,3,343,141,812,19912,21};
+
+int sum_global_array(int n)
+{
+  int i;
+  int k=0;
+  for(i=0; i<n; i++)
+    k += numbers[i];
+  return k;
+}
+
+
+
 int main()
 {
   printf("addnums(7) = %d\n", addnums(7));
@@ -59,5 +73,6 @@ int main()
   printf("simple_matrix_access(4,5,4,5,10) = %d\n", simple_matrix_access(4,5,4,5,10));
   printf("less_simple_matrix_access(4,5,4,5,10) = %d\n", 
          less_simple_matrix_access(4,4,4,4,10));
+printf("sum_global_array(10) = %d\n", sum_global_array(10));  
   return 0;
 }

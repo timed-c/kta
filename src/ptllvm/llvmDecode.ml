@@ -65,9 +65,11 @@ let rec toAstTy ty =
 (* Convert from the API representation of value to a first class value *)
 let rec toAstVal v = 
   let fail s = failwith ("todo: Value kind " ^ s ^ " is not yet supported.") in
-  match Llvm.classify_value v with 
+  let vkind = Llvm.classify_value v in
+  match vkind with 
   | Llvm.ValueKind.NullValue -> fail "NullValue"
-  | Llvm.ValueKind.Argument -> ExpId(mkLocalId (Llvm.value_name v), 
+  | Llvm.ValueKind.Argument -> 
+    ExpId(mkLocalId (Llvm.value_name v), 
                                    toAstTy (Llvm.type_of v))
   | Llvm.ValueKind.BasicBlock -> fail "BasicBlock"
   | Llvm.ValueKind.InlineAsm -> fail "InlineAsm"
@@ -75,11 +77,10 @@ let rec toAstVal v =
   | Llvm.ValueKind.MDString -> fail "MDString"
   | Llvm.ValueKind.BlockAddress -> fail "BlockAddress"
   | Llvm.ValueKind.ConstantAggregateZero -> fail "ConstantAggregateZero"
-  | Llvm.ValueKind.ConstantArray -> 
-        fail (string_of_int (Array.length (Llvm.params v)))
+  | Llvm.ValueKind.ConstantArray -> fail "ConstArray"
   | Llvm.ValueKind.ConstantExpr -> ExpConstExpr(toAstTy(Llvm.type_of v))
   | Llvm.ValueKind.ConstantFP -> fail "ConstantFP"
-  | Llvm.ValueKind.ConstantInt ->  
+  | Llvm.ValueKind.ConstantInt -> 
     let bitwidth = Llvm.integer_bitwidth (Llvm.type_of v) in
     let intv = 
       match Llvm.int64_of_const v with 
@@ -92,12 +93,14 @@ let rec toAstVal v =
   | Llvm.ValueKind.ConstantVector -> fail "ConstantVector"
   | Llvm.ValueKind.Function -> fail "Function"
   | Llvm.ValueKind.GlobalAlias -> fail "GlobalAlias"
-  | Llvm.ValueKind.GlobalVariable -> fail "GlobalVariable"
+  | Llvm.ValueKind.GlobalVariable ->
+     ExpId(mkGlobalId (Llvm.value_name v), toAstTy (Llvm.type_of v))
   | Llvm.ValueKind.UndefValue -> fail "UndefValue"
   | Llvm.ValueKind.Instruction(op) -> 
     let name = 
       if Llvm.value_name v = "" then
-        string_of_int (try Hashtbl.find var_map v with Not_found -> 99999)
+        string_of_int (try Hashtbl.find var_map v with Not_found ->
+          failwith "unnamed variable not found.")
       else Llvm.value_name v                 
     in
       ExpId(mkLocalId name, toAstTy (Llvm.type_of v))
@@ -164,9 +167,12 @@ let foldinst (insts,phis) inst =
     let comp = toAstVal (Llvm.operand inst 0) in
     let ldefault = usid (Llvm.value_name (Llvm.value_of_block 
                          (Llvm.switch_default_dest inst))) in
-    printf "***** Number = %d\n" (Llvm.num_operands inst);
-    let cases = [(toAstVal (Llvm.const_extractvalue (Llvm.operand inst 0) ([|0|]) ), 
-                  usid (Llvm.value_name (Llvm.operand inst 2)))] in
+    let ty = Llvm.type_of (Llvm.operand inst 0) in
+    let val32 n = Llvm.const_int (Llvm.i32_type (Llvm.type_context ty)) n in
+    let arr = Llvm.const_gep (Llvm.operand inst 2) [|val32 0|] in
+    let arr2 = Llvm.const_extractvalue arr [|0|] in
+    let cases = [(toAstVal arr, 
+                  usid (Llvm.value_name (Llvm.operand inst 3)))] in  
     (ISwitch(comp,ldefault,cases)::insts,phis)       
   | Llvm.Opcode.IndirectBr -> (IIndirectBr::insts,phis)
   | Llvm.Opcode.Invoke -> (IInvoke::insts,phis)
@@ -303,7 +309,7 @@ let fold_param lst p =
   (ty,id)::lst
 
 (* Help functions when folding the function lists of a module *)
-let foldfunc llval (LLModule(globs,funcs)) =
+let foldfunc llval funcs =
   reset_assign_id();
   let id = usid (Llvm.value_name llval) in
   let ty = ret_of_funtype (toAstTy (Llvm.type_of llval)) in
@@ -312,19 +318,92 @@ let foldfunc llval (LLModule(globs,funcs)) =
     if Llvm.is_declaration llval then []
     else Llvm.fold_left_blocks foldblock [] llval in  
   let newfunc = (id, LLFunc(ty,params,List.rev blocks)) in
-  LLModule(globs,newfunc::funcs)
+  newfunc::funcs
+
+let opnum op =
+match op with
+|	Llvm.Opcode.Invalid -> 1
+|	Llvm.Opcode.Ret -> 2
+|	Llvm.Opcode.Br -> 3
+|	Llvm.Opcode.Switch -> 4
+|	Llvm.Opcode.IndirectBr -> 5
+|	Llvm.Opcode.Invoke -> 6
+|	Llvm.Opcode.Invalid2  -> 7
+|	Llvm.Opcode.Unreachable -> 8
+|	Llvm.Opcode.Add -> 9
+|	Llvm.Opcode.FAdd -> 10
+|	Llvm.Opcode.Sub -> 11
+|	Llvm.Opcode.FSub -> 12
+|	Llvm.Opcode.Mul -> 13
+|	Llvm.Opcode.FMul -> 14
+|	Llvm.Opcode.UDiv  -> 15
+|	Llvm.Opcode.SDiv  -> 16
+|	Llvm.Opcode.FDiv -> 17
+|	Llvm.Opcode.URem -> 18
+|	Llvm.Opcode.SRem -> 19
+|	Llvm.Opcode.FRem -> 20
+|	Llvm.Opcode.Shl -> 21
+|	Llvm.Opcode.LShr -> 22
+|	Llvm.Opcode.AShr -> 23
+|	Llvm.Opcode.And -> 24
+|	Llvm.Opcode.Or  -> 25
+|	Llvm.Opcode.Xor -> 26
+|	Llvm.Opcode.Alloca -> 27
+|	Llvm.Opcode.Load -> 28
+|	Llvm.Opcode.Store -> 29
+|	Llvm.Opcode.GetElementPtr  -> 30
+|	Llvm.Opcode.Trunc -> 31
+|	Llvm.Opcode.ZExt -> 32
+|	Llvm.Opcode.SExt -> 33
+|	Llvm.Opcode.FPToUI -> 34
+|	Llvm.Opcode.FPToSI -> 35
+|	Llvm.Opcode.UIToFP -> 36
+|	Llvm.Opcode.SIToFP -> 37
+|	Llvm.Opcode.FPTrunc -> 38
+|	Llvm.Opcode.FPExt -> 39
+|	Llvm.Opcode.PtrToInt -> 40
+|	Llvm.Opcode.IntToPtr -> 41
+|	Llvm.Opcode.BitCast -> 42
+|	Llvm.Opcode.ICmp  -> 43
+|	Llvm.Opcode.FCmp -> 44
+|	Llvm.Opcode.PHI -> 45
+|	Llvm.Opcode.Call -> 46
+|	Llvm.Opcode.Select -> 47
+|	Llvm.Opcode.UserOp1 -> 48
+|	Llvm.Opcode.UserOp2 -> 49
+|	Llvm.Opcode.VAArg -> 50
+|	Llvm.Opcode.ExtractElement -> 51
+|	Llvm.Opcode.InsertElement -> 52
+|	Llvm.Opcode.ShuffleVector -> 53
+|	Llvm.Opcode.ExtractValue -> 54
+|	Llvm.Opcode.InsertValue -> 55
+|	Llvm.Opcode.Fence -> 56
+|	Llvm.Opcode.AtomicCmpXchg -> 57
+|	Llvm.Opcode.AtomicRMW -> 58
+|	Llvm.Opcode.Resume -> 59
+|	Llvm.Opcode.LandingPad -> 60
+|	Llvm.Opcode.Unwind -> 61
+
+let foldglobals (llvmMod,globals) llval =
+  let id = usid (Llvm.value_name llval) in 
+  (* Llvm.dump_value llval;*)
+  let v = toAstVal ( llval) in
+(*  uprint_endline (us"** name = " ^. ustring_of_sid (id) ^. us" val = " ^.
+                  pprint_exp v ^. us" constant = " ^. 
+                  (if Llvm.is_global_constant llval then us"true" else us"false")); *)
+  (llvmMod,globals)
 
 
 (** Creates an AST of a LLVM module. *)
 let make_module_ast llvmModule =
-  (* Start with an empty module *)
-  let emptyModule = LLModule([],[]) in
+  (* Get globals *)
+  let (_,globals) = Llvm.fold_left_globals foldglobals (llvmModule,[]) llvmModule in
 
   (* Add both function declarations and definitions *)
-  let funcModule = Llvm.fold_right_functions foldfunc llvmModule emptyModule in
+  let funcModule = Llvm.fold_right_functions foldfunc llvmModule [] in
   
   (* Return the final AST module *)
-  funcModule
+  LLModule(globals,funcModule)
 
 
 (** Read a bitcode file and translate it to an llvm ast. *)

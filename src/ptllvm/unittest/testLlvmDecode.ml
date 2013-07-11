@@ -103,7 +103,7 @@ let main =
   let args = [v32 4; v32 5; v32 4; v32 5; v32 10] in
   let (t,res) = LlvmEval.eval_fun ast btime (usid fname) args (-1) in
   test_llvm_int_res "Function less_simple_matrix_access()" res 25;
-
+  
   (* --------------------- STRUCTS ------------------------------------ *)
 
   let ast = LlvmDecode.bcfile2ast "unittest/testcode/structs.bc" in
@@ -117,6 +117,7 @@ let main =
 
 
   (* --------------------- SWITCHES ------------------------------------ *)
+
 (*
   let ast = LlvmDecode.bcfile2ast "unittest/testcode/switches.bc" in
   uprint_endline (LlvmPPrint.pprint_module ast); 
@@ -132,6 +133,12 @@ let main =
   let args = [v32 93] in
   let (t,res) = LlvmEval.eval_fun ast btime (usid fname) args (-1) in
   test_llvm_int_res "Function simple_switch(93)" res 16; 
+*)
+
+  (* ------------- MDH WCET BENCHMARK : adpcm -------------------------- *)
+
+(*  let ast = LlvmDecode.bcfile2ast "unittest/mdhwcet/adpcm.bc" in
+  uprint_endline (LlvmPPrint.pprint_module ast); 
 *)
 
   (* ------------------------------------------------------------------- *)
