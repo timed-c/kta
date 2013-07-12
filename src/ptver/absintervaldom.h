@@ -8,6 +8,8 @@
 
 
 #define mask(w) ((w) == sizeof(int)*8 ? 0xffffffff : (1 << (w)) - 1)
+#define minval(w) 0
+#define maxval(w) (-1 & mask(w))
 #define aint32(name) unsigned int name##low, name##high
 
 #define aint_set(name,l,h,w) \
@@ -23,14 +25,30 @@
      y##low > y##high && z##high < y##high ||\
      x##low > x##high && y##low > y##high)\
   {\
-     z##low = 0;\
-     z##high = -1 & mask(w);\
+     z##low = minval(w);                         \
+     z##high = maxval(w);\
   }  
-  
+
+/* Multiplies x and y and stores it in z. 
+   Must check how good this works for negative numbers. 
+   This abstracted instruction can be improved.*/
+#define aint_mul(z,x,y,w)\
+  if(!(x##low == x##high && y##low == y##high) &&\
+    (x##high > maxval(w/2) || y##high > maxval(w/2) || \
+     x##low > x##high || y##low > y##high)) \
+  {\
+     z##low = minval(w);\
+     z##high = maxval(w);\
+  }\
+  else\
+  {\
+    z##high = (x##high * y##high) & mask(w);\
+    z##low = (x##low * y##low) & mask(w);\
+  }
  
+
 #define aint_get_low(name) name##low
 #define aint_get_high(name) name##high
-
 
 
 #define test_aint(name,exp_low,exp_high) \

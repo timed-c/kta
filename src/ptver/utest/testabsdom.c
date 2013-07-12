@@ -120,6 +120,58 @@ void test_add_instr(int w)
   
 }
 
+void test_mul_instr(int w)
+{
+  aint32(x);
+  aint32(y);
+  aint32(z);
+
+  /* Legal positive values */
+  aint_set(x,20,40,32);
+  aint_set(y,10,100,32);
+  aint_mul(z,x,y,32);
+  test_aint(z,200,4000);  
+
+  /* Multiply too large values */
+  aint_set(x,20,40,32);
+  aint_set(y,10,0xffffff,32);
+  aint_mul(z,x,y,32);
+  test_aint(z,0,0xffffffff);  
+
+  /* Multiply negative number with interval*/
+  aint_set(x,20,40,32);
+  aint_set(y,-2,-2,32);
+  aint_mul(z,x,y,32);
+  test_aint(z,0,0xffffffff);  
+
+  /* Multiply negative without interval */
+  aint_set(x,40,40,32);
+  aint_set(y,-2,-2,32);
+  aint_mul(z,x,y,32);
+  test_aint(z,-80,-80);  
+}
+
+
+/*
+define i32 @looptest2(i32 %k) nounwind readnone ssp {
+entry:
+  %cmp4 = icmp sgt i32 %k, 1
+  br i1 %cmp4, label %for.body, label %for.end
+
+for.body:                                         ; preds = %entry, %for.body
+  %i.06 = phi i32 [ %inc, %for.body ], [ 1, %entry ]
+  %j.05 = phi i32 [ %add, %for.body ], [ 2, %entry ]
+  %mul = mul nsw i32 %i.06, %j.05
+  %add = add nsw i32 %mul, %j.05
+  %inc = add nsw i32 %i.06, 1
+  %exitcond = icmp eq i32 %inc, %k
+  br i1 %exitcond, label %for.end, label %for.body
+
+for.end:                                          ; preds = %for.body, %entry
+  %j.0.lcssa = phi i32 [ 2, %entry ], [ %add, %for.body ]
+  ret i32 %j.0.lcssa
+}
+*/
 
 
 int main()
@@ -127,6 +179,7 @@ int main()
   ptver_startup_check();
   
   test_add_instr(0);
+  test_mul_instr(0);
 
   return 0;
 }
