@@ -6,11 +6,14 @@
 #ifndef _ABS_INTERVAL_DOM
 #define _ABS_INTERVAL_DOM
 
+#define intbits ((sizeof(int))*8)
 
 #define mask(w) ((w) == sizeof(int)*8 ? 0xffffffff : (1 << (w)) - 1)
 #define minval(w) 0
 #define maxval(w) (-1 & mask(w))
 #define aint32(name) unsigned int name##low, name##high
+
+#define sign_extend(x,w) ((((int)(x)) << (intbits - (w))) >> (intbits - (w)))
 
 #define aint_set(name,l,h,w) \
   name##low = l & mask(w); \
@@ -45,7 +48,36 @@
     z##high = (x##high * y##high) & mask(w);\
     z##low = (x##low * y##low) & mask(w);\
   }
- 
+
+
+#define aint_icmp_sgt(z,x,y,w)\
+if((sign_extend(x##high) >= sign_extend(x##low) &&\
+    (sign_extend(y##high) >= sign_extend(y##low))\
+  {\
+    if((sign_extend(x##low) > sign_extend(y##high))\
+    { \
+      z##low = 1;\
+      z##high = 1;\
+    }\
+    else if((sign_extend(x##high) <= sign_extend(y##low))\
+    {\
+      z##low = 0;\
+      z##high = 0;\
+    }\
+    else\
+    {\
+      z##low = 0;\
+      z##high = 1;\
+    }\
+  else\
+  {\
+    z##low = 0;\
+    z##high = 1;\
+  }
+
+
+   
+
 
 #define aint_get_low(name) name##low
 #define aint_get_high(name) name##high
