@@ -30,6 +30,14 @@ let test str ok =
     count_fail := !count_fail + 1;
     printf "FAIL\n") 
 
+let test_ext str res fail_str ok_str = 
+  test str res;
+  if res then ()
+  else (
+    uprint_endline (us"   Expected: '" ^. ok_str ^. us"'");
+    uprint_endline (us"   Result:   '" ^. fail_str ^. us"'"))
+  
+
 let test_str str result expected =
   let res = (result = expected) in
   test str res;
@@ -45,6 +53,14 @@ let test_ustr str result expected =
   else (
     uprint_endline (us"   Expected: '" ^. expected ^. us"'");
     uprint_endline (us"   Result:   '" ^. result ^. us"'"))
+
+
+let test_intlist str result expected =
+  let res = (result = expected) in
+  let tostr lst = us"[" ^. Ustring.concat (us",") 
+                  (List.map ustring_of_int lst) ^. us"]" in
+  test_ext str res (tostr result) (tostr expected)
+
   
 let result() =
   maintext();
@@ -53,7 +69,8 @@ let result() =
   total_ok := !total_ok + !count_ok;
   count_ok := 0;
   total_fail := !total_fail + !count_fail;
-  count_fail := 0
+  count_fail := 0;
+  if !total_fail > 0 then (exit 1) else ()
 
 let summary() =  
   maintext();

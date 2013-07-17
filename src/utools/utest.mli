@@ -12,11 +12,15 @@ val test : string -> bool -> unit
     The test is treated as successful if [b] is
     true, else it is seen as unsuccessful. *)
 
+val test_ext : string -> bool -> ustring -> ustring -> unit
+
 val test_str : string -> string -> string -> unit
 
 val test_ustr : string -> ustring -> ustring -> unit
 
 val test_ustr : string -> ustring -> ustring -> unit
+
+val test_intlist : string -> int list -> int list -> unit
 
 val result : unit -> unit
 (** Print out the unit test results on the screen *)

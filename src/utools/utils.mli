@@ -38,3 +38,7 @@ val read_binfile : string -> string
     returns the binary data as a string. Exception [Sys_error] is raised
     if the file cannot be found or cannot be read. *)
 
+val fold_interval : ('a -> int -> 'a) -> 'a -> int -> int -> 'a
+(** [fold_interval f a start end] folds an integer interval starting at 
+   [start] and ending with [end]. For each number in the interval, function
+   [f] is called. *) 

@@ -16,10 +16,9 @@ clean:
 	(cd src/target; make clean)
 	(cd src/ptllvm; make clean)
 
-test:	
-	(cd src/extlib; make)
-	(cd src/utools; make test)
-	(cd src/target; make test)
+test:	all
+	(cd src/utools; make test) 
+	(cd src/target; make test) 
 	(cd src/ptllvm; make test)
 
 

@@ -54,6 +54,8 @@ let read_binfile filename =
   | Invalid_argument _ -> raise (Sys_error "Cannot read file")
 
   
+let rec fold_interval f a s e =
+  if s = e then a else fold_interval f (f a s) (s+1) e  
 
 
 
