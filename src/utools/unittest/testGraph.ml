@@ -19,8 +19,9 @@ let main =
 
   (* Topological test 1 *)  
   let graph = [| [1;2];[3];[3];[4];[] |] in
-  test_intlist "Simple topological sort of digraph."
-                (Ugraph.topological_sort graph) [0;2;1;3;4];
+  test_list "Simple topological sort of digraph."
+            (Ugraph.topological_sort graph) [0;2;1;3;4]
+             ustring_of_int;
 
   (* Topological test 2 *)  
   let graph = [| [1;2];[0;3];[3];[4;0];[1] |] in
@@ -30,9 +31,14 @@ let main =
 
   (* Topological test 3 *)  
   let graph = [| [1];[3;2];[];[6];[2;5];[2];[] |] in
-  test_intlist "Another topological sort"
-                (Ugraph.topological_sort graph) [4;5;0;1;2;3;6];
+  test_list "Another topological sort"
+            (Ugraph.topological_sort graph) [4;5;0;1;2;3;6] 
+             ustring_of_int;
 
+
+  (** ------------------- Dominator tree ------------------- *)
+
+ 
 
     
   result()

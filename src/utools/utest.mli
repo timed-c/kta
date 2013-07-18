@@ -20,7 +20,11 @@ val test_ustr : string -> ustring -> ustring -> unit
 
 val test_ustr : string -> ustring -> ustring -> unit
 
-val test_intlist : string -> int list -> int list -> unit
+val test_list : string -> 'a list -> 'a list -> 
+                ('a -> ustring) -> unit
+
+val test_array : string -> 'a array -> 'a array -> 
+                ('a -> ustring) -> unit
 
 val result : unit -> unit
 (** Print out the unit test results on the screen *)

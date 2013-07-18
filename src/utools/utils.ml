@@ -55,7 +55,7 @@ let read_binfile filename =
 
   
 let rec fold_interval f a s e =
-  if s = e then a else fold_interval f (f a s) (s+1) e  
+  if s = e then (f a s) else fold_interval f (f a s) (s+1) e  
 
 
 

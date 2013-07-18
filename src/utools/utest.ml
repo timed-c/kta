@@ -55,11 +55,14 @@ let test_ustr str result expected =
     uprint_endline (us"   Result:   '" ^. result ^. us"'"))
 
 
-let test_intlist str result expected =
+let test_list str result expected elem2str =
   let res = (result = expected) in
   let tostr lst = us"[" ^. Ustring.concat (us",") 
-                  (List.map ustring_of_int lst) ^. us"]" in
+                  (List.map elem2str lst) ^. us"]" in
   test_ext str res (tostr result) (tostr expected)
+
+let test_array str result expected elem2str =
+  test_list str (Array.to_list result) (Array.to_list expected) elem2str
 
   
 let result() =
