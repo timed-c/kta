@@ -52,26 +52,41 @@ let dominator out_graph v = [||]
 
 (** ---------------------- Strong -------------------------------- *)
 
-let strongly_connected_components graph = []
-(*  let nodes = Array.length graph in
-  
-  let rec strong_connect i
-*)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+let strongly_connected_components graph = 
+  let nodes = Array.length graph in
+  let lowlink = Array.make nodes 0 in
+  let number = Array.make nodes 0 in
+  let stack = Stack.create() in
+  let stackmem = Hashtbl.create 1024 in
+  let i = ref 0 in
+  let scomps = ref [] in
+  let rec strong_connect v = 
+    i := !i + 1;
+    lowlink.(v) <- !i;
+    number.(v) <- !i;
+    Stack.push v stack;
+    Hashtbl.add stackmem v 0;
+    List.iter (fun w ->
+      if number.(w) = 0 then (
+        strong_connect w;
+        lowlink.(v) <- min lowlink.(v) lowlink.(w))
+      else if Hashtbl.mem stackmem w && number.(w) < number.(v) then
+        lowlink.(v) <- min lowlink.(v) number.(w)
+    ) graph.(v);
+    if lowlink.(v) = number.(v) then
+      let comp = ref [] in
+      while not (Stack.is_empty stack) && number.(Stack.top stack) >= number.(v) do
+        let elm = Stack.pop stack in        
+        comp := elm::(!comp);
+        Hashtbl.remove stackmem elm;
+      done;
+      scomps := (!comp)::(!scomps)
+  in 
+    for v = 0 to nodes-1 do
+      if number.(v) = 0 then
+        strong_connect v;
+    done; 
+    !scomps 
 
 
 
