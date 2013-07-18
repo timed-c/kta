@@ -38,7 +38,26 @@ let main =
 
   (** ------------------- Dominator tree ------------------- *)
 
+
+
+  (** ----------- Strongly Connected Components ------------ *)
+
+  let ustring_of_intlist lst =  
+    us"[" ^. Ustring.concat (us",") 
+    (List.map ustring_of_int lst) ^. us"]" in
+
+
+  (* Test 1 *)  
+  let graph = [| [];[3];[1;4];[1];[0;1;5];[0;2;3] |] in
+  let expected = [[2;4;5];[1;3];[0]] in
+  test_list "Strongly connected components, test 1"
+            (Ugraph.strongly_connected_components graph) expected 
+             ustring_of_intlist;
+  
+  
+
  
+  
 
     
   result()
