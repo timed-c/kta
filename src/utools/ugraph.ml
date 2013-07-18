@@ -57,7 +57,7 @@ let strongly_connected_components graph =
   let lowlink = Array.make nodes 0 in
   let number = Array.make nodes 0 in
   let stack = Stack.create() in
-  let stackmem = Hashtbl.create 1024 in
+  let stackmem = Array.make nodes false in
   let i = ref 0 in
   let scomps = ref [] in
   let rec strong_connect v = 
@@ -65,12 +65,12 @@ let strongly_connected_components graph =
     lowlink.(v) <- !i;
     number.(v) <- !i;
     Stack.push v stack;
-    Hashtbl.add stackmem v 0;
+    stackmem.(v) <- true;
     List.iter (fun w ->
       if number.(w) = 0 then (
         strong_connect w;
         lowlink.(v) <- min lowlink.(v) lowlink.(w))
-      else if Hashtbl.mem stackmem w && number.(w) < number.(v) then
+      else if stackmem.(w) && number.(w) < number.(v) then
         lowlink.(v) <- min lowlink.(v) number.(w)
     ) graph.(v);
     if lowlink.(v) = number.(v) then
@@ -78,7 +78,7 @@ let strongly_connected_components graph =
       while not (Stack.is_empty stack) && number.(Stack.top stack) >= number.(v) do
         let elm = Stack.pop stack in        
         comp := elm::(!comp);
-        Hashtbl.remove stackmem elm;
+        stackmem.(elm) <- false;
       done;
       scomps := (!comp)::(!scomps)
   in 
