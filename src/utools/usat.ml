@@ -19,7 +19,7 @@ let varnum lit = match lit with
 let variables cnf =  
   let maxval = ref 0 in
   List.iter (List.iter (fun x -> maxval := max (varnum x) !maxval)) cnf;
-  !maxval
+  !maxval+1
 
 let clauses cnf =
   List.length cnf
@@ -50,7 +50,7 @@ let read_cnf filename =
   let rec scan_clause i line acc =
     let (i,x) = scan_int i line in
     let (i,line) = eat_ws i line false in
-    let l = if x > 0 then Pos(x) else Neg(-1*x) in
+    let l = if x > 0 then Pos(x-1) else Neg((-1*x)-1) in
     if x = 0 then (i,line,List.rev acc) 
     else scan_clause i line (l::acc)
   in
@@ -90,26 +90,30 @@ let pprint_cnf cnf =
   let s = us "p cnf " ^. ustring_of_int (variables cnf) ^. us" " ^.
   ustring_of_int (clauses cnf) ^. us"\n" in
   List.fold_left (fun a ls ->
-    let lstr lit = ustring_of_int (match lit with Pos(x) -> x | Neg(x) -> x * -1) in
+    let lstr lit = ustring_of_int (match lit with Pos(x) -> x+1 | Neg(x) -> (x+1) * -1) in
     a ^. Ustring.concat (us" ") (List.map lstr ls) ^. us" 0\n")
     s cnf
   
-  (*
+  
 let var_statistics cnf =
-  let vstat = Array.make (Array.length cnf) VSNotAvailable in
-  Array.iter (List.iter x -> 
-              let y = if x < 0 then x * -1 in
-              vstat.(y) <- (match  vstat.(y), x > 0 with
-              | VSNotAvailable,true  -> VSOnlyPos
-              | VSNotAvailable,false -> VSOnlyNeg
-              | VSOnlyPos,true -> VSOnlyPos
-              | VSOnlyPos,false -> VSPosAndNeg
-              | VSOnlyNeg,true -> VSPosAndNeg
-              | VSOnlyNeg,false -> VSOnlyNeg
-              | VSPosAndNeg,_ -> VSPosAndNeg)) cnf;
+  let vstat = Array.make (variables cnf) VSNotAvailable in
+  List.iter (List.iter (fun x -> 
+              vstat.(varnum x) <- (match  vstat.(varnum x), x with
+              | VSNotAvailable,Pos(_)  -> VSOnlyPos
+              | VSNotAvailable,Neg(_) -> VSOnlyNeg
+              | VSOnlyPos,Pos(_) -> VSOnlyPos
+              | VSOnlyPos,Neg(_) -> VSPosAndNeg
+              | VSOnlyNeg,Pos(_) -> VSPosAndNeg
+              | VSOnlyNeg,Neg(_) -> VSOnlyNeg
+              | VSPosAndNeg,_ -> VSPosAndNeg))) cnf; 
   let (na,op,on,pn) = (ref 0,ref 0, ref 0, ref 0) in
-  Array.iter (fun
-  *)
+  Array.iteri (fun v x -> match x with
+  | VSNotAvailable -> na := !na + 1
+  | VSOnlyPos -> op := !op + 1
+  | VSOnlyNeg -> on := !on + 1
+  | VSPosAndNeg -> pn := !pn + 1) vstat;
+  (vstat,!na,!op,!on,!pn)
+  
   
 
 

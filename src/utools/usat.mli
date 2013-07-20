@@ -31,7 +31,7 @@ val read_cnf : string -> cnf
 val pprint_cnf : cnf -> ustring
 (** Pretty print cnf in CNF file format *)
 
-(*val var_statistics : cnf -> (varstat array * int * int * int * int)*)
+val var_statistics : cnf -> (varstat array * int * int * int * int)
 (** Expression [var_statistics s] returns a tuple 
 [(vs_array,not_available,only_neg,only_pos,pos_and_neg)]. Array [vs_array]
 contains information about the appearance of each variable. *)
