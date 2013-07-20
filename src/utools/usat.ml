@@ -2,15 +2,23 @@
 open Ustring.Op
 open Printf
 open Scanf
-type cnf = (int list) array
 
 exception CNF_parse_error of int 
 exception CNF_vars_not_match of int * int
 exception CNF_clauses_not_match of int * int
 
+type literal = Pos of int | Neg of int 
+type varstat = VSNotAvailable | VSOnlyNeg | VSOnlyPos | VSPosAndNeg
+type cnf = (literal list) array
+
+
+let varnum lit = match lit with
+  | Pos(x) -> x
+  | Neg(x) -> x
+
 let variables cnf =  
   let maxval = ref 0 in
-  Array.iter (List.iter (fun x -> maxval := max (abs x) !maxval)) cnf;
+  Array.iter (List.iter (fun x -> maxval := max (varnum x) !maxval)) cnf;
   !maxval
 
 let clauses cnf =
@@ -41,9 +49,10 @@ let read_cnf filename =
     | _ -> (i,line)) in
   let rec scan_clause i line acc =
     let (i,x) = scan_int i line in
-    let (i,line) = eat_ws i line false in    
+    let (i,line) = eat_ws i line false in
+    let l = if x > 0 then Pos(x) else Neg(-1*x) in
     if x = 0 then (i,line,List.rev acc) 
-    else scan_clause i line (x::acc)
+    else scan_clause i line (l::acc)
   in
   let rec scan mode i line lst = (
     if i >= size then List.rev lst else
@@ -81,12 +90,26 @@ let pprint_cnf cnf =
   let s = us "p cnf " ^. ustring_of_int (variables cnf) ^. us" " ^.
   ustring_of_int (clauses cnf) ^. us"\n" in
   Array.fold_left (fun a ls ->
-    a ^. Ustring.concat (us" ") (List.map ustring_of_int ls) ^. us" 0\n")
+    let lstr lit = ustring_of_int (match lit with Pos(x) -> x | Neg(x) -> x * -1) in
+    a ^. Ustring.concat (us" ") (List.map lstr ls) ^. us" 0\n")
     s cnf
   
-  
-
-
+  (*
+let var_statistics cnf =
+  let vstat = Array.make (Array.length cnf) VSNotAvailable in
+  Array.iter (List.iter x -> 
+              let y = if x < 0 then x * -1 in
+              vstat.(y) <- (match  vstat.(y), x > 0 with
+              | VSNotAvailable,true  -> VSOnlyPos
+              | VSNotAvailable,false -> VSOnlyNeg
+              | VSOnlyPos,true -> VSOnlyPos
+              | VSOnlyPos,false -> VSPosAndNeg
+              | VSOnlyNeg,true -> VSPosAndNeg
+              | VSOnlyNeg,false -> VSOnlyNeg
+              | VSPosAndNeg,_ -> VSPosAndNeg)) cnf;
+  let (na,op,on,pn) = (ref 0,ref 0, ref 0, ref 0) in
+  Array.iter (fun
+  *)
   
 
 
