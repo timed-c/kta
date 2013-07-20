@@ -1,5 +1,5 @@
   
-
+open Printf
 
 (* Returns the last element *)
 let rec last xs =
@@ -47,9 +47,13 @@ let read_binfile filename =
   let size = in_channel_length f in
   let s = String.create size in
   try 
-    let read = input f s 0 size in
-    if read = size then (close_in f; s) 
-    else raise (Sys_error "Cannot read file")
+    let rec readinput pos size =
+      let read = input f s pos size in
+      if read != 0 then readinput (pos+read) (size-read) else ()
+    in
+    readinput 0 size;
+    close_in f; 
+    s 
   with 
   | Invalid_argument _ -> raise (Sys_error "Cannot read file")
 

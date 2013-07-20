@@ -11,7 +11,7 @@ let main =
   init "Test SAT solver";
 
   let cnf = Usat.read_cnf "unittest/cnf_tests/small1.cnf" in
-  uprint_endline (Usat.pprint_cnf cnf);
+  (); (*uprint_endline (Usat.pprint_cnf cnf);*)
 
     
   result()
