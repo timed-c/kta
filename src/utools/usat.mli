@@ -7,7 +7,7 @@ open Ustring.Op
 type literal = Pos of int | Neg of int 
 type varstat = VSNotAvailable | VSOnlyNeg | VSOnlyPos | VSPosAndNeg
 
-type cnf = (literal list) array
+type cnf = (literal list) list
 (** Conjunction normal form *)
 
 exception CNF_parse_error of int 

@@ -9,7 +9,7 @@ exception CNF_clauses_not_match of int * int
 
 type literal = Pos of int | Neg of int 
 type varstat = VSNotAvailable | VSOnlyNeg | VSOnlyPos | VSPosAndNeg
-type cnf = (literal list) array
+type cnf = (literal list) list
 
 
 let varnum lit = match lit with
@@ -18,11 +18,11 @@ let varnum lit = match lit with
 
 let variables cnf =  
   let maxval = ref 0 in
-  Array.iter (List.iter (fun x -> maxval := max (varnum x) !maxval)) cnf;
+  List.iter (List.iter (fun x -> maxval := max (varnum x) !maxval)) cnf;
   !maxval
 
 let clauses cnf =
-  Array.length cnf
+  List.length cnf
 
 type cnf_mode = MMain | MCom1 | MCom2 
 
@@ -77,7 +77,7 @@ let read_cnf filename =
       let (i,line,clause) = scan_clause i line [] in
       scan MMain i line (clause::lst))
   in
-  let cnf = Array.of_list (scan MMain 0 1 []) in
+  let cnf = scan MMain 0 1 [] in
   let exp_vars = variables cnf in
   let exp_cl = clauses cnf in
   if exp_vars != !vars then raise (CNF_vars_not_match(exp_vars,!vars)) 
@@ -89,7 +89,7 @@ let read_cnf filename =
 let pprint_cnf cnf = 
   let s = us "p cnf " ^. ustring_of_int (variables cnf) ^. us" " ^.
   ustring_of_int (clauses cnf) ^. us"\n" in
-  Array.fold_left (fun a ls ->
+  List.fold_left (fun a ls ->
     let lstr lit = ustring_of_int (match lit with Pos(x) -> x | Neg(x) -> x * -1) in
     a ^. Ustring.concat (us" ") (List.map lstr ls) ^. us" 0\n")
     s cnf
