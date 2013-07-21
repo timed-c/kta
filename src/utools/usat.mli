@@ -5,7 +5,7 @@ open Ustring.Op
 
 
 type literal = Pos of int | Neg of int 
-type varstat = VSNotAvailable | VSOnlyNeg | VSOnlyPos | VSPosAndNeg
+type varkind = VKNotAvailable | VKOnlyNeg | VKOnlyPos | VKPosAndNeg
 
 type cnf = (literal list) list
 (** Conjunction normal form *)
@@ -31,7 +31,10 @@ val read_cnf : string -> cnf
 val pprint_cnf : cnf -> ustring
 (** Pretty print cnf in CNF file format *)
 
-val var_statistics : cnf -> (varstat array * int * int * int * int)
-(** Expression [var_statistics s] returns a tuple 
-[(vs_array,not_available,only_neg,only_pos,pos_and_neg)]. Array [vs_array]
-contains information about the appearance of each variable. *)
+val var_kind : cnf -> varkind array
+(** Expression [var_kind s] returns an array
+containing information about the appearance of each variable. *)
+
+val var_kind_stat : varkind array -> (int * int * int * int)
+(** Returns statistics about the kind of variables. The returned tuple is
+[(not_available,only_neg,only_pos,pos_and_neg)]. *)

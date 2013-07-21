@@ -8,7 +8,7 @@ exception CNF_vars_not_match of int * int
 exception CNF_clauses_not_match of int * int
 
 type literal = Pos of int | Neg of int 
-type varstat = VSNotAvailable | VSOnlyNeg | VSOnlyPos | VSPosAndNeg
+type varkind = VKNotAvailable | VKOnlyNeg | VKOnlyPos | VKPosAndNeg
 type cnf = (literal list) list
 
 
@@ -95,24 +95,28 @@ let pprint_cnf cnf =
     s cnf
   
   
-let var_statistics cnf =
-  let vstat = Array.make (variables cnf) VSNotAvailable in
+let var_kind cnf =
+  let vstat = Array.make (variables cnf) VKNotAvailable in
   List.iter (List.iter (fun x -> 
               vstat.(varnum x) <- (match  vstat.(varnum x), x with
-              | VSNotAvailable,Pos(_)  -> VSOnlyPos
-              | VSNotAvailable,Neg(_) -> VSOnlyNeg
-              | VSOnlyPos,Pos(_) -> VSOnlyPos
-              | VSOnlyPos,Neg(_) -> VSPosAndNeg
-              | VSOnlyNeg,Pos(_) -> VSPosAndNeg
-              | VSOnlyNeg,Neg(_) -> VSOnlyNeg
-              | VSPosAndNeg,_ -> VSPosAndNeg))) cnf; 
+              | VKNotAvailable,Pos(_)  -> VKOnlyPos
+              | VKNotAvailable,Neg(_) ->VKOnlyNeg
+              | VKOnlyPos,Pos(_) -> VKOnlyPos
+              | VKOnlyPos,Neg(_) -> VKPosAndNeg
+              | VKOnlyNeg,Pos(_) -> VKPosAndNeg
+              | VKOnlyNeg,Neg(_) -> VKOnlyNeg
+              | VKPosAndNeg,_ -> VKPosAndNeg))) cnf; 
+  vstat
+  
+
+let var_kind_stat vstat =
   let (na,op,on,pn) = (ref 0,ref 0, ref 0, ref 0) in
   Array.iteri (fun v x -> match x with
-  | VSNotAvailable -> na := !na + 1
-  | VSOnlyPos -> op := !op + 1
-  | VSOnlyNeg -> on := !on + 1
-  | VSPosAndNeg -> pn := !pn + 1) vstat;
-  (vstat,!na,!op,!on,!pn)
+  | VKNotAvailable -> na := !na + 1
+  | VKOnlyPos -> op := !op + 1
+  | VKOnlyNeg -> on := !on + 1
+  | VKPosAndNeg -> pn := !pn + 1) vstat;
+  (!na,!op,!on,!pn)
   
   
 

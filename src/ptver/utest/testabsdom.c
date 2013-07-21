@@ -178,15 +178,16 @@ void looptest2(aintp k)
   
 entry:
   aint(_tmp1);
-  aint_set(_tmp1,1,1,32);
+  set(_tmp1,1,1,32);
   aint(cmp4)
-  aint_icmp_sgt(cmp4,k,_tmp1);
+  icmp_sgt(cmp4,k,_tmp1);
   br(cmp4,for_body,for_end);
 
 for_body:
   aint(i_06);
+  phi(
   aint(i_06);
-  aint(j_05);
+
   
 
 }
