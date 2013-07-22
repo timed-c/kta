@@ -7,7 +7,7 @@ F_ML =  $(addsuffix .ml, $(FILES))
 F_CMX = $(addsuffix .cmx, $(FILES))
 F_LIB = $(addsuffix .cmxa, $(LIB_NAME))
 INCL_DIRS = $(addprefix -I ,$(DIRS))
-F_TEST = $(addprefix unittest/,$(addsuffix .ml, $(TEST_FILES)))
+F_TEST = $(addprefix $(UNITTEST)/,$(addsuffix .ml, $(TEST_FILES)))
 
 $(F_LIB): $(F_CMX)
 	ocamlopt -a $(INCL_DIRS) -o $@ $(F_CMX) 
@@ -22,17 +22,17 @@ $(F_LIB): $(F_CMX)
 
 
 .PHONY: test
-test: unittest/main.out $(F_LIB)
-	unittest/main.out
+test: $(UNITTEST)/main.out $(F_LIB)
+	$(UNITTEST)/main.out
 
-unittest/main.out: $@ $(F_CMX) $(F_TEST)  
+$(UNITTEST)/main.out: $@ $(F_CMX) $(F_TEST)  
 	ocamlopt -cc g++ -o $@ $(INCL_DIRS) $(DEP_LIBS) $(F_CMX) $(F_TEST)
 
 # Clean up 
 .PHONY: clean
 CFILES = *.cmi *.cmx *.cmxa *.o *.a
 clean:
-	rm -rf $(CFILES) $(addprefix unittest/,$(CFILES)) .depend unittest/main.out
+	rm -rf $(CFILES) $(addprefix $(UNITTEST)/,$(CFILES)) .depend $(UNITTEST)/main.out
 
 .depend: $(BUILD) $(F_MLI) $(F_ML)
 	ocamldep -native $(F_MLI) $(F_ML) > .depend

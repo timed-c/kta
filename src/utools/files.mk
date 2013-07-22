@@ -5,6 +5,6 @@ TEST_FILES = testUtils testGraph
 ONLY_MLI_FILES = 
 DIRS = 
 DEP_LIBS = 
-
+UNITTEST = utest
 
 
