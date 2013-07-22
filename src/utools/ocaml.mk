@@ -6,8 +6,8 @@ F_MLI = $(addsuffix .mli, $(FILES) $(ONLY_MLI_FILES))
 F_ML =  $(addsuffix .ml, $(FILES))
 F_CMX = $(addsuffix .cmx, $(FILES))
 F_LIB = $(addsuffix .cmxa, $(LIB_NAME))
-INCL_DIRS = $(addprefix -I ,$(DIRS))
-F_TEST = $(addprefix $(UNITTEST)/,$(addsuffix .ml, $(TEST_FILES)))
+INCL_DIRS = $(addprefix -I ,$(INCLUDE_DIR))
+F_TEST = $(addprefix $(UNITTEST_DIR)/,$(addsuffix .ml, $(TEST_FILES)))
 
 $(F_LIB): $(F_CMX)
 	ocamlopt -a $(INCL_DIRS) -o $@ $(F_CMX) 
@@ -21,18 +21,18 @@ $(F_LIB): $(F_CMX)
 	ocamlopt -warn-error +8 $(INCL_DIRS) -c $<
 
 
-.PHONY: test
-test: $(UNITTEST)/main.out $(F_LIB)
-	$(UNITTEST)/main.out
+.PHONY: umake_test
+umake_test: $(UNITTEST_DIR)/main.out $(F_LIB)
+	$(UNITTEST_DIR)/main.out
 
-$(UNITTEST)/main.out: $@ $(F_CMX) $(F_TEST)  
+$(UNITTEST_DIR)/main.out: $@ $(F_CMX) $(F_TEST)  
 	ocamlopt -cc g++ -o $@ $(INCL_DIRS) $(DEP_LIBS) $(F_CMX) $(F_TEST)
 
 # Clean up 
-.PHONY: clean
+.PHONY: umake_clean
 CFILES = *.cmi *.cmx *.cmxa *.o *.a
-clean:
-	rm -rf $(CFILES) $(addprefix $(UNITTEST)/,$(CFILES)) .depend $(UNITTEST)/main.out
+umake_clean:
+	rm -rf $(CFILES) $(addprefix $(UNITTEST_DIR)/,$(CFILES)) .depend $(UNITTEST_DIR)/main.out
 
 .depend: $(BUILD) $(F_MLI) $(F_ML)
 	ocamldep -native $(F_MLI) $(F_ML) > .depend

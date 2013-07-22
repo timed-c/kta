@@ -3,8 +3,7 @@ LIB_NAME = utools
 FILES = utils ustring utest ugraph 
 TEST_FILES = testUtils testGraph 
 ONLY_MLI_FILES = 
-DIRS = 
+INCLUDE_DIR = 
 DEP_LIBS = 
-UNITTEST = utest
-
+UNITTEST_DIR = utest
 
