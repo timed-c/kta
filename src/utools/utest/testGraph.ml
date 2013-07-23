@@ -56,8 +56,20 @@ let main =
   
   
 
- 
+  (** ------------------- Reverse and Undirected  ------------ *)
+   
+  let graph = [| [];[3];[1;4];[1];[0;1;5];[0;2;3] |] in
+  let expected = [|[5;4];[4;3;2];[5];[5;1];[2];[4]|] in
+  test_array "Reverse directed graph" (Ugraph.reverse graph) expected
+             ustring_of_intlist;
+
+  let expected = [|[5;4];[4;2;3];[5;1;4];[5;1];[2;0;1;5];[4;0;2;3]|] in
+  test_array "Make undirected" (Ugraph.make_undirected graph) expected
+             ustring_of_intlist;
   
 
     
   result()
+
+
+

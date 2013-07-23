@@ -89,4 +89,18 @@ let strongly_connected_components graph =
     !scomps 
 
 
+let reverse graph  =
+  let rev = Array.make (Array.length graph) [] in
+  Array.iteri (fun v ws -> List.iter (fun w ->
+    rev.(w) <- v::(rev.(w))) ws) graph;
+  rev
+
+
+let make_undirected graph =
+  let undir = Array.copy graph in
+  Array.iteri (fun v ws -> List.iter (fun w ->
+    if not (List.mem v (undir.(w))) then undir.(w) <- v::(undir.(w))
+  ) ws) graph;
+  undir
+
 

@@ -24,3 +24,12 @@ val strongly_connected_components : graph -> (int list) list
     components of graph [G]. Each element in the list is a list of integers 
     representing the vertices in each component. The order of the returned 
     strongly connected components is also topologically sorted. *)
+
+val reverse : graph -> graph
+(** Returned the reverse of a directed graph, that is, each edge
+    (v,w) in E is replaced with (w,v). *)
+
+val make_undirected : graph -> graph
+(** Takes a directed graph and add edges so that the graph becomes 
+    undirected. If the input graph has no redundant edges, the resulting
+    graph will not have any redundant edges. *)

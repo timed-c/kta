@@ -37,6 +37,8 @@ let test_ext str res fail_str ok_str =
     uprint_endline (us"   Expected: '" ^. ok_str ^. us"'");
     uprint_endline (us"   Result:   '" ^. fail_str ^. us"'"))
   
+let test_int str res exp =
+  test_ext str (res = exp) (ustring_of_int res) (ustring_of_int exp)
 
 let test_str str result expected =
   let res = (result = expected) in
