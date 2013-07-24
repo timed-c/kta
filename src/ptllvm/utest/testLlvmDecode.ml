@@ -43,7 +43,7 @@ let main =
 
   (* -------------------- INTEGER LOOPS ------------------------------- *)
 
-  let ast = LlvmDecode.bcfile2ast "utest/testcode/integerloops.bc" in
+  let ast = LlvmDecode.bcfile2ast "ccode/integerloops.bc" in
   (*uprint_endline (LlvmPPrint.pprint_module ast);   *)
 
   (* Test looptest1 *)
@@ -60,7 +60,7 @@ let main =
 
   (* ------------------ FUNCTION CALLS -------------------------------- *)
 
-  let ast = LlvmDecode.bcfile2ast "utest/testcode/functioncalls.bc" in
+  let ast = LlvmDecode.bcfile2ast "ccode/functioncalls.bc" in
   (* uprint_endline (LlvmPPrint.pprint_module ast);  *)
 
   (* Test functest1. Tests function call with several arguments. *)
@@ -77,7 +77,7 @@ let main =
 
   (* ---------------------- ARRAYS ---------------------------------- *)
 
-  let ast = LlvmDecode.bcfile2ast "utest/testcode/arrays.bc" in
+  let ast = LlvmDecode.bcfile2ast "ccode/arrays.bc" in
   (* uprint_endline (LlvmPPrint.pprint_module ast); *)
 
   (* Test addnums)  *)
@@ -106,7 +106,7 @@ let main =
   
   (* --------------------- STRUCTS ------------------------------------ *)
 
-  let ast = LlvmDecode.bcfile2ast "utest/testcode/structs.bc" in
+  let ast = LlvmDecode.bcfile2ast "ccode/structs.bc" in
   (* uprint_endline (LlvmPPrint.pprint_module ast); *)
 
   (* Test simple_struct_access)  *)
@@ -119,7 +119,7 @@ let main =
   (* --------------------- SWITCHES ------------------------------------ *)
 
 (*
-  let ast = LlvmDecode.bcfile2ast "utest/testcode/switches.bc" in
+  let ast = LlvmDecode.bcfile2ast "ccode/switches.bc" in
   uprint_endline (LlvmPPrint.pprint_module ast); 
 
   (* Test simple_switch(222))  *)
