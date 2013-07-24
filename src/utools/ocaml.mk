@@ -37,4 +37,4 @@ umake_clean:
 .depend: $(BUILD) $(F_MLI) $(F_ML)
 	ocamldep -native $(F_MLI) $(F_ML) > .depend
 
-include .depend
+-include .depend
