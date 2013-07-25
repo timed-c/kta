@@ -72,6 +72,14 @@ type inst =
 | IMiscMem    of info * opMiscMem * rd  * rs1 * imm12    (* Misc memory instructions *)
 | ISys        of info * opSys * rd                       (* System instructions *)
 
+(*
+type addr = int
+type label = sid
+
+type block = inst list
+type funct = (label * (block * addr) list
+type riscvModule = (label * (funct * addr)) list 
+*)
 
 (*
 
