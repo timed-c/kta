@@ -31,8 +31,49 @@ val mask_int64 : int64 -> int -> int64
     sets the rest of the bits to 0 *)
 
 
+val defining_id_in_instruction : llInst -> llLocId option
+(** Returns the defining local identifier of an instruction. If the
+    instruction does not define an identifier, None is returned *)
+
+
+val defining_ids_in_phi_list : llPhi list -> llLocId list
+(** Returns the defining local identifiers for a list of Phi commands *) 
+
+
+val defining_ids_in_inst_list : llInst list -> llLocId list 
+(** Returns the defining local identifiers for a list of instructions *)
+
+
+val ids_of_explst : llExp list -> llId list 
+(** Returns the list of identifiers available in a list of expressions. Note
+    that the returned identifiers may be both local and global *)
+
+val using_ids_in_instruction : llInst -> llId list 
+(** Returns a list of identifiers used in a specific instruction *)
+
+
+val using_ids_in_phi : llPhi -> llId list
+(** Returns a list of identifiers used in a Phi command *)
+
+  
+val using_ids_in_phi_list : llPhi list -> llId list
+(** Returns a list of identifiers used in a list of Phi commands *)
+
+
+val using_ids_in_inst_list : llInst list -> llId list
+(** Returns a list of identifiers used in a list of instructions *)
+
+  
+val local_ids : llId list -> llLocId list
+(** Returns the list of local identifiers from a list of identifiers *)
+
+
+val global_ids : llId list -> llGloId list
+(** Returns the list of global identifiers from a list of identifiers *)
+
+  
 val used_in_another_block : llFunc -> llabelset
-(** [define_in_another_block f] takes a function [f] and returns the 
+(** [used_in_another_block f] takes a function [f] and returns the 
     set of labels that used in other basic blocks than they are defined
-    in. *)
+    in. Note that phi commands are not seen as defining instructions. *)
 
