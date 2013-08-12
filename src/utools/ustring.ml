@@ -40,7 +40,6 @@ exception Unknown_sid
 
 
 
-
 let space_char = 0x20 
 
 
@@ -231,6 +230,15 @@ struct
   type ustring = tree ref
 
   type sid = int
+
+  module SidSet = Set.Make( 
+    struct
+      let compare = Pervasives.compare
+      type t = sid
+    end)
+
+  type sidset = SidSet.t
+
 
   (* ST: test_append (no 1-4) *)
   let (^.) s1 s2 = ref (Branch(!s1,!s2))

@@ -1,7 +1,6 @@
 
 
 open Printf
-
 open Ustring.Op
 (* --------------------------------------------------------------------------*)
 (*                      *** Labels and Identifiers ***                       *)
@@ -14,6 +13,8 @@ type llId =
 |  LocalId of sid
 type llGloId = sid
 type llLocId = sid
+
+type llabelset = sidset
 
 
 (* --------------------------------------------------------------------------*)

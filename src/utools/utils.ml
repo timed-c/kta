@@ -1,6 +1,16 @@
   
 open Printf
 
+ 
+module IntSet = Set.Make( 
+  struct
+    let compare = Pervasives.compare
+    type t = int
+  end)
+
+type intset = IntSet.t
+
+
 (* Returns the last element *)
 let rec last xs =
   match xs with 
