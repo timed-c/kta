@@ -14,7 +14,6 @@ type llId =
 type llGloId = sid
 type llLocId = sid
 
-type llabelset = sidset
 
 
 (* --------------------------------------------------------------------------*)

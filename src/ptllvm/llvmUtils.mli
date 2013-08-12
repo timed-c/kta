@@ -72,8 +72,9 @@ val global_ids : llId list -> llGloId list
 (** Returns the list of global identifiers from a list of identifiers *)
 
   
-val used_in_another_block : llFunc -> llabelset
-(** [used_in_another_block f] takes a function [f] and returns the 
-    set of labels that used in other basic blocks than they are defined
-    in. Note that phi commands are not seen as defining instructions. *)
+val used_in_another_block : llFunc -> sidset
+(** [used_in_another_block f] takes a function [f] and returns the set
+    of local identifiers that are used in other basic blocks than the
+    ones they are defined in. Note that phi commands are not seen as
+    defining instructions. *)
 
