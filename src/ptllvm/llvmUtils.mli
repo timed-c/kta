@@ -78,3 +78,17 @@ val used_in_another_block : llFunc -> sidset
     ones they are defined in. Note that phi commands are not seen as
     defining instructions. *)
 
+
+val count_ids_uses : llInst list -> (llLocId * int) list
+(** [count_ids_uses l] returns an association list (key/value mapping)
+    where the keys are local identifiers used in the instruction list
+    [l] and the values are the number of times these identifiers occur
+    in the instruction sequence. *)
+
+
+
+
+
+
+
+

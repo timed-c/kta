@@ -136,7 +136,16 @@ let used_in_another_block func =
   (SidSet.empty) cfg
 
 
-
+let count_ids_uses insts =
+  let rec count id alst =
+    match alst with
+    | (x,c)::lst when id = x -> (x,c+1)::lst
+    | (x,c)::lst -> (x,c)::(count id lst)
+    | [] -> [(id,1)]
+  in
+  List.fold_left (fun alst id -> 
+      count id alst
+  ) [] (local_ids (using_ids_in_inst_list insts))
 
 
 
