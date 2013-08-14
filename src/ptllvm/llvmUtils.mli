@@ -48,8 +48,8 @@ val ids_of_explst : llExp list -> llId list
 (** Returns the list of identifiers available in a list of expressions. Note
     that the returned identifiers may be both local and global *)
 
-val using_ids_in_instruction : llInst -> llId list 
-(** Returns a list of identifiers used in a specific instruction *)
+val using_explst_in_instruction : llInst -> llExp list 
+(** Returns a list of expressions used in a specific instruction *)
 
 
 val using_ids_in_phi : llPhi -> llId list

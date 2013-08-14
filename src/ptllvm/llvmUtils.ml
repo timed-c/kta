@@ -70,28 +70,27 @@ let rec ids_of_explst elst =
   | ExpId(id,_)::ls -> (id::ids_of_explst ls)
   | _::ls -> ids_of_explst ls  
 
-let using_ids_in_instruction inst = 
+let using_explst_in_instruction inst = 
   match inst with
   | IRet(None) -> []
-  | IRet(Some(_,e)) -> ids_of_explst [e]
-  | IBrCond(e,_,_) -> ids_of_explst [e]
+  | IRet(Some(_,e)) -> [e]
+  | IBrCond(e,_,_) -> [e]
   | IBrUncond(_) -> []
-  | ISwitch(e1,_,elst) -> 
-    ids_of_explst (e1::(fst (List.split elst)))
+  | ISwitch(e1,_,elst) -> e1::(fst (List.split elst))
   | IIndirectBr | IInvoke | IResume | IUnreachable -> []
-  | IBinOp(_,_,_,e1,e2) -> ids_of_explst [e1;e2]
+  | IBinOp(_,_,_,e1,e2) -> [e1;e2]
   | IExtractElement | IInsertElement | IShuffleVector | 
       IExtractValue | IInsertValue | IAlloca(_,_,_) -> []
-  | ILoad(_,_,e) -> ids_of_explst [e]
-  | IStore(e1,_,e2) -> ids_of_explst [e1;e2]
+  | ILoad(_,_,e) -> [e]
+  | IStore(e1,_,e2) -> [e1;e2]
   | IFence | ICmpXchg | IAtomicRMW -> []    
-  | IGetElementPtr(_,_,e1,elst) -> ids_of_explst (e1::elst)
-  | IConvOp(_,_,_,e,_) -> ids_of_explst [e]
-  | ICmp(_,_,_,e1,e2) -> ids_of_explst [e1;e2]
+  | IGetElementPtr(_,_,e1,elst) -> e1::elst
+  | IConvOp(_,_,_,e,_) -> [e]
+  | ICmp(_,_,_,e1,e2) -> [e1;e2]
   | IFCmp | ISelect -> []
-  | ICall(_,_,_,gid,elst) -> (GlobalId(gid))::(ids_of_explst elst)
+  | ICall(_,_,retty,gid,elst) -> (ExpId(GlobalId(gid),retty))::elst
   | IVAArg | ILandingPad | IPretGT(_) -> []
-  | IPretDU(e) | IPretMT(e) -> ids_of_explst [e]
+  | IPretDU(e) | IPretMT(e) -> [e]
   | IPretFD | IInvalid | IInvalid2 | IUserOp1 | IUserOp2 | IUnwind -> []
 
 
@@ -105,7 +104,8 @@ let using_ids_in_phi_list phis =
 
 
 let using_ids_in_inst_list insts = 
-  List.fold_left (fun a inst -> (using_ids_in_instruction inst)@a) [] insts 
+  List.fold_left (fun a inst ->
+    (ids_of_explst (using_explst_in_instruction inst))@a) [] insts 
   
 
 let local_ids lst = 
