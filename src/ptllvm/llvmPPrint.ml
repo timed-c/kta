@@ -94,10 +94,11 @@ let pprint_icmp_pred_op pred = us (
   | IcmpSlt -> "slt"
   | IcmpSle -> "sle")
 
-let pp_fold_inst s inst = 
-  let istr = 
-    match inst with
-   (* -- Terminator instructions -- *)
+
+
+let pp_inst inst = 
+  match inst with
+    (* -- Terminator instructions -- *)
     | IRet(None) -> us"ret void"
     | IRet(Some(ty,v)) -> us "ret " ^. pprint_type ty ^. us" " ^. pprint_exp v
     | IBrCond(c,tl,fl) -> us"br i1 " ^. pprint_exp c ^.
@@ -175,8 +176,9 @@ let pp_fold_inst s inst =
     | IUserOp1 -> us"IUserOp1 (todo)"
     | IUserOp2 -> us"IUserOp2 (todo)"
     | IUnwind -> us"IUnwind (todo)"
-  in
-    s ^. us"  " ^. istr ^. us"\n"
+
+let pp_fold_inst s inst = 
+    s ^. us"  " ^. pp_inst inst ^. us"\n"
     
 let pp_fold_phi s (LLPhi(id,ty,inlst)) = 
   let lst = List.map (fun (l,v) -> us"[ " ^. pprint_exp v ^. us", " ^. 
@@ -207,4 +209,23 @@ let pp_fold_func s (id,(LLFunc(ty,ps,bbs))) =
   
 let pprint_module (LLModule(globs,funcs)) =
     List.fold_left pp_fold_func (us"") funcs
+
+
+let pp_tree t = 
+  let rec pp lev t =
+    (Ustring.make (lev*4) (uc (' '))) ^. (
+      match t with 
+      | LlvmTree.TExp(inst,t2) -> us"TExp(" ^. pp_inst inst ^. us")\n" ^. 
+        List.fold_left (fun a t ->
+          a ^. pp (lev+1) t 
+        ) (us"") t2  
+      | LlvmTree.TId(id) -> us"TId(" ^. pprint_llid id ^. us")\n"
+      | LlvmTree.TConst(c) -> us"TConst(" ^. pprint_const c ^. us")\n")     
+  in pp 0 t
+    
+
+let pp_forest f = 
+  List.fold_left (fun a t -> a ^. pp_tree t) (us"") f
+    
+ 
 

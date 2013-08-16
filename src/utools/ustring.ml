@@ -470,6 +470,7 @@ let trim s =
   if len <= 0 then ref (Uchars [||]) 
   else ref (Uchars (Array.sub s2 left len))
 
+
 (* ST: *)
 let empty() = ref (Uchars [||])
 

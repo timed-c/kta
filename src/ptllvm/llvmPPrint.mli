@@ -21,7 +21,17 @@ val pprint_binop : llBinOp -> ustring
 val pprint_icmp_pred_op : llIcmpPred -> ustring
 (** Pretty printing icmp predicate operator *)
 
+val pp_inst : llInst -> ustring
+(** Pretty print an instruction *)
+
 val pprint_module : llModule -> ustring
 (** Pretty print a module *)
+
+val pp_tree : LlvmTree.tree -> ustring
+(** Pretty print an LLVM SSA tree *)
+
+val pp_forest : LlvmTree.forest-> ustring
+(** Pretty print an LLVM SSA forest (a list of trees) *)
+
 
 
