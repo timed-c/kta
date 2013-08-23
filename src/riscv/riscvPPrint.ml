@@ -103,7 +103,7 @@ let pp_addr addr map =
 
 let pprint_minst_conf n map pc inst = 
     match inst with
-  | MIAbsJmp(fi,op,imm25) ->
+  | MIUncondJmp(fi,op,imm25) ->
       let addr = ((sign_ext imm25 25) lsl 1) + pc in      
       pp1arg n (pp_abs_jmp op) (pp_addr addr map)
   | MICondJmp(fi,op,rs1,rs2,imm12) ->            
@@ -143,7 +143,7 @@ let minst = pprint_minst_conf sep (IntMap.empty)
 
 let sinst inst =
   match inst with
-  | SIAbsJmp(op,l) -> 
+  | SIUncondJmp(op,l) -> 
       pp1arg sep (pp_abs_jmp op) (pp_label l)
   | SICondJmp(op,rs1,rs2,l) ->    
       pp3arg sep (pp_cond_jmp op) (pp_sreg rs1) (pp_sreg rs2) (pp_label l)

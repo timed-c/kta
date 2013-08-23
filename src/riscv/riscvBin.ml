@@ -69,9 +69,9 @@ let d_fp_funR h l = ((h land 1) lsl 6) lor ((l lsr 12) lsl 2) lor
 let decode_32inst h l =
   let fi = Info(0, usid"", 4) in
   match d_op l with
-    (* Absolute Jump Instructions *)
-  | 0b1100111 -> MIAbsJmp(fi, OpJ, d_offJ h l)
-  | 0b1101111 -> MIAbsJmp(fi, OpJAL, d_offJ h l)
+    (* Unconditonal Jump Instructions *)
+  | 0b1100111 -> MIUncondJmp(fi, OpJ, d_offJ h l)
+  | 0b1101111 -> MIUncondJmp(fi, OpJAL, d_offJ h l)
     (* Conditional Jump Instructions *)
   | 0b1100011 -> 
       let op = match d_funIB l with 0b000 -> OpBEQ | 0b001 -> OpBNE  | 0b100 -> OpBLT |
@@ -200,7 +200,7 @@ let encJ offset25 op7 =
   let low = ((offset25 land 0b111111111) lsl 7) lor op7 in
   (high,low)
 
-let encAbsJmp op = match op with
+let encUncondJmp op = match op with
   | OpJ -> 0b1100111 | OpJAL -> 0b1101111
 
 let encCondJmp op = match op with
@@ -265,8 +265,8 @@ let encSys op = match op with
 (* Encodes one 32 bit instructions. Returns a tuple with two parcels. *)
 let encode_32inst inst =
   match inst with 
-  (* Absolute Jump *)
-  | MIAbsJmp(fi,op,imm25) -> encJ imm25 (encAbsJmp op)
+  (* Unconditional Jump *)
+  | MIUncondJmp(fi,op,imm25) -> encJ imm25 (encUncondJmp op)
   (* Conditional Jump *)
   | MICondJmp(fi,op,rs1,rs2,imm12) -> encB rs1 rs2 imm12 (encCondJmp op)
   (* Indirect Jump *)

@@ -37,7 +37,7 @@ type immv = int   (* variable numbers of bits depending on instruction
 
 
 (** Opcodes *)
-type opAbsJmp     = OpJ  | OpJAL
+type opUncondJmp  = OpJ  | OpJAL
 type opCondJmp    = OpBEQ | OpBNE | OpBLT | OpBGE | OpBLTU | OpBGEU
 type opIndJmp     = OpJALR_C | OpJALR_R | OpJALR_J | OpRDNPC
 type opLoad       = OpLB | OpLH | OpLW | OpLD | OpLBU | OpLHU | OpLWU
@@ -61,7 +61,7 @@ type opSys        = OpSYSCALL   | OpBREAK     | OpRDCYCLE  | OpRDTIME |
 
 (** Machine instructions with machine registers and relative jumps in bytes *)
 type minst = 
-| MIAbsJmp     of info * opAbsJmp * imm25                 (* Absolute Jump *)
+| MIUncondJmp  of info * opUncondJmp * imm25              (* Unconditional Jump *)
 | MICondJmp    of info * opCondJmp * rs1 * rs2 * imm12    (* Conditional Jump  *)
 | MIIndJmp     of info * opIndJmp * rd * rs1 * imm12      (* Indirect Jump *)
 | MILoad       of info * opLoad * rd  * rs1 * imm12       (* Load Memory *)
@@ -91,7 +91,7 @@ type loffset = sid * sid
 (** Static single assignment instructions with labels and both general register names
     and possibly machine registers (depending on phase) *)
 type sinst = 
-| SIAbsJmp     of opAbsJmp * label                     (* Absolute Jump *)
+| SIUncondJmp  of opUncondJmp * label                  (* Unconditional Jump *)
 | SICondJmp    of opCondJmp * sreg * sreg * label      (* Conditional Jump  *)
 | SIIndJmp     of opIndJmp * dreg * sreg * loffset     (* Indirect Jump *)
 | SILoad       of opLoad * dreg * sreg * loffset       (* Load Memory *)
