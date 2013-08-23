@@ -89,8 +89,7 @@ let rec match_tree tree acc_inst =
   | TExp(IPretGT(_),_) -> not_imp "IPretGT"
   | TExp(IPretDU(_),_) -> not_imp "IPretDU"
   | TExp(IPretMT(_),_) -> not_imp "IPretMT"
-  | TExp(IPretMT(_),_) -> not_imp "IPretMT"
-  | TExp(IPretFD(_),_) -> not_imp "IPretFD"
+  | TExp(IPretFD,_) -> not_imp "IPretFD"
   | TExp(IInvalid,_) -> not_imp "IInvalid"
   | TExp(IInvalid2,_) -> not_imp "IInvalid2"
   | TExp(IUserOp1,_) -> not_imp "IUserOp1"
@@ -98,8 +97,9 @@ let rec match_tree tree acc_inst =
   | TExp(IUnwind,_) -> not_imp "IUnwind"
   | TId(LocalId(id)) -> (id,acc_inst)
   | TId(GlobalId(id)) -> not_imp "GlobalId"
-  | TConst(c) -> not_imp "Const" 
-
+  | TConst(CInt(_,x)) when i64_has_12bits x -> 
+      (usid"tmp",(RiscvISA.SICompImm(RiscvISA.OpADDI, mkid (usid"tmp"), (noid,0),i64_mask12 x))::acc_inst)
+  | TConst(_) -> not_imp "large TConst"
 
 
 let maximal_munch forest =

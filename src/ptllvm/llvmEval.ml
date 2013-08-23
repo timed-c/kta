@@ -4,7 +4,6 @@ open Printf
 open LlvmAst
 open LlvmUtils
 open Ustring.Op
-open LlvmPPrint
 
 
 (*************** Exported types and exceptions ********************)
@@ -40,7 +39,7 @@ let utf8 sid = Ustring.to_utf8 (ustring_of_sid sid)
 
 let pprint_val v =
   match v with
-  | VConst(c) -> pprint_const c
+  | VConst(c) -> LlvmPPrint.llconst c
   | VPtr(i,a) -> us"VPtr(" ^. ustring_of_int i ^. us")"
 
 
@@ -50,7 +49,7 @@ let eval_expr env e =
   | ExpId(id,ty) -> (
     try env_find id env 
     with Not_found -> 
-      let ids = pprint_llid id in
+      let ids = LlvmPPrint.llid id in
       raise (Eval_error_identfier_not_found (Ustring.to_utf8 ids)))
   | ExpConst(c) -> VConst(c)
   | ExpConstExpr(_) -> VConst(CInt(1,Int64.zero))   (* TODO *)
@@ -141,7 +140,7 @@ let rec eval_inst m instlst env  =
     let env' = env_add (LocalId(id)) nval env in
     if !_debug then
       uprint_endline (us"DEBUG: %" ^. ustring_of_sid id ^. us"=" ^. 
-      pprint_val nval ^. us" " ^. pprint_binop bop);
+      pprint_val nval ^. us" " ^. LlvmPPrint.llbinop bop);
     eval_inst m lst env'        
   (** IAlloc **)
   | IAlloca(id,ty,_)::lst ->            
@@ -159,7 +158,7 @@ let rec eval_inst m instlst env  =
     in
     if !_debug then 
       uprint_endline (us"DEBUG: %" ^. ustring_of_sid id ^. us" alloca length=" ^. 
-      ustring_of_int (List.length (mklst ty 1 [])) ^. us" ty=" ^. pprint_type ty);
+      ustring_of_int (List.length (mklst ty 1 [])) ^. us" ty=" ^. LlvmPPrint.lltype ty);
     let nval = VPtr(0,Array.of_list (List.rev (mklst ty 1 []))) in
     let env' = env_add (LocalId(id)) nval env in
     eval_inst m lst env'        
@@ -216,7 +215,7 @@ let rec eval_inst m instlst env  =
         let idx' = adv_index idx ty (List.map (eval_expr env) indices) in
         if !_debug then 
           uprint_endline (us"DEBUG: %" ^. ustring_of_sid id ^. us"=" ^.
-          ustring_of_int idx' ^. us" getelementptr" ^. us" ty=" ^. pprint_type ty);
+          ustring_of_int idx' ^. us" getelementptr" ^. us" ty=" ^. LlvmPPrint.lltype ty);
         VPtr(idx', arr)
       | _ -> raise (Illegal_llvm_code "eval_inst IGetElementPtr nval")) in
     let env' = env_add (LocalId(id)) nval env in

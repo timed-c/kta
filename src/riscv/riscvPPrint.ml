@@ -135,7 +135,7 @@ let pp_label l = ustring_of_sid l
 (* Pretty print SSA register and machine register (if assigned) *)
 let pp_sreg (s,i) =
   us"%" ^. ustring_of_sid s ^. 
-  if i = -1 then us"" else us"->r" ^. ustring_of_int i 
+  if i = -1 then us"" else us"->r" ^. ustring_of_int i
 
 (**************** Exported functions *******************************)
 

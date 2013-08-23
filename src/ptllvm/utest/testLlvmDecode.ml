@@ -4,7 +4,6 @@ open Utest
 open LlvmAst
 open LlvmDecode
 open LlvmUtils
-open LlvmPPrint
 open LlvmEval
 open Printf
 
@@ -12,7 +11,7 @@ open Printf
 let pprint_res r = 
   match r with 
   | None -> us"None"
-  | Some(v) -> pprint_const v 
+  | Some(v) -> LlvmPPrint.llconst v 
 
 (* Ignore timing in these tests *)
 let btime b1 b2 = 1 

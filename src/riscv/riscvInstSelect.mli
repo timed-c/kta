@@ -19,4 +19,5 @@ val maximal_munch : LlvmTree.tree list -> RiscvISA.sinst list
       unconditional jump (J), for the false branch. Later during address
       assigned, the unconditional jump can be eliminated if the block that
       follows in memory is the false branch.
+    - Machine register r0 my be selected during instruction selection.
 *)

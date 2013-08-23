@@ -16,7 +16,7 @@ let main =
   let LLFunc(_,_,blocks) = f_looptest2 in
   let LLBlock(_,insts) = List.assoc (usid "for.body") blocks in
   let forest = LlvmTree.make insts (LlvmUtils.used_in_another_block f_looptest2) in 
-  let res = LlvmPPrint.pp_forest forest in
+  let res = LlvmPPrint.llforest forest in
   let exp = us"TExp(%add = add i32 %mul, %j.05)\n" ^.
             us"    TExp(%mul = mul i32 %i.06, %j.05)\n" ^.
             us"        TId(%i.06)\n" ^.
