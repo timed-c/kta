@@ -233,7 +233,7 @@ let rec eval_inst m instlst env  =
   (** ICall **)
   | ICall(id_opt,tail,ty,f,args)::lst -> 
     let args' = List.map (eval_expr env) args in
-    let LLFunc(_,params,blocks) = get_fun m f in (
+    let LLFunc(_,params,blocks) = get_fun_from_id f m in (
     match eval_function m blocks params args' env,id_opt with
     | None,None -> eval_inst m lst env
     | Some nval,Some id -> let env' = env_add (LocalId(id)) nval env in
@@ -286,7 +286,7 @@ let v32 v = VConst(CInt(32,Int64.of_int v))
 
 let eval_fun m bt f args timeout =
   (* Find function to execute *)
-  let LLFunc(_,params,blocks) = get_fun m f in
+  let LLFunc(_,params,blocks) = get_fun_from_id f m in
   (* Evaluate function *)
   (0, eval_function m blocks params args env_new)
   

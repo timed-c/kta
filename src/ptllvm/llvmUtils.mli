@@ -4,17 +4,30 @@ open LlvmAst
 open Ustring.Op
 open Utils
 
-exception Function_not_found of string * sid
+exception Function_not_found of string
+exception Block_not_found of string
 exception Illegal_llvm_code of string
 
 val const_int_val : int -> int -> llExp 
-(** Expression [const_int_val w v] creates a constant integer value with bit
+(** [const_int_val w v] creates a constant integer value with bit
     width [w] and value [v]. *)
 
 
-val get_fun : llModule -> llGloId -> llFunc
-(** Expression [get_fun m f] returns the function named [f] from module [m]. 
+val get_fun : string -> llModule -> llFunc
+(** [get_fun f m] returns the function named [f] from module [m]. 
     Raises exception [Function_not_found] if the function cannot be found. *)
+
+
+val get_block : string -> llFunc -> llBlock 
+(** [get_block l f] returns the basic block with label [l] within function [f].
+    Raises exception [Block_not_found] if the block cannot be found *)
+
+val get_fun_from_id : llGloId -> llModule -> llFunc
+(** Same as [get_fun], but uses an identifier instead of a string *)
+
+
+val get_block_from_id : llabel -> llFunc -> llBlock
+(** Same as [get_block], but uses a label instead of a string *)
 
 
 val type_of_exp : llExp -> llType 

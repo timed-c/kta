@@ -1,3 +1,3 @@
 
 
-FILES = bsort100 integerloops
+FILES = bsort100 integerloops arithmetic

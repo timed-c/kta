@@ -10,7 +10,7 @@ let main =
 
   (* Extracted test functions *)
   let integerloops_ast = LlvmDecode.bcfile2ast "ccode/integerloops.bc" in
-  let f_looptest2 = LlvmUtils.get_fun integerloops_ast (usid "looptest2") in
+  let f_looptest2 = LlvmUtils.get_fun "looptest2" integerloops_ast  in
 
   (* Test id used in another block *)
   let lset = LlvmUtils.used_in_another_block f_looptest2 in
@@ -19,8 +19,7 @@ let main =
     (SidSet.elements lset) expected ustring_of_sid;
 
   (* Test count identifier uses *)
-  let LLFunc(_,_,blocks) = f_looptest2 in
-  let LLBlock(_,insts) = List.assoc (usid "for.body") blocks in
+  let LLBlock(_,insts) = LlvmUtils.get_block "for.body" f_looptest2 in
   let count = LlvmUtils.count_ids_uses insts in 
   let pprint_pair (id,c) = (ustring_of_sid id) ^. us":" ^. ustring_of_int c in
   let expected = [(usid"j.05",2); (usid"i.06",2); (usid"mul",1); (usid"k",1);

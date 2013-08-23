@@ -10,7 +10,7 @@ let main =
   
   (* Extracted test functions *)
   let integerloops_ast = LlvmDecode.bcfile2ast "ccode/integerloops.bc" in
-  let f_looptest2 = LlvmUtils.get_fun integerloops_ast (usid "looptest2") in
+  let f_looptest2 = LlvmUtils.get_fun "looptest2" integerloops_ast in
   
   (* Test tree creation *)
   let LLFunc(_,_,blocks) = f_looptest2 in

@@ -4,17 +4,28 @@ open LlvmAst
 open Ustring.Op
 open Utils
 
-exception Function_not_found of string * sid
+exception Function_not_found of string
+exception Block_not_found of string
 exception Illegal_llvm_code of string
 
 let const_int_val width v = ExpConst(CInt(width, Int64.of_int v))
 
 
-let get_fun m f = 
+let get_fun_from_id f m = 
   let LLModule(_,lst) = m in
-  try List.assoc f lst with Not_found -> 
-     raise (Function_not_found ((Ustring.to_utf8 (ustring_of_sid f)), f)) 
+  try List.assoc f lst with Not_found ->
+    raise (Function_not_found ((ustring_of_sid f) |> Ustring.to_utf8))
 
+let get_fun f m = 
+  get_fun_from_id (usid f) m
+
+let get_block_from_id l f = 
+  let LLFunc(_,_,blocks) = f in
+  try List.assoc l blocks with Not_found -> 
+    raise (Block_not_found (ustring_of_sid l |> Ustring.to_utf8))
+
+let get_block l f = 
+  get_block_from_id (usid l) f
 
 let rec type_of_exp e = 
   match e with 
