@@ -187,17 +187,22 @@ let pp_fold_phi s (LLPhi(id,ty,inlst)) =
   s ^. us"  " ^. string_of_local_id id ^. us" = phi " 
   ^. lltype ty ^. us" " ^. clst ^. us"\n" 
 
-let pp_fold_block s (label,LLBlock(phis,insts)) = 
-    s ^. (pure_string_of_label label) ^. us":\n" ^.
+
+let llblock (LLBlock(phis,insts)) =    
     (List.fold_left pp_fold_phi (us"") phis) ^.
     (List.fold_left pp_fold_inst (us"") insts) 
+
+
+let pp_fold_block s (label,bbs) = 
+    s ^. (pure_string_of_label label) ^. us":\n" ^.llblock bbs
   
-let pp_fold_func s (id,(LLFunc(ty,ps,bbs))) =
+
+let llnamed_func name (LLFunc(ty,ps,bbs)) =
   let param_lst = List.map (fun (ty,id) -> 
         lltype ty ^. us" " ^. string_of_local_id id) ps in
   let decl = List.length bbs = 0 in
-  s ^. (if decl then us"declare " else us"define ") ^.
-  lltype ty ^. us" " ^. string_of_global_id id ^.
+  (if decl then us"declare " else us"define ") ^.
+  lltype ty ^. us" " ^. name ^.
   us"(" ^. Ustring.concat (us", ") param_lst ^. us") " ^.
   (if decl then us"" 
    else 
@@ -206,6 +211,10 @@ let pp_fold_func s (id,(LLFunc(ty,ps,bbs))) =
     us"}\n"
   ) ^. us"\n"
 
+let llfunc bbs = llnamed_func (us"function") bbs
+    
+let pp_fold_func s (id,func) =
+  s ^. llnamed_func (string_of_global_id id) func
   
 let llmodule (LLModule(globs,funcs)) =
     List.fold_left pp_fold_func (us"") funcs

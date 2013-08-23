@@ -27,17 +27,18 @@ let main =
   test_ustr "Selecting mul,add,addi,beq,j" res exp;
 
   (* Test maximal munch on one block *)
-  let LLBlock(_,insts) = List.assoc (usid "entry") f_looptest2_blocks in
+  let bblock = List.assoc (usid "entry") f_looptest2_blocks in
+  let LLBlock(_,insts) = bblock in
   let forest = LlvmTree.make insts (LlvmUtils.used_in_another_block f_looptest2) in 
   let insts = RiscvInstSelect.maximal_munch forest in
   let res = RiscvPPrint.sinst_list insts in 
 
-(*  uprint_endline (LlvmPPrint.llmodule integerloops_ast);
+ (* uprint_endline (LlvmPPrint.llmodule integerloops_ast);
   print_endline "--------------";
   uprint_endline (LlvmPPrint.llforest forest); 
   print_endline "--------------";
-  uprint_endline res;  *)
-   
+  uprint_endline res;  
+ *)
 
   result()
 
