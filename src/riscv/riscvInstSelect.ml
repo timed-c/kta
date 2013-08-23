@@ -31,28 +31,29 @@ let cmp_pred_op op = match op with
 
 let noid = usid""
 
+let make_tmp tmpno = (usid ("tmp#" ^ string_of_int tmpno), tmpno+1)  
 
 (** This match algorithm assumes that all integer operations are 32-bits or lower *)
-let rec match_tree tree acc_inst =
+let rec match_tree tree acc_inst tmpno =
   match tree with
   (* 32-bit Binary Register-Immediate Instructions *)
   | TExp(IBinOp(id,BopAdd,TyInt(32),_,_), [e1;TConst(CInt(_,x))]) |
     TExp(IBinOp(id,BopAdd,TyInt(32),_,_), [TConst(CInt(_,x));e1])
     when i64_has_12bits x ->
-      let (cid,acc_inst) = match_tree e1 acc_inst in
+      let (cid,acc_inst) = match_tree e1 acc_inst tmpno in
       (id,(RiscvISA.SICompImm(RiscvISA.OpADDI,mkid id,mkid cid, i64_mask12 x))::acc_inst)
   (* 32-bit Binary Register-Register Instructions *)
   | TExp(IBinOp(id,(BopAdd as op),TyInt(32),_,_), [e1;e2]) |
     TExp(IBinOp(id,(BopMul as op),TyInt(32),_,_), [e1;e2]) ->
-      let (cid2,acc_inst) = match_tree e2 acc_inst in
-      let (cid1,acc_inst) = match_tree e1 acc_inst in
+      let (cid2,acc_inst) = match_tree e2 acc_inst tmpno in
+      let (cid1,acc_inst) = match_tree e1 acc_inst tmpno in
       (id,(RiscvISA.SICompReg(binop2exp op,mkid id,mkid cid1,mkid cid2)::acc_inst))
   | TExp(IBinOp(id,_,_,_,_), [e1;e2]) -> not_imp "IBinOp 2 expr"
   | TExp(IBinOp(_,_,_,_,_),_) -> raise (Illegal_instruction "IBinOp")
   (* Conditional branches *)
   | TExp(IBrCond(_,l1,l2),[TExp(ICmp(_,op,TyInt(32),_,_),[e1;e2])]) ->
-      let (cid2,acc_inst) = match_tree e2 acc_inst in
-      let (cid1,acc_inst) = match_tree e1 acc_inst in
+      let (cid2,acc_inst) = match_tree e2 acc_inst tmpno in
+      let (cid1,acc_inst) = match_tree e1 acc_inst tmpno in
       let (cmpop,rev) = cmp_pred_op op in
       let (cid1,cid2) = if rev then (cid2,cid1) else (cid1,cid2) in
       let cond_br = RiscvISA.SICondJmp(cmpop,mkid cid1,mkid cid2,l1) in
@@ -98,13 +99,14 @@ let rec match_tree tree acc_inst =
   | TId(LocalId(id)) -> (id,acc_inst)
   | TId(GlobalId(id)) -> not_imp "GlobalId"
   | TConst(CInt(_,x)) when i64_has_12bits x -> 
-      (usid"tmp",(RiscvISA.SICompImm(RiscvISA.OpADDI, mkid (usid"tmp"), (noid,0),i64_mask12 x))::acc_inst)
+    let (tmp,tmpno) = make_tmp tmpno in
+    (tmp,(RiscvISA.SICompImm(RiscvISA.OpADDI, mkid tmp, (noid,0),i64_mask12 x))::acc_inst)
   | TConst(_) -> not_imp "large TConst"
 
 
-let maximal_munch forest =
+let maximal_munch forest tmpno =
   let rev_insts = List.fold_left (fun acc_inst tree ->
-    snd  (match_tree tree acc_inst) 
+    snd  (match_tree tree acc_inst tmpno) 
   ) [] forest in
   List.rev rev_insts
 
