@@ -1,12 +1,11 @@
 
-
-
 open Ustring.Op
 open Utest
 open LlvmAst
 
 
 let main = 
+
   init "Test llvm tree module.";
   
   (* Extracted test functions *)
@@ -16,7 +15,6 @@ let main =
   (* Test tree creation *)
   let LLFunc(_,_,blocks) = f_looptest2 in
   let LLBlock(_,insts) = List.assoc (usid "for.body") blocks in
-  
   let forest = LlvmTree.make insts (LlvmUtils.used_in_another_block f_looptest2) in 
   let res = LlvmPPrint.pp_forest forest in
   let exp = us"TExp(%add = add i32 %mul, %j.05)\n" ^.

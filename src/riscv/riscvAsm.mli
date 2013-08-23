@@ -2,17 +2,10 @@
 
 open Ustring.Op
 
-type big_endian = bool
 
 (* Parse a RISC-V assembly text string *)
-val parse : ustring -> RiscvISA.inst list
+val parse : ustring -> RiscvISA.minst list
 
-val sprint_inst : int -> RiscvISA.inst -> ustring
-(** Pretty print an RISC-V instruction. Expression 
-    [sprint_inst k i] creates a test string representing
-    instruction [i] if the instruction starts at address 
-    [a] in memory. 
-    *)
 
 (* val sprint_inst_conf : int -> RiscvISA.addr2sid -> int -> RiscvISA.inst -> ustring *)
 (** Configurable version of [sprint_inst]. Expression
@@ -21,3 +14,5 @@ val sprint_inst : int -> RiscvISA.inst -> ustring
     the instruction and its operands. The argument [map] is map between addresses 
     and symbolic names. Arguments for [k] and [i] are defined as for function
     sprint_inst *)
+
+

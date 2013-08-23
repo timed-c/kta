@@ -70,31 +70,31 @@ let decode_32inst h l =
   let fi = Info(0, usid"", 4) in
   match d_op l with
     (* Absolute Jump Instructions *)
-  | 0b1100111 -> IAbsJmp(fi, OpJ, d_offJ h l)
-  | 0b1101111 -> IAbsJmp(fi, OpJAL, d_offJ h l)
+  | 0b1100111 -> MIAbsJmp(fi, OpJ, d_offJ h l)
+  | 0b1101111 -> MIAbsJmp(fi, OpJAL, d_offJ h l)
     (* Conditional Jump Instructions *)
   | 0b1100011 -> 
       let op = match d_funIB l with 0b000 -> OpBEQ | 0b001 -> OpBNE  | 0b100 -> OpBLT |
                                     0b101 -> OpBGE | 0b110 -> OpBLTU | 0b111 -> OpBGEU | 
                                     _ -> failinst h l in
-    ICondJmp(fi, op, d_rs1 h, d_rs2 h, d_imB h l) 
+    MICondJmp(fi, op, d_rs1 h, d_rs2 h, d_imB h l) 
     (* Indirect Jump Instructions *)
   | 0b1101011 -> 
       let op = match d_funIB l with 0b000 -> OpJALR_C | 0b001 -> OpJALR_R | 
                                     0b010 -> OpJALR_J | 0b100 -> OpRDNPC | 
                                     _ -> failinst h l in
-      IIndJmp(fi, op, d_rd h, d_rs1 h, d_imI h l)
+      MIIndJmp(fi, op, d_rd h, d_rs1 h, d_imI h l)
     (* Load Memory Instructions *)
   | 0b0000011 -> 
       let op = match d_funIB l with 0b000 -> OpLB  | 0b001 -> OpLH  | 0b010 -> OpLW |
                                     0b011 -> OpLD  | 0b100 -> OpLBU | 0b101 -> OpLHU |
                                     0b110 -> OpLWU | _ -> failinst h l in
-      ILoad(fi, op, d_rd h, d_rs1 h, d_imI h l)
+      MILoad(fi, op, d_rd h, d_rs1 h, d_imI h l)
     (* Store Memory Instructions *)
   | 0b0100011 ->
       let op = match d_funIB l with 0b000 -> OpSB | 0b001 -> OpSH | 
                                     0b010 -> OpSW | 0b011 -> OpSD | _ -> failinst h l in
-      IStore(fi, op, d_rs1 h, d_rs2 h, d_imB h l)
+      MIStore(fi, op, d_rs1 h, d_rs2 h, d_imB h l)
     (* Atomic Memory Instructions *)
   | 0b0101011 ->
       let op = match d_funR h l with 0b000010 -> OpAMOADD_W  | 0b001010 -> OpAMOSWAP_W |
@@ -106,7 +106,7 @@ let decode_32inst h l =
                                      0b100011 -> OpAMOMIN_D  | 0b101011 -> OpAMOMAX_D |
                                      0b110011 -> OpAMOMINU_D | 0b111011 -> OpAMOMAXU_D |
                                      _ -> failinst h l in
-      IAtomic(fi, op, d_rd h, d_rs1 h, d_rs2 h)
+      MIAtomic(fi, op, d_rd h, d_rs1 h, d_rs2 h)
      (* Integer Register-Immediate Compute Instructions *)
   | 0b0010011 ->
       let im12 = d_imI h l in
@@ -118,8 +118,8 @@ let decode_32inst h l =
                                     0b110 -> OpORI   | 0b111 -> OpANDI |
                                     _ -> failinst h l in
       let im = match op with OpSLLI | OpSRLI | OpSRAI -> im12 land 0b111111 | _ -> im12 in
-      ICompImm(fi, op, d_rd h, d_rs1 h, im)
-  | 0b0110111 -> ICompImm(fi, OpLUI, d_rd h, 0, d_imL h l)
+      MICompImm(fi, op, d_rd h, d_rs1 h, im)
+  | 0b0110111 -> MICompImm(fi, OpLUI, d_rd h, 0, d_imL h l)
   | 0b0011011 ->
       let im12 = d_imI h l in
       let imop = im12 lsr 5 in
@@ -128,7 +128,7 @@ let decode_32inst h l =
                                     0b101 when imop = 0b10 -> OpSRAIW |
                                     _ -> failinst h l in
       let im = match op with OpSRLIW | OpSRAIW -> im12 land 0b11111 | _ -> im12 in
-      ICompImm(fi, op, d_rd h, d_rs1 h, im)
+      MICompImm(fi, op, d_rd h, d_rs1 h, im)
      (* Integer Register-Register Compute Instructions *)
   | 0b0110011 ->
       let op = match d_funR h l with 0b0000000000 -> OpADD    | 0b1000000000 -> OpSUB   |
@@ -141,7 +141,7 @@ let decode_32inst h l =
                                      0b0000001100 -> OpDIV    | 0b0000001101 -> OpDIVU  |
                                      0b0000001110 -> OpREM    | 0b0000001111 -> OpREMU  |
                                      _ -> failinst h l in
-      ICompReg(fi, op, d_rd h, d_rs1 h, d_rs2 h)
+      MICompReg(fi, op, d_rd h, d_rs1 h, d_rs2 h)
   | 0b0111011 ->
       let op = match d_funR h l with 0b0000000000 -> OpADDW   | 0b1000000000 -> OpSUBW  |
                                      0b0000000001 -> OpSLLW   | 0b0000000101 -> OpSRLW  |
@@ -149,18 +149,18 @@ let decode_32inst h l =
                                      0b0000001100 -> OpDIVW   | 0b0000001101 -> OpDIVUW |
                                      0b0000001110 -> OpREMW   | 0b0000001111 -> OpREMUW |
                                      _ -> failinst h l in
-      ICompReg(fi, op, d_rd h, d_rs1 h, d_rs2 h)
+      MICompReg(fi, op, d_rd h, d_rs1 h, d_rs2 h)
   (* Miscellaneous Memory Instructions *)
   | 0b0101111 ->
        let op = match d_funIB l with 0b001 -> OpFENCE_I | 0b010 -> OpFENCE |
                                            _ -> failinst h l in
-       IMiscMem(fi, op, d_rd h, d_rs1 h, d_imI h l)
+       MIMiscMem(fi, op, d_rd h, d_rs1 h, d_imI h l)
   (* System Instructions *)
   | 0b1110111 ->
        let op = match d_funR h l with 0b0000000000 -> OpSYSCALL  | 0b0000000001 -> OpBREAK |
                                       0b0000000100 -> OpRDCYCLE  | 0b0000001100 -> OpRDTIME |
                                       0b0000010100 -> OpRDINSTRET | _ -> failinst h l in
-       ISys(fi, op, d_rd h)
+       MISys(fi, op, d_rd h)
   | _ -> failinst h l
 
 
@@ -266,28 +266,28 @@ let encSys op = match op with
 let encode_32inst inst =
   match inst with 
   (* Absolute Jump *)
-  | IAbsJmp(fi,op,imm25) -> encJ imm25 (encAbsJmp op)
+  | MIAbsJmp(fi,op,imm25) -> encJ imm25 (encAbsJmp op)
   (* Conditional Jump *)
-  | ICondJmp(fi,op,rs1,rs2,imm12) -> encB rs1 rs2 imm12 (encCondJmp op)
+  | MICondJmp(fi,op,rs1,rs2,imm12) -> encB rs1 rs2 imm12 (encCondJmp op)
   (* Indirect Jump *)
-  | IIndJmp(fi,op,rd,rs1,imm12) -> encI rd rs1 imm12 (encIndJmp op)
+  | MIIndJmp(fi,op,rd,rs1,imm12) -> encI rd rs1 imm12 (encIndJmp op)
   (* Load Memory *)
-  | ILoad(fi,op,rd,rs1,imm12) -> encI rd rs1 imm12 (encLoad op) 
+  | MILoad(fi,op,rd,rs1,imm12) -> encI rd rs1 imm12 (encLoad op) 
   (* Store Memory *)
-  | IStore(fi,op,rs1,rs2,imm12) -> encB rs1 rs2 imm12 (encStore op)
+  | MIStore(fi,op,rs1,rs2,imm12) -> encB rs1 rs2 imm12 (encStore op)
   (* Atomic Memory *)
-  | IAtomic(fi,op,rd,rs1,rs2) -> encR rd rs1 rs2 (encAtomic op)
+  | MIAtomic(fi,op,rd,rs1,rs2) -> encR rd rs1 rs2 (encAtomic op)
   (* Integer Register-Immediate Computation *)
-  | ICompImm(fi,op,rd,rs1,immv) -> 
+  | MICompImm(fi,op,rd,rs1,immv) -> 
      if op = OpLUI then encL rd immv (encCompImm op) else 
      let imm = immv lor (match op with OpSRAI | OpSRAIW -> 0b1000000 | _ -> 0) in
      encI rd rs1 imm (encCompImm op)
   (* Integer Register-Register Computation *)
-  | ICompReg(fi,op,rd,rs1,rs2) -> encR rd rs1 rs2 (encCompReg op)
+  | MICompReg(fi,op,rd,rs1,rs2) -> encR rd rs1 rs2 (encCompReg op)
   (* Misc memory instructions *)
-  | IMiscMem(fi,op,rd,rs1,imm12) -> encI rd rs1 imm12 (encMiscMem op)
+  | MIMiscMem(fi,op,rd,rs1,imm12) -> encI rd rs1 imm12 (encMiscMem op)
   (* System instructions *)
-  | ISys(fi,op,rd) -> encR rd 0 0 (encSys op)
+  | MISys(fi,op,rd) -> encR rd 0 0 (encSys op)
 
 
 (* Encode a 32 bit instruction to a string at a specific index. *)

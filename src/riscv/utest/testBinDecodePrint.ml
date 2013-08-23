@@ -9,7 +9,7 @@ module IntMap = Map.Make(struct type t = int let compare = compare end)
 
 let main = 
   init "Binary decoding and pretty printing";
-  let inst bige pos code = RiscvAsm.sprint_inst pos (fst (RiscvBin.decode bige code 0)) in
+  let inst bige pos code = RiscvPPrint.minst pos (fst (RiscvBin.decode bige code 0)) in
   (* let m = IntMap.add 0x66 (usid"foo") (IntMap.add 0x7c (usid"jumpid") (IntMap.empty)) in
   let inst_conf1 pos code = RiscvAsm.sprint_inst_conf 6 m pos (fst (RiscvBin.decode true code 0)) in*)
 

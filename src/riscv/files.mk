@@ -1,9 +1,9 @@
 
 LIB_NAME = target
-FILES = riscvBin riscvAsm riscvSim riscvInstSelect
-TEST_FILES = testBinEncodeDecode testBinDecodePrint
+FILES = riscvPPrint riscvBin riscvAsm riscvSim riscvInstSelect
+TEST_FILES = testBinEncodeDecode testBinDecodePrint testInstSelect
 ONLY_MLI_FILES = riscvISA riscvSSA 
-INCLUDE_DIR = ../utools/
-DEP_LIBS = ../utools/utools.cmxa
+INCLUDE_DIR = ../utools/ ../ptllvm/ /usr/local/llvm32/lib/ocaml/
+DEP_LIBS = llvm.cmxa llvm_executionengine.cmxa llvm_bitreader.cmxa ../utools/utools.cmxa ../ptllvm/ptllvm.cmxa
 UNITTEST_DIR = utest
 

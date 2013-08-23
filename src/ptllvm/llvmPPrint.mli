@@ -30,7 +30,7 @@ val pprint_module : llModule -> ustring
 val pp_tree : LlvmTree.tree -> ustring
 (** Pretty print an LLVM SSA tree *)
 
-val pp_forest : LlvmTree.forest-> ustring
+val pp_forest : LlvmTree.tree list -> ustring
 (** Pretty print an LLVM SSA forest (a list of trees) *)
 
 

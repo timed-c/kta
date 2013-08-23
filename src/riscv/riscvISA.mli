@@ -59,18 +59,49 @@ type opMiscMem    = OpFENCE_I   | OpFENCE
 type opSys        = OpSYSCALL   | OpBREAK     | OpRDCYCLE  | OpRDTIME |
                     OpRDINSTRET
 
-(** Instructions *)
-type inst = 
-| IAbsJmp     of info * opAbsJmp * imm25                 (* Absolute Jump *)
-| ICondJmp    of info * opCondJmp * rs1 * rs2 * imm12    (* Conditional Jump  *)
-| IIndJmp     of info * opIndJmp * rd * rs1 * imm12      (* Indirect Jump *)
-| ILoad       of info * opLoad * rd  * rs1 * imm12       (* Load Memory *)
-| IStore      of info * opStore * rs1 * rs2 * imm12      (* Store Memory *)
-| IAtomic     of info * opAtomic * rd  * rs1 * rs2       (* Atomic Memory *) 
-| ICompImm    of info * opCompImm * rd  * rs1 * immv     (* Integer Register-Immediate Computation *)
-| ICompReg    of info * opCompReg * rd  * rs1 * rs2      (* Integer Register-Register Computation *)
-| IMiscMem    of info * opMiscMem * rd  * rs1 * imm12    (* Misc memory instructions *)
-| ISys        of info * opSys * rd                       (* System instructions *)
+(** Machine instructions with machine registers and relative jumps in bytes *)
+type minst = 
+| MIAbsJmp     of info * opAbsJmp * imm25                 (* Absolute Jump *)
+| MICondJmp    of info * opCondJmp * rs1 * rs2 * imm12    (* Conditional Jump  *)
+| MIIndJmp     of info * opIndJmp * rd * rs1 * imm12      (* Indirect Jump *)
+| MILoad       of info * opLoad * rd  * rs1 * imm12       (* Load Memory *)
+| MIStore      of info * opStore * rs1 * rs2 * imm12      (* Store Memory *)
+| MIAtomic     of info * opAtomic * rd  * rs1 * rs2       (* Atomic Memory *) 
+| MICompImm    of info * opCompImm * rd  * rs1 * immv     (* Integer Register-Immediate Computation *)
+| MICompReg    of info * opCompReg * rd  * rs1 * rs2      (* Integer Register-Register Computation *)
+| MIMiscMem    of info * opMiscMem * rd  * rs1 * imm12    (* Misc memory instructions *)
+| MISys        of info * opSys * rd                       (* System instructions *)
+
+
+
+type label = sid
+(** A label pointing to a basic block *)
+
+type sreg = sid * int 
+type dreg = sreg
+(** Tuple [(id,r)] represents a register, where [id] is the static single assignment name
+    of the register and [r] is the allocated physical machine register. If the machine register
+    is not yet determined, the [r] value is -1. *)
+
+type loffset = sid * sid
+(** Label offset. Tuple [(l,o)] contains a label [l] and an offset [o] to the label. Using
+    these two components, the offset in bytes may be computed. *)
+
+
+(** Static single assignment instructions with labels and both general register names
+    and possibly machine registers (depending on phase) *)
+type sinst = 
+| SIAbsJmp     of opAbsJmp * label                     (* Absolute Jump *)
+| SICondJmp    of opCondJmp * sreg * sreg * label      (* Conditional Jump  *)
+| SIIndJmp     of opIndJmp * dreg * sreg * loffset     (* Indirect Jump *)
+| SILoad       of opLoad * dreg * sreg * loffset       (* Load Memory *)
+| SIStore      of opStore * sreg * sreg * loffset      (* Store Memory *)
+| SIAtomic     of opAtomic * dreg  * sreg * sreg       (* Atomic Memory *) 
+| SICompImm    of opCompImm * dreg  * sreg * immv         (* Integer Register-Immediate Computation *)
+| SICompReg    of opCompReg * dreg  * sreg * sreg      (* Integer Register-Register Computation *)
+| SIMiscMem    of opMiscMem * dreg  * sreg * imm12     (* Misc memory instructions *)
+| SISys        of opSys * dreg                         (* System instructions *)
+
 
 (*
 type addr = int
