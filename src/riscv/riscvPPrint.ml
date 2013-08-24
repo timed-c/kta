@@ -147,7 +147,10 @@ let sinst inst =
       pp1arg sep (pp_abs_jmp op) (pp_label l)
   | SICondJmp(op,rs1,rs2,l) ->    
       pp3arg sep (pp_cond_jmp op) (pp_sreg rs1) (pp_sreg rs2) (pp_label l)
-  | SIIndJmp(_,_,_,_) -> failwith "Not implemented"  
+  | SIIndJmp(JALR(rd,rs,rret)) -> 
+      pp3arg sep (pp_ind_jmp OpJALR_R) (pp_sreg rd) (pp_sreg rs) (pp_sreg rret)
+  | SIIndJmp(JALC(_,_,_)) -> failwith "Not implemented"  
+  | SIIndJmp(JALJ(_,_,_)) -> failwith "Not implemented"  
   | SILoad(_,_,_,_) -> failwith "Not implemented"
   | SIStore(_,_,_,_) -> failwith "Not implemented"
   | SIAtomic(_,_,_,_) -> failwith "Not implemented"

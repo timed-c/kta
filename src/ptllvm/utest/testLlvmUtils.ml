@@ -10,7 +10,7 @@ let main =
 
   (* Extracted test functions *)
   let integerloops_ast = LlvmDecode.bcfile2ast "ccode/integerloops.bc" in
-  let f_looptest2 = LlvmUtils.get_fun "looptest2" integerloops_ast  in
+  let f_looptest2 = LlvmUtils.get_func "looptest2" integerloops_ast  in
 
   (* Test id used in another block *)
   let lset = LlvmUtils.used_in_another_block f_looptest2 in

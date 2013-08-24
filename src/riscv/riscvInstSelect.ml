@@ -18,7 +18,16 @@ let not_imp s = failwith ("Instruction selection for " ^ s ^ " is not implemente
 
 (* Binary operation translation for register-register operations *)
 let binop2exp op = match op with
-  BopAdd -> RiscvISA.OpADD | BopMul -> RiscvISA.OpMUL | _ -> not_imp "BOP"
+  | BopAdd  -> RiscvISA.OpADD     | BopFAdd -> not_imp "BopFadd"
+  | BopSub  -> RiscvISA.OpSUB     | BopFSub -> not_imp "BopFSub"
+  | BopMul  -> RiscvISA.OpMUL     | BopFMul -> not_imp "BopFMul"
+  | BopUDiv -> RiscvISA.OpDIVU    | BopSDiv -> RiscvISA.OpDIV
+  | BopFDiv -> not_imp "BopFDiv"  | BopURem -> RiscvISA.OpREMU
+  | BopSRem -> RiscvISA.OpREM     | BopFRem -> not_imp "BopFRem"
+  | BopShl  -> RiscvISA.OpSLL     | BopLShr -> RiscvISA.OpSRL
+  | BopAShr -> RiscvISA.OpSRA     | BopAnd  -> RiscvISA.OpAND
+  | BopOr   -> RiscvISA.OpOR      | BopXor  -> RiscvISA.OpXOR
+
 
 (* Comparison operations. If the second element of the returned tuple 
    is true, the operands of the comparison should be revered. *)
@@ -43,8 +52,19 @@ let rec match_tree tree acc_inst tmpno =
       let (cid,acc_inst) = match_tree e1 acc_inst tmpno in
       (id,(RiscvISA.SICompImm(RiscvISA.OpADDI,mkid id,mkid cid, i64_mask12 x))::acc_inst)
   (* 32-bit Binary Register-Register Instructions *)
-  | TExp(IBinOp(id,(BopAdd as op),TyInt(32),_,_), [e1;e2]) |
-    TExp(IBinOp(id,(BopMul as op),TyInt(32),_,_), [e1;e2]) ->
+  | TExp(IBinOp(id,(BopAdd  as op),TyInt(32),_,_), [e1;e2]) |
+    TExp(IBinOp(id,(BopSub  as op),TyInt(32),_,_), [e1;e2]) |
+    TExp(IBinOp(id,(BopMul  as op),TyInt(32),_,_), [e1;e2]) |
+    TExp(IBinOp(id,(BopUDiv as op),TyInt(32),_,_), [e1;e2]) |
+    TExp(IBinOp(id,(BopSDiv as op),TyInt(32),_,_), [e1;e2]) |
+    TExp(IBinOp(id,(BopURem as op),TyInt(32),_,_), [e1;e2]) |
+    TExp(IBinOp(id,(BopSRem as op),TyInt(32),_,_), [e1;e2]) |
+    TExp(IBinOp(id,(BopShl  as op),TyInt(32),_,_), [e1;e2]) |
+    TExp(IBinOp(id,(BopLShr as op),TyInt(32),_,_), [e1;e2]) |
+    TExp(IBinOp(id,(BopAShr as op),TyInt(32),_,_), [e1;e2]) |
+    TExp(IBinOp(id,(BopAnd  as op),TyInt(32),_,_), [e1;e2]) |
+    TExp(IBinOp(id,(BopOr   as op),TyInt(32),_,_), [e1;e2]) |
+    TExp(IBinOp(id,(BopXor  as op),TyInt(32),_,_), [e1;e2])  ->
       let (cid2,acc_inst) = match_tree e2 acc_inst tmpno in
       let (cid1,acc_inst) = match_tree e1 acc_inst tmpno in
       (id,(RiscvISA.SICompReg(binop2exp op,mkid id,mkid cid1,mkid cid2)::acc_inst))
@@ -61,7 +81,12 @@ let rec match_tree tree acc_inst tmpno =
       (noid,uncond_br::cond_br::acc_inst)
   | TExp(IBrCond(_,l1,l2),[e1;e2]) -> not_imp "IBrCond 2 expr"
   | TExp(IBrCond(_,_,_),_) -> raise (Illegal_instruction "IBrCond")
-  | TExp(IRet(_),_) -> not_imp "IRet"
+  | TExp(IRet(_),[]) -> 
+      (noid,(RiscvISA.SIIndJmp(RiscvISA.JALR((noid,0),mkid noid,mkid noid)))::acc_inst)
+  | TExp(IRet(_),[e1]) -> 
+      let (cid1,acc_inst) = match_tree e1 acc_inst tmpno in
+      (noid,(RiscvISA.SIIndJmp(RiscvISA.JALR((noid,0),mkid noid,mkid cid1)))::acc_inst)
+  | TExp(IRet(_),_) -> raise (Illegal_instruction "IRet")
   | TExp(IBrUncond(_),_) -> not_imp "IBrUncond"
   | TExp(ISwitch(_,_,_),_) -> not_imp "ISwitch"
   | TExp(IIndirectBr,_) -> not_imp "IIndirectBr"

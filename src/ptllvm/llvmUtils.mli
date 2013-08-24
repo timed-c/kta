@@ -13,7 +13,7 @@ val const_int_val : int -> int -> llExp
     width [w] and value [v]. *)
 
 
-val get_fun : string -> llModule -> llFunc
+val get_func : string -> llModule -> llFunc
 (** [get_fun f m] returns the function named [f] from module [m]. 
     Raises exception [Function_not_found] if the function cannot be found. *)
 
@@ -22,7 +22,7 @@ val get_block : string -> llFunc -> llBlock
 (** [get_block l f] returns the basic block with label [l] within function [f].
     Raises exception [Block_not_found] if the block cannot be found *)
 
-val get_fun_from_id : llGloId -> llModule -> llFunc
+val get_func_from_id : llGloId -> llModule -> llFunc
 (** Same as [get_fun], but uses an identifier instead of a string *)
 
 

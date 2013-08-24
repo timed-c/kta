@@ -11,13 +11,13 @@ exception Illegal_llvm_code of string
 let const_int_val width v = ExpConst(CInt(width, Int64.of_int v))
 
 
-let get_fun_from_id f m = 
+let get_func_from_id f m = 
   let LLModule(_,lst) = m in
   try List.assoc f lst with Not_found ->
     raise (Function_not_found ((ustring_of_sid f) |> Ustring.to_utf8))
 
-let get_fun f m = 
-  get_fun_from_id (usid f) m
+let get_func f m = 
+  get_func_from_id (usid f) m
 
 let get_block_from_id l f = 
   let LLFunc(_,_,blocks) = f in

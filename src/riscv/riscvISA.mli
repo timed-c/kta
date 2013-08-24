@@ -79,6 +79,7 @@ type label = sid
 
 type sreg = sid * int 
 type dreg = sreg
+type retreg = sreg
 (** Tuple [(id,r)] represents a register, where [id] is the static single assignment name
     of the register and [r] is the allocated physical machine register. If the machine register
     is not yet determined, the [r] value is -1. *)
@@ -87,17 +88,21 @@ type loffset = sid * sid
 (** Label offset. Tuple [(l,o)] contains a label [l] and an offset [o] to the label. Using
     these two components, the offset in bytes may be computed. *)
 
+type indjmp = 
+| JALR of dreg * sreg * retreg    (* Indirect jump - function return *)
+| JALC of dreg * sreg * loffset   (* Indirect jump - function call *)
+| JALJ of dreg * sreg * loffset   (* Indirect jump - indirect jump *)
 
 (** Static single assignment instructions with labels and both general register names
     and possibly machine registers (depending on phase) *)
 type sinst = 
 | SIUncondJmp  of opUncondJmp * label                  (* Unconditional Jump *)
 | SICondJmp    of opCondJmp * sreg * sreg * label      (* Conditional Jump  *)
-| SIIndJmp     of opIndJmp * dreg * sreg * loffset     (* Indirect Jump *)
+| SIIndJmp     of indjmp                               (* Indirect Jump *)
 | SILoad       of opLoad * dreg * sreg * loffset       (* Load Memory *)
 | SIStore      of opStore * sreg * sreg * loffset      (* Store Memory *)
 | SIAtomic     of opAtomic * dreg  * sreg * sreg       (* Atomic Memory *) 
-| SICompImm    of opCompImm * dreg  * sreg * immv         (* Integer Register-Immediate Computation *)
+| SICompImm    of opCompImm * dreg  * sreg * immv      (* Integer Register-Immediate Computation *)
 | SICompReg    of opCompReg * dreg  * sreg * sreg      (* Integer Register-Register Computation *)
 | SIMiscMem    of opMiscMem * dreg  * sreg * imm12     (* Misc memory instructions *)
 | SISys        of opSys * dreg                         (* System instructions *)
