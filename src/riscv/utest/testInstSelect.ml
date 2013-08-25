@@ -103,13 +103,13 @@ let main =
   let forest = LlvmTree.make insts (LlvmUtils.used_in_another_block f_logic2) in 
   let insts = RiscvInstSelect.maximal_munch forest 1 in
   let res = RiscvPPrint.sinst_list insts in 
-  let exp = us"sra     %shr,%x,%y\n" ^.
+  let exp = us"srl     %shr,%x,%y\n" ^.
             us"or      %or,%z,%y\n" ^.
             us"and     %and,%or,%x\n" ^.
             us"xor     %xor,%and,%shr\n" ^.
             us"add     %add,%xor,%shr\n" ^.
             us"jalr.r  %->r0,%,%add\n" in
-  test_ustr "Selecting sra,and,or,xor" res exp;
+  test_ustr "Selecting srl,and,or,xor" res exp;
 
   (* Test maximal munch on large immediate values*)
   let LLBlock(_,insts) = LlvmUtils.get_block "entry" f_comp1 in

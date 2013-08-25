@@ -21,7 +21,7 @@ int logic1(int x, int y, int z){
   return a + b;
 }
 
-int logic2(int x, unsigned int y, int z){
+int logic2(unsigned int x, unsigned int y, int z){
   int a = x >> y;
   int b = (x & (z | y)) ^ a; 
   return a + b;

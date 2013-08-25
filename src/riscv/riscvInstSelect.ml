@@ -19,24 +19,14 @@ let mkid id = (id,-1)
 let not_imp s = failwith ("Instruction selection for " ^ s ^ " is not implemented.")
 
 (*
-  | BopAdd  ->                    | BopFAdd -> 
-  | BopSub  ->                    | BopFSub -> 
-  | BopMul  ->                    | BopFMul -> 
-  | BopUDiv ->                    | BopSDiv -> 
-  | BopFDiv ->                    | BopURem ->   
-  | BopSRem ->                    | BopFRem ->
-  | BopShl  ->                    | BopLShr -> RiscvISA.OpSRL
-  | BopAShr ->                    | BopAnd  -> RiscvISA.OpAND
-  | BopOr   -> RiscvISA.OpOR      | BopXor  -> RiscvISA.OpXOR
-
 TODO:
   - Implement uint module.
-  - Add tests the above instructons
-  - General impl for icmp using extra jump
+  - General impl for icmp 
   - Impl. all conversion operations
-  - Add general add constant using LUI
   - Rewrite to new standard for jalr
   - Add translation function to i32.
+  - Check that mul 2 becomes shl
+  - Subtract with small constant should be ADDI
 *)
 
 
