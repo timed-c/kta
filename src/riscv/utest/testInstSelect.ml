@@ -14,6 +14,8 @@ let main =
   let m_arithemtic = LlvmDecode.bcfile2ast "ccode/arithmetic.bc" in
   let f_looptest2 = LlvmUtils.get_func "looptest2" m_integerloops in
   let f_arith1 = LlvmUtils.get_func "arith1" m_arithemtic in
+  let f_arith2 = LlvmUtils.get_func "arith2" m_arithemtic in
+  let f_logic1 = LlvmUtils.get_func "logic1" m_arithemtic in
   
   (* Test maximal munch on one block *)
   let LLBlock(_,insts) = LlvmUtils.get_block "for.body" f_looptest2  in
@@ -38,7 +40,7 @@ let main =
   test_ustr "Selecting addi,blt,j" res exp;
 
 
-  (* Test maximal munch on an artihmetic block *)
+  (* Test maximal munch on an arithmetic block *)
   let LLBlock(_,insts) = LlvmUtils.get_block "entry" f_arith1 in
   let forest = LlvmTree.make insts (LlvmUtils.used_in_another_block f_arith1) in 
   let insts = RiscvInstSelect.maximal_munch forest 1 in
@@ -58,18 +60,49 @@ let main =
             us"jalr.r  %->r0,%,%rem\n" in
   test_ustr "Selecting addi,mul,div,sub,sll,sra,rem,jalr.r" res exp;
 
-(*  uprint_endline (LlvmPPrint.llfunc f_arith1);
+
+  (* Test maximal munch on an arithmetic block (unsigned integer operations) *)
+  let LLBlock(_,insts) = LlvmUtils.get_block "entry" f_arith2 in
+  let forest = LlvmTree.make insts (LlvmUtils.used_in_another_block f_arith2) in 
+  let insts = RiscvInstSelect.maximal_munch forest 1 in
+  let res = RiscvPPrint.sinst_list insts in 
+  let exp = us"mul     %mul,%x,%x\n" ^.
+            us"add     %add,%mul,%y\n" ^.
+            us"divu    %div,%add,%z\n" ^.
+            us"sub     %sub,%mul,%y\n" ^.
+            us"remu    %rem,%sub,%z\n" ^.
+            us"add     %add2,%rem,%div\n" ^.
+            us"jalr.r  %->r0,%,%add2\n" in
+  test_ustr "Selecting mul,add,divu,sub,remu,jalr.r" res exp;
+
+
+  (* Test maximal munch on an arithmetic block (unsigned integer operations) *)
+  let LLBlock(_,insts) = LlvmUtils.get_block "entry" f_logic1 in
+  let forest = LlvmTree.make insts (LlvmUtils.used_in_another_block f_logic1) in 
+  let insts = RiscvInstSelect.maximal_munch forest 1 in
+  let res = RiscvPPrint.sinst_list insts in 
+  let exp = us"and     %and,%y,%x\n" ^.
+            us"sltiu   %tmp#1,%x,1\n" ^.
+            us"xori    %notlhs,%tmp#1,1\n" ^.
+            us"sltiu   %tmp#2,%y,1\n" ^.
+            us"xori    %notrhs,%tmp#2,1\n" ^.
+            us"and     %not.or.cond,%notrhs,%notlhs\n" ^.
+            us"sltiu   %tmp#3,%z,1\n" ^.
+            us"xori    %tobool2,%tmp#3,1\n" ^.
+            us"and     %.tobool2,%tobool2,%not.or.cond\n" ^.
+            us"addi    %land.ext,%.tobool2,0\n" ^.
+            us"add     %add,%land.ext,%and\n" ^.
+            us"jalr.r  %->r0,%,%add\n" in
+  test_ustr "Selecting sltiu and xori" res exp;
+
+(*
+  uprint_endline (LlvmPPrint.llfunc f_logic1);
   print_endline "--------------";
   uprint_endline (LlvmPPrint.llforest forest); 
   print_endline "--------------";
-  uprint_endline res;  *)
- 
+  uprint_endline res;  
+*)
 
   result()
-
-
-
-
-
 
 
