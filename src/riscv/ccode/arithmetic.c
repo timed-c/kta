@@ -27,6 +27,12 @@ int logic2(int x, unsigned int y, int z){
   return a + b;
 }
 
+int comp1(int x, int y, int z){
+  int a = x * 0x2120fb;
+  int b = y * 0xffffff88;
+  int c = z * 2047;
+  return a + b + c + 123423235;
+}
 
 
 int main(){
@@ -34,5 +40,6 @@ int main(){
   printf("arith2() = %d\n", arith2(721,888,7));
   printf("logic1() = %d\n", logic1(4,0,9));
   printf("logic2() = %d\n", logic2(8,2,12));
+  printf("comp1() = %d\n", comp1(88,12,99));
   return 0;
 }

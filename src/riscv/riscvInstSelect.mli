@@ -1,5 +1,7 @@
 
 
+exception Code_not_32_bit of string
+(** Exception is raised if the input code tree is not in 32 bit form *)
 
 exception Illegal_instruction of string
 (** Returned when the LLVM instruction does not have a legal format that

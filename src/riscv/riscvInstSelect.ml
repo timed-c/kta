@@ -1,9 +1,11 @@
 
+open Printf
 open Ustring.Op
 open LlvmTree
 open LlvmAst
 
 exception Illegal_instruction of string
+exception Code_not_32_bit of string
 
 let i64_has_12bits v = 
   Int64.compare v (Int64.of_int 2048) < 0 &&
@@ -176,10 +178,22 @@ let rec match_tree tree acc_inst tmpno =
   | TExp(IUnwind,_) -> not_imp "IUnwind"
   | TId(LocalId(id)) -> (id,acc_inst,tmpno)
   | TId(GlobalId(id)) -> not_imp "GlobalId"
+
+  (* Immediate (constant) *)
   | TConst(CInt(_,x)) when i64_has_12bits x -> 
     let (tmp,tmpno) = make_tmp tmpno in
     (tmp,(RiscvISA.SICompImm(RiscvISA.OpADDI, mkid tmp, (noid,0),i64_mask12 x))::acc_inst,tmpno)
-  | TConst(_) -> not_imp "large TConst"
+  | TConst(CInt(32,x)) -> 
+    let (tmp1,tmpno) = make_tmp tmpno in
+    let (tmp2,tmpno) = make_tmp tmpno in
+    let low = i64_mask12 x in 
+    let high = Int64.to_int (Int64.shift_right_logical x 12) in
+    let high' = if low >= 2048 then high + 1 else high in
+    let i1 = RiscvISA.SICompImm(RiscvISA.OpLUI, mkid tmp1, (noid,0), high') in
+    let i2 = RiscvISA.SICompImm(RiscvISA.OpADDI,mkid tmp2, mkid tmp1, low) in
+    (tmp2, i2::i1::acc_inst,tmpno)
+  | TConst(CInt(_,_)) -> raise (Code_not_32_bit "TConst")
+  | TConst(_) -> not_imp "TConst (not integer)"
 
 
 let maximal_munch forest tmpno =

@@ -17,6 +17,7 @@ let main =
   let f_arith2 = LlvmUtils.get_func "arith2" m_arithemtic in
   let f_logic1 = LlvmUtils.get_func "logic1" m_arithemtic in
   let f_logic2 = LlvmUtils.get_func "logic2" m_arithemtic in
+  let f_comp1 = LlvmUtils.get_func "comp1" m_arithemtic in
   
   (* Test maximal munch on one block *)
   let LLBlock(_,insts) = LlvmUtils.get_block "for.body" f_looptest2  in
@@ -110,7 +111,28 @@ let main =
             us"jalr.r  %->r0,%,%add\n" in
   test_ustr "Selecting sra,and,or,xor" res exp;
 
-(*  uprint_endline (LlvmPPrint.llfunc f_logic2);
+  (* Test maximal munch on large immediate values*)
+  let LLBlock(_,insts) = LlvmUtils.get_block "entry" f_comp1 in
+  let forest = LlvmTree.make insts (LlvmUtils.used_in_another_block f_comp1) in 
+  let insts = RiscvInstSelect.maximal_munch forest 1 in
+  let res = RiscvPPrint.sinst_list insts in 
+  let exp = us"addi    %tmp#1,%->r0,2047\n" ^.
+            us"mul     %mul2,%z,%tmp#1\n" ^.
+            us"addi    %tmp#2,%->r0,-120\n" ^.
+            us"mul     %mul1,%y,%tmp#2\n" ^.
+            us"lui     %tmp#3,%->r0,30133\n" ^.
+            us"addi    %tmp#4,%tmp#3,-1533\n" ^.
+            us"lui     %tmp#5,%->r0,530\n" ^.
+            us"addi    %tmp#6,%tmp#5,251\n" ^.
+            us"mul     %mul,%x,%tmp#6\n" ^.
+            us"add     %add,%mul,%tmp#4\n" ^.
+            us"add     %add3,%add,%mul1\n" ^.
+            us"add     %add4,%add3,%mul2\n" ^.
+            us"jalr.r  %->r0,%,%add4\n" in
+  test_ustr "Selecting large intermediate constants" res exp;
+
+(*
+  uprint_endline (LlvmPPrint.llfunc f_comp1);
   print_endline "--------------";
   uprint_endline (LlvmPPrint.llforest forest); 
   print_endline "--------------";
