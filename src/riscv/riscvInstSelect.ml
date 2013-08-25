@@ -20,8 +20,8 @@ let not_imp s = failwith ("Instruction selection for " ^ s ^ " is not implemente
   | BopAdd  ->                    | BopFAdd -> 
   | BopSub  ->                    | BopFSub -> 
   | BopMul  ->                    | BopFMul -> 
-  | BopUDiv -> RiscvISA.OpDIVU    | BopSDiv -> 
-  | BopFDiv ->                    | BopURem -> RiscvISA.OpREMU
+  | BopUDiv ->                    | BopSDiv -> 
+  | BopFDiv ->                    | BopURem ->   
   | BopSRem ->                    | BopFRem ->
   | BopShl  ->                    | BopLShr -> RiscvISA.OpSRL
   | BopAShr ->                    | BopAnd  -> RiscvISA.OpAND

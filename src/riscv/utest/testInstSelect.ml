@@ -16,6 +16,7 @@ let main =
   let f_arith1 = LlvmUtils.get_func "arith1" m_arithemtic in
   let f_arith2 = LlvmUtils.get_func "arith2" m_arithemtic in
   let f_logic1 = LlvmUtils.get_func "logic1" m_arithemtic in
+  let f_logic2 = LlvmUtils.get_func "logic2" m_arithemtic in
   
   (* Test maximal munch on one block *)
   let LLBlock(_,insts) = LlvmUtils.get_block "for.body" f_looptest2  in
@@ -76,7 +77,7 @@ let main =
   test_ustr "Selecting mul,add,divu,sub,remu,jalr.r" res exp;
 
 
-  (* Test maximal munch on an arithmetic block (unsigned integer operations) *)
+  (* Test maximal munch on logic block *)
   let LLBlock(_,insts) = LlvmUtils.get_block "entry" f_logic1 in
   let forest = LlvmTree.make insts (LlvmUtils.used_in_another_block f_logic1) in 
   let insts = RiscvInstSelect.maximal_munch forest 1 in
@@ -93,10 +94,23 @@ let main =
             us"addi    %land.ext,%.tobool2,0\n" ^.
             us"add     %add,%land.ext,%and\n" ^.
             us"jalr.r  %->r0,%,%add\n" in
-  test_ustr "Selecting sltiu and xori" res exp;
+  test_ustr "Selecting sltiu,xori,and" res exp;
 
-(*
-  uprint_endline (LlvmPPrint.llfunc f_logic1);
+
+  (* Test maximal munch on logic block *)
+  let LLBlock(_,insts) = LlvmUtils.get_block "entry" f_logic2 in
+  let forest = LlvmTree.make insts (LlvmUtils.used_in_another_block f_logic2) in 
+  let insts = RiscvInstSelect.maximal_munch forest 1 in
+  let res = RiscvPPrint.sinst_list insts in 
+  let exp = us"sra     %shr,%x,%y\n" ^.
+            us"or      %or,%z,%y\n" ^.
+            us"and     %and,%or,%x\n" ^.
+            us"xor     %xor,%and,%shr\n" ^.
+            us"add     %add,%xor,%shr\n" ^.
+            us"jalr.r  %->r0,%,%add\n" in
+  test_ustr "Selecting sra,and,or,xor" res exp;
+
+(*  uprint_endline (LlvmPPrint.llfunc f_logic2);
   print_endline "--------------";
   uprint_endline (LlvmPPrint.llforest forest); 
   print_endline "--------------";

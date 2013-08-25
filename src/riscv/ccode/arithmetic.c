@@ -21,10 +21,18 @@ int logic1(int x, int y, int z){
   return a + b;
 }
 
+int logic2(int x, unsigned int y, int z){
+  int a = x >> y;
+  int b = (x & (z | y)) ^ a; 
+  return a + b;
+}
+
+
 
 int main(){
   printf("arith1() = %d\n", arith1(12,52,3));
   printf("arith2() = %d\n", arith2(721,888,7));
-  printf("logic2() = %d\n", arith2(4,0,9));
+  printf("logic1() = %d\n", logic1(4,0,9));
+  printf("logic2() = %d\n", logic2(8,2,12));
   return 0;
 }
