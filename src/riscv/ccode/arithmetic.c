@@ -34,6 +34,12 @@ int comp1(int x, int y, int z){
   return a + b + c + 123423235;
 }
 
+/*
+int comp2(int x, int y, int z){
+  int a = x > 4 ? y : z;
+  return a;
+}
+*/
 
 int compare1(unsigned int x, unsigned int y){
   int a = x == y;
@@ -42,6 +48,26 @@ int compare1(unsigned int x, unsigned int y){
   int d = x >= y;
   int e = x < y;
   int f = x <= y;
+  return a+b+c+d+e+f;
+}
+
+int compare2(int x, int y){
+  int a = x == y;
+  int b = x != y;
+  int c = x > y;
+  int d = x >= y;
+  int e = x < y;
+  int f = x <= y;
+  return a+b+c+d+e+f;
+}
+
+int compare3(int x, int y){
+  int a = x == 0;
+  int b = x != 0;
+  int c = x > 200;
+  int d = x >= 1240;
+  int e = x < -1234;
+  int f = x <= 4252;
   return a+b+c+d+e+f;
 }
 

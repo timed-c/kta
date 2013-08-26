@@ -133,9 +133,9 @@ let main =
   test_ustr "Selecting large intermediate constants" res exp;
 
   (* Test maximal munch for the icmp instruction *)
-  let LLBlock(_,insts) = LlvmUtils.get_block "entry" f_compare1 in
+(*  let LLBlock(_,insts) = LlvmUtils.get_block "entry" f_compare1 in
   let forest = LlvmTree.make insts (LlvmUtils.used_in_another_block f_compare1) in 
-
+*)
 
 (*  uprint_endline (LlvmPPrint.llfunc f_compare1);
   print_endline "--------------";
