@@ -18,6 +18,7 @@ let main =
   let f_logic1 = LlvmUtils.get_func "logic1" m_arithemtic in
   let f_logic2 = LlvmUtils.get_func "logic2" m_arithemtic in
   let f_comp1 = LlvmUtils.get_func "comp1" m_arithemtic in
+  let f_compare1 = LlvmUtils.get_func "compare1" m_arithemtic in
   
   (* Test maximal munch on one block *)
   let LLBlock(_,insts) = LlvmUtils.get_block "for.body" f_looptest2  in
@@ -131,11 +132,17 @@ let main =
             us"jalr.r  %->r0,%,%add4\n" in
   test_ustr "Selecting large intermediate constants" res exp;
 
-(*
-  uprint_endline (LlvmPPrint.llfunc f_comp1);
+  (* Test maximal munch for the icmp instruction *)
+  let LLBlock(_,insts) = LlvmUtils.get_block "entry" f_compare1 in
+  let forest = LlvmTree.make insts (LlvmUtils.used_in_another_block f_compare1) in 
+
+
+(*  uprint_endline (LlvmPPrint.llfunc f_compare1);
   print_endline "--------------";
-  uprint_endline (LlvmPPrint.llforest forest); 
+  (*uprint_endline (LlvmPPrint.llforest forest); *)
   print_endline "--------------";
+  let insts = RiscvInstSelect.maximal_munch forest 1 in
+  let res = RiscvPPrint.sinst_list insts in 
   uprint_endline res;  
 *)
 

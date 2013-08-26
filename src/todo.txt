@@ -16,3 +16,21 @@ TO TEST
 - Misc memory instructions and system instructions are implemented but there
    are no unit tests.
 -
+
+
+TO Implement
+=================
+- Implement uint module.
+- General impl for icmp 
+- Impl. all conversion operations
+- Rewrite to new standard for jalr
+- Add translation function to i32.
+- Check that mul 2 becomes shl
+- Subtract with small constant should be ADDI
+
+
+//Generated the select instruction
+int comp2(int x, int y, int z){
+  int a = x > 4 ? y : z;
+  return a;
+}

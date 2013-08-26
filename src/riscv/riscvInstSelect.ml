@@ -18,17 +18,6 @@ let mkid id = (id,-1)
 
 let not_imp s = failwith ("Instruction selection for " ^ s ^ " is not implemented.")
 
-(*
-TODO:
-  - Implement uint module.
-  - General impl for icmp 
-  - Impl. all conversion operations
-  - Rewrite to new standard for jalr
-  - Add translation function to i32.
-  - Check that mul 2 becomes shl
-  - Subtract with small constant should be ADDI
-*)
-
 
 (* Binary operation translation for register-register operations *)
 let binop2exp op = match op with
@@ -70,19 +59,7 @@ let rec match_tree tree acc_inst tmpno =
       (id,(RiscvISA.SICompImm(RiscvISA.OpADDI,mkid id,mkid cid, i64_mask12 x))::acc_inst,tmpno)
 
   (* Binary Register-Register Instructions *)
-  | TExp(IBinOp(id,(BopAdd  as op),TyInt(32),_,_), [e1;e2]) |
-    TExp(IBinOp(id,(BopSub  as op),TyInt(32),_,_), [e1;e2]) |
-    TExp(IBinOp(id,(BopMul  as op),TyInt(32),_,_), [e1;e2]) |
-    TExp(IBinOp(id,(BopUDiv as op),TyInt(32),_,_), [e1;e2]) |
-    TExp(IBinOp(id,(BopSDiv as op),TyInt(32),_,_), [e1;e2]) |
-    TExp(IBinOp(id,(BopURem as op),TyInt(32),_,_), [e1;e2]) |
-    TExp(IBinOp(id,(BopSRem as op),TyInt(32),_,_), [e1;e2]) |
-    TExp(IBinOp(id,(BopShl  as op),TyInt(32),_,_), [e1;e2]) |
-    TExp(IBinOp(id,(BopLShr as op),TyInt(32),_,_), [e1;e2]) |
-    TExp(IBinOp(id,(BopAShr as op),TyInt(32),_,_), [e1;e2]) |
-    TExp(IBinOp(id,(BopAnd  as op),TyInt(32),_,_), [e1;e2]) |
-    TExp(IBinOp(id,(BopOr   as op),TyInt(32),_,_), [e1;e2]) |
-    TExp(IBinOp(id,(BopXor  as op),TyInt(32),_,_), [e1;e2]) |
+  | TExp(IBinOp(id,op,TyInt(32),_,_), [e1;e2]) |
     TExp(IBinOp(id,(BopAnd  as op),TyInt(1),_,_),  [e1;e2]) |
     TExp(IBinOp(id,(BopOr   as op),TyInt(1),_,_),  [e1;e2]) |
     TExp(IBinOp(id,(BopXor  as op),TyInt(1),_,_),  [e1;e2])  ->
@@ -104,12 +81,15 @@ let rec match_tree tree acc_inst tmpno =
       (noid,uncond_br::cond_br::acc_inst,tmpno)
   | TExp(IBrCond(_,l1,l2),[e1;e2]) -> not_imp "IBrCond 2 expr"
   | TExp(IBrCond(_,_,_),_) -> raise (Illegal_instruction "IBrCond")
+
+  (* Return *)
   | TExp(IRet(_),[]) -> 
       (noid,(RiscvISA.SIIndJmp(RiscvISA.JALR((noid,0),mkid noid,mkid noid)))::acc_inst,tmpno)
   | TExp(IRet(_),[e1]) -> 
       let (cid1,acc_inst,tmpno) = match_tree e1 acc_inst tmpno in
       (noid,(RiscvISA.SIIndJmp(RiscvISA.JALR((noid,0),mkid noid,mkid cid1)))::acc_inst,tmpno)
   | TExp(IRet(_),_) -> raise (Illegal_instruction "IRet")
+
   | TExp(IBrUncond(_),_) -> not_imp "IBrUncond"
   | TExp(ISwitch(_,_,_),_) -> not_imp "ISwitch"
   | TExp(IIndirectBr,_) -> not_imp "IIndirectBr"
@@ -140,9 +120,25 @@ let rec match_tree tree acc_inst tmpno =
       let i1 = RiscvISA.SICompImm(RiscvISA.OpSLTIU,mkid tmp,mkid cid1, 1) in
       let i2 = RiscvISA.SICompImm(RiscvISA.OpXORI,mkid id,mkid tmp,1) in
       (id,i2::i1::acc_inst,tmpno)
-  | TExp(ICmp(id,IcmpEq,ty,_,_),[e1;e2])  -> not_imp "IcmpEq"
-  | TExp(ICmp(id,IcmpNe,ty,_,_),[e1;e2])  -> not_imp "IcmpNe" 
-  | TExp(ICmp(id,IcmpUgt,ty,_,_),[e1;e2]) -> not_imp "IcmpUgt"
+  | TExp(ICmp(id,op,ty,_,_),[e1;e2])  ->
+      let (cid2,acc_inst,tmpno) = match_tree e2 acc_inst tmpno in
+      let (cid1,acc_inst,tmpno) = match_tree e1 acc_inst tmpno in
+      let (tmp1,tmpno) = make_tmp tmpno in (
+      match op with 
+      | IcmpEq ->   
+        let i1 = RiscvISA.SICompReg(RiscvISA.OpSUB,mkid tmp1,mkid cid1, mkid cid2) in
+        let i2 = RiscvISA.SICompImm(RiscvISA.OpSLTIU,mkid id,mkid tmp1, 1) in
+        (id,i2::i1::acc_inst,tmpno)
+      | IcmpNe ->
+        let (tmp2,tmpno) = make_tmp tmpno in
+        let i1 = RiscvISA.SICompReg(RiscvISA.OpSUB,mkid tmp1,mkid cid1, mkid cid2) in
+        let i2 = RiscvISA.SICompImm(RiscvISA.OpSLTIU,mkid tmp2,mkid tmp1, 1) in
+        let i3 = RiscvISA.SICompImm(RiscvISA.OpXORI,mkid id,mkid tmp2, 1) in
+        (id,i3::i2::i1::acc_inst,tmpno)
+      | _ -> failwith "temp"
+      )
+      
+(*  | TExp(ICmp(id,IcmpUgt,ty,_,_),[e1;e2]) -> not_imp "IcmpUgt"
   | TExp(ICmp(id,IcmpUge,ty,_,_),[e1;e2]) -> not_imp "IcmpUge"
   | TExp(ICmp(id,IcmpUlt,ty,_,_),[e1;e2]) -> not_imp "IcmpUlt"
   | TExp(ICmp(id,IcmpUle,ty,_,_),[e1;e2]) -> not_imp "IcmpUle"
@@ -150,6 +146,7 @@ let rec match_tree tree acc_inst tmpno =
   | TExp(ICmp(id,IcmpSge,ty,_,_),[e1;e2]) -> not_imp "IcmpSge"
   | TExp(ICmp(id,IcmpSlt,ty,_,_),[e1;e2]) -> not_imp "IcmpSlt"
   | TExp(ICmp(id,IcmpSle,ty,_,_),[e1;e2]) -> not_imp "IcmpSle"        
+*)
   | TExp(ICmp(_,_,_,_,_),_) -> raise (Illegal_instruction "ICmp")
 
   | TExp(IFCmp,_) -> not_imp "IFCmp"

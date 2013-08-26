@@ -35,6 +35,29 @@ int comp1(int x, int y, int z){
 }
 
 
+int compare1(unsigned int x, unsigned int y){
+  int a = x == y;
+  int b = x != y;
+  int c = x > y;
+  int d = x >= y;
+  int e = x < y;
+  int f = x <= y;
+  return a+b+c+d+e+f;
+}
+
+/*
+  | TExp(ICmp(id,IcmpEq,ty,_,_),[e1;e2])  -> not_imp "IcmpEq"
+  | TExp(ICmp(id,IcmpNe,ty,_,_),[e1;e2])  -> not_imp "IcmpNe" 
+  | TExp(ICmp(id,IcmpUgt,ty,_,_),[e1;e2]) -> not_imp "IcmpUgt"
+  | TExp(ICmp(id,IcmpUge,ty,_,_),[e1;e2]) -> not_imp "IcmpUge"
+  | TExp(ICmp(id,IcmpUlt,ty,_,_),[e1;e2]) -> not_imp "IcmpUlt"
+  | TExp(ICmp(id,IcmpUle,ty,_,_),[e1;e2]) -> not_imp "IcmpUle"
+  | TExp(ICmp(id,IcmpSgt,ty,_,_),[e1;e2]) -> not_imp "IcmpSgt"
+  | TExp(ICmp(id,IcmpSge,ty,_,_),[e1;e2]) -> not_imp "IcmpSge"
+  | TExp(ICmp(id,IcmpSlt,ty,_,_),[e1;e2]) -> not_imp "IcmpSlt"
+  | TExp(ICmp(id,IcmpSle,ty,_,_),[e1;e2]) -> not_imp "IcmpSle"        
+*/
+
 int main(){
   printf("arith1() = %d\n", arith1(12,52,3));
   printf("arith2() = %d\n", arith2(721,888,7));
