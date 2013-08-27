@@ -26,8 +26,10 @@ TO Implement
 - Rewrite to new standard for jalr
 - Add translation function to i32.
 - Check that mul 2 becomes shl
-- Subtract with small constant should be ADDI
-
+- Optimization: Compare with intermediate should use SLTI and SLTIU for small integers.
+- Add peephole optimization after code generation. 
+   - Remove unnecessary moves
+   - Redundant computations (different variables assigned the same value)
 
 //Generated the select instruction
 int comp2(int x, int y, int z){

@@ -6,7 +6,6 @@ open Printf
 module IntMap = Map.Make(struct type t = int let compare = compare end)  
 type addr2sid = sid IntMap.t 
 
-(* Needs to consider instrutions "move" (actually addi) beqz etc. *)
 
 (* Space separation between instruction and operands *)
 let sep = 8

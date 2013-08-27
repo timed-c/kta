@@ -18,6 +18,13 @@ let mkid id = (id,-1)
 
 let not_imp s = failwith ("Instruction selection for " ^ s ^ " is not implemented.")
 
+let noid = usid""
+
+(* Help function for generating temporary variable names. These generated names
+   do not change SSA form. *)
+let make_tmp tmpno = (usid ("tmp#" ^ string_of_int tmpno), tmpno+1)  
+
+
 
 (* Binary operation translation for register-register operations *)
 let binop2exp op = match op with
@@ -32,8 +39,6 @@ let binop2exp op = match op with
   | BopOr   -> RiscvISA.OpOR      | BopXor  -> RiscvISA.OpXOR
 
 
-
-
 (* Comparison operations. If the second element of the returned tuple 
    is true, the operands of the comparison should be revered. *)
 let cmp_pred_op op = match op with
@@ -43,14 +48,40 @@ let cmp_pred_op op = match op with
   IcmpSgt -> (RiscvISA.OpBLT,true)   | IcmpSge -> (RiscvISA.OpBGE,false)  |
   IcmpSlt -> (RiscvISA.OpBLT,false)  | IcmpSle -> (RiscvISA.OpBGE,true)
 
-let noid = usid""
+(* Help function for icmp. Generates code for equality. *)
+let mk_equal id cid1 cid2 tmpno acc_inst = 
+  let (tmp1,tmpno) = make_tmp tmpno in 
+  let i1 = RiscvISA.SICompReg(RiscvISA.OpSUB,mkid tmp1,mkid cid1, mkid cid2) in
+  let i2 = RiscvISA.SICompImm(RiscvISA.OpSLTIU,mkid id,mkid tmp1, 1) in
+  (id,i2::i1::acc_inst,tmpno)
 
-let make_tmp tmpno = (usid ("tmp#" ^ string_of_int tmpno), tmpno+1)  
+(* Help function for icmp. Generates code for not equal. *)
+let mk_not_equal id cid1 cid2 tmpno acc_inst =
+  let (tmp1,tmpno) = make_tmp tmpno in 
+  let (tmp2,tmpno) = make_tmp tmpno in 
+  let i1 = RiscvISA.SICompReg(RiscvISA.OpSUB,mkid tmp1,mkid cid1, mkid cid2) in
+  let i2 = RiscvISA.SICompImm(RiscvISA.OpSLTIU,mkid tmp2,mkid tmp1, 1) in
+  let i3 = RiscvISA.SICompImm(RiscvISA.OpXORI,mkid id,mkid tmp2, 1) in
+  (id,i3::i2::i1::acc_inst,tmpno)
+
+(* Help function for icmp. Generates code for less than. *)
+let mk_less_than op id cid1 cid2 tmpno acc_inst =
+  let i1 = RiscvISA.SICompReg(op,mkid id,mkid cid1, mkid cid2) in
+  (id,i1::acc_inst,tmpno)
+
+(* Help function for icmp. Generates code for not less than. Used for generating
+   code of less than and equal, greater than and equal etc. *)
+let mk_not_less_than op id cid1 cid2 tmpno acc_inst =
+  let (tmp,tmpno) = make_tmp tmpno in 
+  let i1 = RiscvISA.SICompReg(op,mkid tmp,mkid cid1, mkid cid2) in
+  let i2 = RiscvISA.SICompImm(RiscvISA.OpXORI,mkid id,mkid tmp, 1) in
+  (id,i2::i1::acc_inst,tmpno)
+
+
 
 (** This match algorithm assumes that all integer operations are 32-bits or lower *)
 let rec match_tree tree acc_inst tmpno =
   match tree with
-
   (* Binary Register-Immediate Instructions *)
   | TExp(IBinOp(id,BopAdd,TyInt(32),_,_), [e1;TConst(CInt(_,x))]) |
     TExp(IBinOp(id,BopAdd,TyInt(32),_,_), [TConst(CInt(_,x));e1])
@@ -114,6 +145,10 @@ let rec match_tree tree acc_inst tmpno =
   | TExp(IConvOp(_,_,_,_,_),_) -> not_imp "IConvOp"
 
   (* Integer compare instruction (icmp) *)
+  | TExp(ICmp(id,IcmpEq,ty,_,_),[e1;TConst(CInt(_,x))]) when Int64.compare Int64.zero x = 0 -> 
+      let (cid1,acc_inst,tmpno) = match_tree e1 acc_inst tmpno in
+      let i1 = RiscvISA.SICompImm(RiscvISA.OpSLTIU,mkid id,mkid cid1, 1) in
+      (id,i1::acc_inst,tmpno)
   | TExp(ICmp(id,IcmpNe,ty,_,_),[e1;TConst(CInt(_,x))]) when Int64.compare Int64.zero x = 0 -> 
       let (cid1,acc_inst,tmpno) = match_tree e1 acc_inst tmpno in
       let (tmp,tmpno) = make_tmp tmpno in
@@ -122,31 +157,19 @@ let rec match_tree tree acc_inst tmpno =
       (id,i2::i1::acc_inst,tmpno)
   | TExp(ICmp(id,op,ty,_,_),[e1;e2])  ->
       let (cid2,acc_inst,tmpno) = match_tree e2 acc_inst tmpno in
-      let (cid1,acc_inst,tmpno) = match_tree e1 acc_inst tmpno in
-      let (tmp1,tmpno) = make_tmp tmpno in (
-      match op with 
-      | IcmpEq ->   
-        let i1 = RiscvISA.SICompReg(RiscvISA.OpSUB,mkid tmp1,mkid cid1, mkid cid2) in
-        let i2 = RiscvISA.SICompImm(RiscvISA.OpSLTIU,mkid id,mkid tmp1, 1) in
-        (id,i2::i1::acc_inst,tmpno)
-      | IcmpNe ->
-        let (tmp2,tmpno) = make_tmp tmpno in
-        let i1 = RiscvISA.SICompReg(RiscvISA.OpSUB,mkid tmp1,mkid cid1, mkid cid2) in
-        let i2 = RiscvISA.SICompImm(RiscvISA.OpSLTIU,mkid tmp2,mkid tmp1, 1) in
-        let i3 = RiscvISA.SICompImm(RiscvISA.OpXORI,mkid id,mkid tmp2, 1) in
-        (id,i3::i2::i1::acc_inst,tmpno)
-      | _ -> failwith "temp"
+      let (cid1,acc_inst,tmpno) = match_tree e1 acc_inst tmpno in (
+      match op with  
+      | IcmpEq  -> mk_equal id cid1 cid2 tmpno acc_inst
+      | IcmpNe  -> mk_not_equal id cid1 cid2 tmpno acc_inst
+      | IcmpUgt -> mk_less_than (RiscvISA.OpSLTU) id cid2 cid1 tmpno acc_inst
+      | IcmpUge -> mk_not_less_than (RiscvISA.OpSLTU) id cid1 cid2 tmpno acc_inst
+      | IcmpUlt -> mk_less_than (RiscvISA.OpSLTU) id cid1 cid2 tmpno acc_inst
+      | IcmpUle -> mk_not_less_than (RiscvISA.OpSLTU) id cid2 cid1 tmpno acc_inst
+      | IcmpSgt -> mk_less_than (RiscvISA.OpSLT) id cid2 cid1 tmpno acc_inst
+      | IcmpSge -> mk_not_less_than (RiscvISA.OpSLT) id cid1 cid2 tmpno acc_inst
+      | IcmpSlt -> mk_less_than (RiscvISA.OpSLT) id cid1 cid2 tmpno acc_inst
+      | IcmpSle -> mk_not_less_than (RiscvISA.OpSLT) id cid2 cid1 tmpno acc_inst
       )
-      
-(*  | TExp(ICmp(id,IcmpUgt,ty,_,_),[e1;e2]) -> not_imp "IcmpUgt"
-  | TExp(ICmp(id,IcmpUge,ty,_,_),[e1;e2]) -> not_imp "IcmpUge"
-  | TExp(ICmp(id,IcmpUlt,ty,_,_),[e1;e2]) -> not_imp "IcmpUlt"
-  | TExp(ICmp(id,IcmpUle,ty,_,_),[e1;e2]) -> not_imp "IcmpUle"
-  | TExp(ICmp(id,IcmpSgt,ty,_,_),[e1;e2]) -> not_imp "IcmpSgt"
-  | TExp(ICmp(id,IcmpSge,ty,_,_),[e1;e2]) -> not_imp "IcmpSge"
-  | TExp(ICmp(id,IcmpSlt,ty,_,_),[e1;e2]) -> not_imp "IcmpSlt"
-  | TExp(ICmp(id,IcmpSle,ty,_,_),[e1;e2]) -> not_imp "IcmpSle"        
-*)
   | TExp(ICmp(_,_,_,_,_),_) -> raise (Illegal_instruction "ICmp")
 
   | TExp(IFCmp,_) -> not_imp "IFCmp"
@@ -180,7 +203,6 @@ let rec match_tree tree acc_inst tmpno =
     let i2 = RiscvISA.SICompImm(RiscvISA.OpADDI,mkid tmp2, mkid tmp1, low) in
     (tmp2, i2::i1::acc_inst,tmpno)
   | TConst(CInt(_,_)) -> raise (Code_not_32_bit "TConst")
-  | TConst(_) -> not_imp "TConst (not integer)"
 
 
 let maximal_munch forest tmpno =
