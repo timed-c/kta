@@ -10,6 +10,8 @@
 *.ll
 *.bc
 *.out
+*.bin
+*.riscv-gcc.asm
 .#*
 #*
 .depend
