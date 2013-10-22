@@ -22,7 +22,7 @@ val strongly_connected_components : graph -> (int list) list
 (** [strongly_connected_components G] returns a list of the strongly connected
     components of graph [G]. Each element in the list is a list of integers 
     representing the vertices in each component. The order of the returned 
-    strongly connected components is also topologically sorted. *)
+    strongly connected components is topologically sorted. *)
 
 val reverse : graph -> graph
 (** Returned the reverse of a directed graph, that is, each edge
@@ -32,3 +32,22 @@ val make_undirected : graph -> graph
 (** Takes a directed graph and add edges so that the graph becomes 
     undirected. If the input graph has no redundant edges, the resulting
     graph will not have any redundant edges. *)
+
+val shortest_distance_graph : graph -> int -> ((int * int) list) array
+(** [shortest_distance_graph G v] computes the distance for vertex [v]
+    to all vertices in the directed graph [G]. If the an vertex [w] is
+    predecessor to [v], then the distance is 0. The function returns a
+    graph, where the array is indexed using vertex numbers and each
+    associate lists represents adjacent vertices. The key in the
+    associate list is the vertex and the value is the distance to
+    vertex [v]. For instance, for a graph G=(V,E), where V={v0,v1,v2}
+    and E={(v0,v1),(v1,v2)}, and the start v is 2, then the resulting
+    distance graph (in array form) is [| [(v1,1)]; [v2,0]; [] |] *)
+
+val shortest_distance_graph_ext : graph -> int -> ((int * int) list) array
+(** [shortest_distance_graph_ext G_r v] is identical to [shortest_distance_graph]
+    with the exception that extended version takes the reversed graph [G_r] instead of
+    [G]. It is useful, for performance reason, to call this 
+    function instead if the caller already have computed the reverse graph. *)
+
+

@@ -64,6 +64,20 @@ let main =
              ustring_of_intlist;
   
 
+  (** ------------------- Shortest distance graph  ------------ *)
+  let ustring_of_inttuple (e1,e2) = 
+    us"(" ^. ustring_of_int e1 ^. us"," ^. ustring_of_int e2 ^. us")" in
+
+  let ustring_of_inttuplelist lst =  
+    us"[" ^. Ustring.concat (us",") 
+    (List.map ustring_of_inttuple lst) ^. us"]" in
+
+  let graph = [|[1];[2;3];[4];[3;4];[5];[6;7];[0];[]|] in
+  let expected = [|[(1,4)];[(2,3);(3,3)];[(4,2)];[(3,3);(4,2)];[(5,1)];
+                   [(6,6);(7,0)];[(0,5)];[]|] in
+  test_array "Shortest distance graph" (Ugraph.shortest_distance_graph graph 7)
+    expected ustring_of_inttuplelist;
+
     
   result()
 

@@ -1,5 +1,5 @@
 
-
+open Printf
 
 exception Not_a_DAG
 
@@ -102,5 +102,36 @@ let make_undirected graph =
     if not (List.mem v (undir.(w))) then undir.(w) <- v::(undir.(w))
   ) ws) graph;
   undir
+
+
+let shortest_distance_graph_ext rev_graph v_start = 
+  let nodes = Array.length rev_graph in
+  let visited = Array.make nodes false in
+  let dist_graph = Array.make nodes [] in
+  let queue = Queue.create() in
+  Queue.add (v_start,0) queue;
+  while not (Queue.is_empty queue) do
+    let (v,dist) = Queue.take queue in
+    if not visited.(v) then (
+      visited.(v) <- true;
+      List.iter (fun w ->
+         dist_graph.(w) <- (v,dist)::(dist_graph.(w));       
+         if not visited.(w) then
+           Queue.add (w,dist+1) queue
+      ) rev_graph.(v);
+    );
+  done;
+  dist_graph
+  
+
+let shortest_distance_graph graph v = 
+  shortest_distance_graph_ext (reverse graph) v
+
+
+
+
+
+
+
 
 
