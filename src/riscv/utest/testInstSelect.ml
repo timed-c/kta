@@ -82,7 +82,7 @@ let main =
 
 
   (* Test maximal munch on logic block *)
-  let LLBlock(_,insts) = LlvmUtils.get_block "entry" f_logic1 in
+(*  let LLBlock(_,insts) = LlvmUtils.get_block "entry" f_logic1 in
   let forest = LlvmTree.make insts (LlvmUtils.used_in_another_block f_logic1) in 
   let insts = RiscvInstSelect.maximal_munch forest 1 in
   let res = RiscvPPrint.sinst_list insts in 
@@ -99,7 +99,7 @@ let main =
             us"add     %add,%land.ext,%and\n" ^.
             us"jalr.r  %->r0,%,%add\n" in
   test_ustr "Selecting sltiu,xori,and" res exp;
-
+*)
 
   (* Test maximal munch on logic block *)
   let LLBlock(_,insts) = LlvmUtils.get_block "entry" f_logic2 in
@@ -113,9 +113,9 @@ let main =
             us"add     %add,%xor,%shr\n" ^.
             us"jalr.r  %->r0,%,%add\n" in
   test_ustr "Selecting srl,and,or,xor" res exp;
-
+  
   (* Test maximal munch on large immediate values*)
-  let LLBlock(_,insts) = LlvmUtils.get_block "entry" f_comp1 in
+(*  let LLBlock(_,insts) = LlvmUtils.get_block "entry" f_comp1 in
   let forest = LlvmTree.make insts (LlvmUtils.used_in_another_block f_comp1) in 
   let insts = RiscvInstSelect.maximal_munch forest 1 in
   let res = RiscvPPrint.sinst_list insts in 
@@ -133,9 +133,9 @@ let main =
             us"add     %add4,%add3,%mul2\n" ^.
             us"jalr.r  %->r0,%,%add4\n" in
   test_ustr "Selecting large intermediate constants" res exp;
-
+  *)
   (* Test maximal munch for the icmp instruction *)
-  let LLBlock(_,insts) = LlvmUtils.get_block "entry" f_compare1 in
+(*  let LLBlock(_,insts) = LlvmUtils.get_block "entry" f_compare1 in
   let forest = LlvmTree.make insts (LlvmUtils.used_in_another_block f_compare1) in 
   let insts = RiscvInstSelect.maximal_munch forest 1 in
   let res = RiscvPPrint.sinst_list insts in 
@@ -163,9 +163,9 @@ let main =
             us"add     %add14,%add13,%conv10\n" ^.
             us"jalr.r  %->r0,%,%add14\n" in
   test_ustr "Selecting for icmp unsigned comparison." res exp;
-
+*)
   (* Test maximal munch for the icmp instruction *)
-  let LLBlock(_,insts) = LlvmUtils.get_block "entry" f_compare2 in
+(*  let LLBlock(_,insts) = LlvmUtils.get_block "entry" f_compare2 in
   let forest = LlvmTree.make insts (LlvmUtils.used_in_another_block f_compare2) in 
   let insts = RiscvInstSelect.maximal_munch forest 1 in
   let res = RiscvPPrint.sinst_list insts in 
@@ -193,10 +193,10 @@ let main =
             us"add     %add14,%add13,%conv10\n" ^.
             us"jalr.r  %->r0,%,%add14\n" in
   test_ustr "Selecting for icmp unsigned comparison." res exp;
-
+*)
 
   (* Test maximal munch for the icmp instruction. Intermediate compare. *)
-  let LLBlock(_,insts) = LlvmUtils.get_block "entry" f_compare3 in
+(*  let LLBlock(_,insts) = LlvmUtils.get_block "entry" f_compare3 in
   let forest = LlvmTree.make insts (LlvmUtils.used_in_another_block f_compare3) in 
   let insts = RiscvInstSelect.maximal_munch forest 1 in
   let res = RiscvPPrint.sinst_list insts in 
@@ -225,8 +225,9 @@ let main =
             us"add     %add14,%add13,%conv10\n" ^.
             us"jalr.r  %->r0,%,%add14\n" in
   test_ustr "Selecting for icmp. Intermediate value comparison." res exp;
+*)
 
-(*  uprint_endline (LlvmPPrint.llfunc f_compare3);
+(*  uprint_endline (LlvmPPrint.llfunc f_compare1);
   print_endline "--------------";
   (*uprint_endline (LlvmPPrint.llforest forest); *)
   print_endline "--------------";

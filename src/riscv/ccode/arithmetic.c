@@ -44,13 +44,26 @@ int comp2(int x, int y, int z){
 int compare1(unsigned int x, unsigned int y){
   int a = x == y;
   int b = x != y;
+  int c = x == 0;
+  int d = x != 0;
+  int e = x == 900;
+  int f = x != 900;
+  int g = x == 900000;
+  int h = x != 900000;
+  return a+b+c+d+e+f+g+h;
+}
+
+/*
+int compare1(unsigned int x, unsigned int y){
+  int a = x == y;
+  int b = x != y;
   int c = x > y;
   int d = x >= y;
   int e = x < y;
   int f = x <= y;
   return a+b+c+d+e+f;
 }
-
+*/
 int compare2(int x, int y){
   int a = x == y;
   int b = x != y;
@@ -70,6 +83,72 @@ int compare3(int x, int y){
   int f = x <= 4252;
   return a+b+c+d+e+f;
 }
+
+int minicomp1(int x, int y){
+  return x == y;
+}
+
+int minicomp2(int x, int y){
+  return x != y;
+}
+
+int minicompe3(int x, int y){
+  return x == 0;
+}
+
+int minicomp4(int x, int y){
+  return x != 0;
+}
+
+int minicomp5(int x, int y){
+  return x == 900;
+}
+
+int minicomp6(int x, int y){
+  return x != 900;
+}
+
+int minicomp7(int x, int y){
+  return x == 900000;
+}
+
+int minicomp8(int x, int y){
+  return x != 900000;
+}
+
+int minicomp9(int x, int y){
+  return x < y;
+}
+
+int minicomp10(int x, int y){
+  return x <= y;
+}
+
+int minicomp11(int x, int y){
+  return x > y;
+}
+
+int minicomp12(int x, int y){
+  return x >= y;
+}
+
+int minicomp13(int x, int y){
+  return x < 900;
+}
+
+int minicomp14(int x, int y){
+  return x <= 900 ;
+}
+
+int minicomp15(int x, int y){
+  return x > 900;
+}
+
+int minicomp16(int x, int y){
+  return x > 900;
+}
+
+
 
 /*
   | TExp(ICmp(id,IcmpEq,ty,_,_),[e1;e2])  -> not_imp "IcmpEq"

@@ -7,10 +7,13 @@ open LlvmAst
 exception Illegal_instruction of string
 exception Code_not_32_bit of string
 
-let i64_has_12bits v = 
-  Int64.compare v (Int64.of_int 2048) < 0 &&
-  Int64.compare v (Int64.of_int (-2049)) > 0
- 
+let i64_interval x low high =
+  Int64.compare x (Int64.of_int (low-1)) > 0 &&
+  Int64.compare x (Int64.of_int (high+1)) < 0 
+
+
+
+
 let i64_mask12 x = (Int64.to_int x) land 0b111111111111
 
 (* Create an identifier that has no machine register assigned to it (-1) *)
@@ -19,11 +22,11 @@ let mkid id = (id,-1)
 let not_imp s = failwith ("Instruction selection for " ^ s ^ " is not implemented.")
 
 let noid = usid""
+let x0_reg = (noid,0) 
 
 (* Help function for generating temporary variable names. These generated names
    do not change SSA form. *)
 let make_tmp tmpno = (usid ("tmp#" ^ string_of_int tmpno), tmpno+1)  
-
 
 
 (* Binary operation translation for register-register operations *)
@@ -47,6 +50,24 @@ let cmp_pred_op op = match op with
   IcmpUlt -> (RiscvISA.OpBLTU,false) | IcmpUle -> (RiscvISA.OpBGEU,true)  |
   IcmpSgt -> (RiscvISA.OpBLT,true)   | IcmpSge -> (RiscvISA.OpBGE,false)  |
   IcmpSlt -> (RiscvISA.OpBLT,false)  | IcmpSle -> (RiscvISA.OpBGE,true)
+
+
+type op2ty = Op2Const of Int64.t | Op2Id of sid
+
+let mk_icmp_eq is_equal id cid1 cid2 tmpno acc_inst = 
+  let mkinst sreg = if is_equal then RiscvISA.SICompImm(RiscvISA.OpSLTIU,mkid id,mkid sreg, 1) 
+           else RiscvISA.SICompReg(RiscvISA.OpSLTU,mkid id,x0_reg,mkid sreg) in (
+  let (tmp,tmpno') = make_tmp tmpno in 
+  match cid2 with
+  | Op2Const(c) when (Int64.to_int c) = 0 -> (id,(mkinst cid1)::acc_inst,tmpno) 
+  | Op2Const(c) -> 
+    let i1 = RiscvISA.SICompImm(RiscvISA.OpADDI,mkid tmp,mkid cid1, -1 * (Int64.to_int c)) in
+    (id,(mkinst tmp)::i1::acc_inst,tmpno')
+  | Op2Id(id2) -> 
+    let i1 = RiscvISA.SICompReg(RiscvISA.OpSUB,mkid tmp,mkid cid1, mkid id2) in
+    (id,(mkinst tmp)::i1::acc_inst,tmpno'))
+
+
 
 (* Help function for icmp. Generates code for equality. *)
 let mk_equal id cid1 cid2 tmpno acc_inst = 
@@ -85,7 +106,7 @@ let rec match_tree tree acc_inst tmpno =
   (* Binary Register-Immediate Instructions *)
   | TExp(IBinOp(id,BopAdd,TyInt(32),_,_), [e1;TConst(CInt(_,x))]) |
     TExp(IBinOp(id,BopAdd,TyInt(32),_,_), [TConst(CInt(_,x));e1])
-    when i64_has_12bits x ->
+    when i64_interval x (-2048) (2047) ->
       let (cid,acc_inst,tmpno) = match_tree e1 acc_inst tmpno in
       (id,(RiscvISA.SICompImm(RiscvISA.OpADDI,mkid id,mkid cid, i64_mask12 x))::acc_inst,tmpno)
 
@@ -115,10 +136,10 @@ let rec match_tree tree acc_inst tmpno =
 
   (* Return *)
   | TExp(IRet(_),[]) -> 
-      (noid,(RiscvISA.SIIndJmp(RiscvISA.JALR((noid,0),mkid noid,mkid noid)))::acc_inst,tmpno)
+      (noid,(RiscvISA.SIIndJmp(RiscvISA.JALR(x0_reg,mkid noid,mkid noid)))::acc_inst,tmpno)
   | TExp(IRet(_),[e1]) -> 
       let (cid1,acc_inst,tmpno) = match_tree e1 acc_inst tmpno in
-      (noid,(RiscvISA.SIIndJmp(RiscvISA.JALR((noid,0),mkid noid,mkid cid1)))::acc_inst,tmpno)
+      (noid,(RiscvISA.SIIndJmp(RiscvISA.JALR(x0_reg,mkid noid,mkid cid1)))::acc_inst,tmpno)
   | TExp(IRet(_),_) -> raise (Illegal_instruction "IRet")
 
   | TExp(IBrUncond(_),_) -> not_imp "IBrUncond"
@@ -145,7 +166,7 @@ let rec match_tree tree acc_inst tmpno =
   | TExp(IConvOp(_,_,_,_,_),_) -> not_imp "IConvOp"
 
   (* Integer compare instruction (icmp) *)
-  | TExp(ICmp(id,IcmpEq,ty,_,_),[e1;TConst(CInt(_,x))]) when Int64.compare Int64.zero x = 0 -> 
+(*  | TExp(ICmp(id,IcmpEq,ty,_,_),[e1;TConst(CInt(_,x))]) when Int64.compare Int64.zero x = 0 -> 
       let (cid1,acc_inst,tmpno) = match_tree e1 acc_inst tmpno in
       let i1 = RiscvISA.SICompImm(RiscvISA.OpSLTIU,mkid id,mkid cid1, 1) in
       (id,i1::acc_inst,tmpno)
@@ -154,7 +175,15 @@ let rec match_tree tree acc_inst tmpno =
       let (tmp,tmpno) = make_tmp tmpno in
       let i1 = RiscvISA.SICompImm(RiscvISA.OpSLTIU,mkid tmp,mkid cid1, 1) in
       let i2 = RiscvISA.SICompImm(RiscvISA.OpXORI,mkid id,mkid tmp,1) in
-      (id,i2::i1::acc_inst,tmpno)
+      (id,i2::i1::acc_inst,tmpno) *)
+
+  
+  | TExp(ICmp(id,(IcmpEq as op),ty,_,_),[e1;TConst(CInt(_,x))]) | 
+    TExp(ICmp(id,(IcmpNe as op),ty,_,_),[e1;TConst(CInt(_,x))]) when i64_interval x (-2047) 2048 ->
+      let (cid1,acc_inst,tmpno) = match_tree e1 acc_inst tmpno in
+      mk_icmp_eq (op = IcmpEq) id cid1 (Op2Const(x)) tmpno acc_inst
+
+
   | TExp(ICmp(id,op,ty,_,_),[e1;e2])  ->
       let (cid2,acc_inst,tmpno) = match_tree e2 acc_inst tmpno in
       let (cid1,acc_inst,tmpno) = match_tree e1 acc_inst tmpno in (
@@ -190,16 +219,16 @@ let rec match_tree tree acc_inst tmpno =
   | TId(GlobalId(id)) -> not_imp "GlobalId"
 
   (* Immediate (constant) *)
-  | TConst(CInt(_,x)) when i64_has_12bits x -> 
+  | TConst(CInt(_,x)) when i64_interval x (-2048) (2047) -> 
     let (tmp,tmpno) = make_tmp tmpno in
-    (tmp,(RiscvISA.SICompImm(RiscvISA.OpADDI, mkid tmp, (noid,0),i64_mask12 x))::acc_inst,tmpno)
+    (tmp,(RiscvISA.SICompImm(RiscvISA.OpADDI, mkid tmp, x0_reg,i64_mask12 x))::acc_inst,tmpno)
   | TConst(CInt(32,x)) -> 
     let (tmp1,tmpno) = make_tmp tmpno in
     let (tmp2,tmpno) = make_tmp tmpno in
     let low = i64_mask12 x in 
     let high = Int64.to_int (Int64.shift_right_logical x 12) in
     let high' = if low >= 2048 then high + 1 else high in
-    let i1 = RiscvISA.SICompImm(RiscvISA.OpLUI, mkid tmp1, (noid,0), high') in
+    let i1 = RiscvISA.SICompImm(RiscvISA.OpLUI, mkid tmp1, x0_reg, high') in
     let i2 = RiscvISA.SICompImm(RiscvISA.OpADDI,mkid tmp2, mkid tmp1, low) in
     (tmp2, i2::i1::acc_inst,tmpno)
   | TConst(CInt(_,_)) -> raise (Code_not_32_bit "TConst")
