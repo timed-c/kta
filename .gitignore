@@ -6,3 +6,5 @@ bin/
 ext/
 oldsrc/
 doc/api
+doc/user/manual.html
+ext/ucaml
