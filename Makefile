@@ -6,7 +6,7 @@ DIRS = src,ext/ucaml/src
 
 # Init submodules if needed and make native version. 
 # The resulting executable can be found under /bin and /library (symlinks)
-all:    ext native
+all:    ext native gendoc
 
 
 # Compile native version
@@ -32,6 +32,16 @@ bin:
 	@mkdir bin
 
 
+# Generate all documentation
+gendoc: doc/userguide/userguide.html
+	ocamlbuild -Is $(DIRS) doc/main.docdir/index.html
+	@mv main.docdir api; mv api doc/.
+
+# Generate doc for the userguide
+doc/userguide/userguide.html: doc/userguide/userguide.txt
+	cd doc/userguide/; asciidoc userguide.txt
+
+
 # Update git sub modules
 update:
 	cd ext/ucaml; git checkout master; git pull
@@ -42,4 +52,6 @@ clean:
 	@ocamlbuild -clean	
 	@rm -rf bin
 	@rm -rf doc/api
+	@rm -f doc/userguide/*.html
 	@echo "Finished cleaning up."
+
