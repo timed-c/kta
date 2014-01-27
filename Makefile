@@ -33,13 +33,13 @@ bin:
 
 
 # Generate all documentation
-gendoc: doc/userguide/userguide.html
+gendoc: doc/user/manual.html
 	ocamlbuild -Is $(DIRS) doc/main.docdir/index.html
 	@mv main.docdir api; mv api doc/.
 
 # Generate doc for the userguide
-doc/userguide/userguide.html: doc/userguide/userguide.txt
-	cd doc/userguide/; asciidoc userguide.txt
+doc/user/manual.html: doc/user/manual.txt
+	cd doc/user/; asciidoc manual.txt
 
 
 # Update git sub modules
