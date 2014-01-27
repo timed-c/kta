@@ -1,6 +1,6 @@
 
 
-DIRS = src,ext/ucaml/src
+DIRS = src,ext/ucamlib/src
 
 .PHONY: all clean
 
@@ -20,13 +20,13 @@ byte: 	bin
 	@mv -f ptc.byte bin/ptc
 
 
-# If ucaml content does not exist, init and update submodules
+# If ucamlib content does not exist, init and update submodules
 ext:
 	@mkdir ext
-	@mkdir ext/ucaml
+	@mkdir ext/ucamlib
 	git submodule init
 	git submodule update
-	cd ext/ucaml; git checkout master
+	cd ext/ucamlib; git checkout master
 
 bin:	
 	@mkdir bin
@@ -44,7 +44,7 @@ doc/user/manual.html: doc/user/manual.txt
 
 # Update git sub modules
 update:
-	cd ext/ucaml; git checkout master; git pull
+	cd ext/ucamlib; git checkout master; git pull
 
 
 # Clean all submodules and the main Modelyze source
