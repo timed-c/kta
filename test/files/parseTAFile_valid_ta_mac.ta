@@ -1,0 +1,25 @@
+# Comments must start with a # characters. Empty lines are ignored.
+
+   # Function name
+ function foo 
+
+# Optional assumptions
+arg        0    20
+globalvar  x    100
+funcWCET   foo2 56000
+
+# Requested timing analysis
+WCET 
+PATH 
+FWCET   5  10 
+LBCET   0  -1 
+
+
+function foo3
+GWCET
+
+
+
+
+
+

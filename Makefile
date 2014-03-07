@@ -11,12 +11,12 @@ all:    ext native gendoc
 
 # Compile native version
 native: bin 
-	ocamlbuild -Is $(DIRS) ptc.native 
+	@ocamlbuild -Is $(DIRS) ptc.native 
 	@mv -f ptc.native bin/ptc
 
 # Compile byte code version
 byte: 	bin 
-	ocamlbuild -Is $(DIRS) ptc.byte	
+	@ocamlbuild -Is $(DIRS) ptc.byte	
 	@mv -f ptc.byte bin/ptc
 
 
@@ -34,17 +34,18 @@ bin:
 
 # Generate all documentation
 gendoc: doc/user/manual.html
-	ocamlbuild -Is $(DIRS) doc/main.docdir/index.html
-	@mv main.docdir api; mv api doc/.
+	@ocamlbuild -Is $(DIRS) doc/main.docdir/index.html
+	@rm -f main.docdir 
+	@cd doc; rm -f api; ln -s ../_build/doc/main.docdir api
 
 # Generate doc for the userguide
 doc/user/manual.html: doc/user/manual.txt
-	cd doc/user/; asciidoc manual.txt
+	@cd doc/user/; asciidoc manual.txt
 
 
 # Update git sub modules
 update:
-	cd ext/ucamlib; git checkout master; git pull
+	@cd ext/ucamlib; git checkout master; git pull
 
 
 # Clean all submodules and the main Modelyze source
@@ -53,5 +54,5 @@ clean:
 	@rm -rf bin
 	@rm -rf doc/api
 	@rm -f doc/userguide/*.html
-	@echo "Finished cleaning up."
+	@echo " Finished cleaning up."
 
