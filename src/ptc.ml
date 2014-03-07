@@ -27,13 +27,14 @@ type varid = sid
 
 (* Timing Program Point *)
 type tpp = 
-|TppEnty
+|TppEnty   
 |TppExit 
 |TppNode of int
 
 
 
-type value = VInt of int * int (* Upper and lower bounds on integers *)
+type value = 
+| VInt of int * int (* Upper and lower bounds on integers *)
 
 type ta_req = 
 | ReqWCP of tpp * tpp
@@ -52,7 +53,6 @@ type ta_res =
 | ReqFBCET of int
 
 
-
 (* Structure to represent a timing analysis request for a specific function *)
 type func_ta_req = {
   funcname : ustring;               (* Name of the function that should be analyzed *)
@@ -60,7 +60,7 @@ type func_ta_req = {
   gvars : (sid * value) list;       (* Global variable assumptions *)
   fwcet : (sid * int) list;         (* Assumed WCET in clock cycles for functions *)
   fbcet : (sid * int) list;         (* Assumed BCET in clock cycles for functions *)  
-  reqta : (lineno * ta_req) list;  (* Requested timing analysis values *)
+  reqta : (lineno * ta_req) list;   (* Requested timing analysis values *)
 }
 
 (* Timing analysis requests within a file *)
@@ -71,6 +71,18 @@ type file_ta_req = {
 }
 
 
+  
+  
+(* Takes a timing analysis function request and returns a list of timing analysis
+   responses *)
+let dummy_timing_analysis func_ta_req = []
+  
+
+let make_full_ta_res_file_string file_ta_req = []
+  
+  
+
+  
 
 
 
@@ -117,7 +129,6 @@ let parse_ta_strings lines =
 
 
 
-
 (** Raises exception Sys_error if the file cannot be found. *)
 let parse_ta_file filename =
   (* Read file and split into list of lines *)
@@ -128,19 +139,17 @@ let parse_ta_file filename =
   {filename; lines; ta_requests = tareqs} 
 
 
-  
-  
-
-let read_ta_files filenames =
-  let ta = parse_ta_file (List.hd filenames) in
-  
-  printf "---------------------\n";
-  printf "Filename: %s\n" ta.filename
-  
 
 
 let main =
-  read_ta_files (List.tl (Array.to_list (Sys.argv)))
+  let filenames =  (List.tl (Array.to_list (Sys.argv))) in
+  let tas = List.map parse_ta_file filenames in
+ (* let t_res_ = dummy_timing_analysis tas in
+  let str = make_ta_file t_res in *)
+  printf "---------------------\n";
+  printf "Filename: %s\n" (List.hd tas).filename;
+  
+
 
 
 
