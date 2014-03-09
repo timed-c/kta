@@ -4,11 +4,15 @@ open Printf
 open Ustring.Op
 
 
-
 type  arg_error_type = 
 | ArgErrorUnkownFileExtension of ustring
 
 exception Argument_error
+
+(* Exception for syntax errors in timing analysis files. The arguments are
+   filename and line number for the error. *)
+exception TA_file_syntax_error of string * int
+
 
 (* Structure representing the sorted list of different file arguments 
    that were supplied when executing ptc. *)
@@ -77,13 +81,42 @@ type func_ta_req = {
 type file_ta_req = {
   filename : string;                 (* Name of the file *)
   lines : ustring list;              (* The text of the files represented as a list of lines *)
-  ta_requests : func_ta_req list;    (* List of ta requests *)
+  func_ta_reqs : func_ta_req list;    (* List of ta requests *)
 }
+
+(** Pretty print an abstract value *)
+let pprint_abstract_value v =
+  match v with
+  | VInt(i1,i2) when i1 = i2 -> ustring_of_int i1
+  | VInt(i1,i2) -> ustring_of_int i1 ^. us".." ^. ustring_of_int i2
+
+
+(** Pretty print the timing request of a function *)
+let pprint_func_ta_req func_ta_req =
+  (* Function *)
+  us"function " ^. func_ta_req.funcname  ^. us"\n" ^.
+
+  (* Arguments *)
+  (if List.length func_ta_req.args = 0 then us"" else 
+    Ustring.concat (us"\n") 
+      (List.map (fun (argno,v) -> us"arg " ^. ustring_of_int argno ^. us" " ^.
+                 pprint_abstract_value v) func_ta_req.args) ^. us"\n") 
+
+  
+
+(** Pretty print the content of a timing analysis file *)
+let pprint_file_ta_req file_ta_req = 
+  us"Filename: " ^. us(file_ta_req.filename) ^. us"\n" ^.
+  us"Number of function requests: " ^. 
+     ustring_of_int (List.length (file_ta_req.func_ta_reqs)) ^. us"\n" ^.
+  Ustring.concat (us"----\n") (List.map pprint_func_ta_req (file_ta_req.func_ta_reqs)) ^.
+  us"\n"
 
 (* Returns the pair of timing program points from a timing request *)
 let get_req_tpp req = 
   match req with ReqWCP(t1,t2)  | ReqBCP(t1,t2) | ReqLWCET(t1,t2) | ReqLBCET(t1,t2) |
                  ReqFWCET(t1,t2) | ReqFBCET(t1,t2) -> (t1,t2)
+
 
 (* Compare two tpp values. Compatible with the standard 'compare' interface. *)
 let tpp_compare t1 t2 = 
@@ -151,13 +184,32 @@ let dummy_timing_analysis func_ta_req =
     | ReqFBCET(t1,t2) -> ResFBCET(get_ta_time t1 t2 (TimeCycles(0)))::acc
   ) [] func_ta_req.ta_req)
 
+
+
                       
+(* Parse a value. Raise exception TA_file_syntax_error if the kind of value is
+   unknown. Right now, we only supports integer values (no intervals) *)
+let parse_abstract_value filename line_no value = 
+  let v = try int_of_string value 
+    with _ -> raise (TA_file_syntax_error(filename,line_no)) in
+  VInt(v,v)
+    
+
+  
+  
+(* Parses a positive integer and raises TA_file_syntax_erro if something is wrong. *)
+let parse_positive_int filename line_no value  = 
+  let v = try int_of_string value 
+     with _ -> raise (TA_file_syntax_error(filename,line_no)) in
+  if v < 0 then raise (TA_file_syntax_error(filename,line_no))
+  else v
 
 
 
 
-(* Parse text lines *)
-let parse_ta_strings lines = 
+(* Parse text lines. Raises TA_file_syntax_error if there are any 
+   errors in the ta file *)
+let parse_ta_strings filename lines = 
   (* Removes empty lines and lines with comments. Adds line numbers *)
   let nolines = List.rev (snd (List.fold_left (fun (no,acc) line ->
     let tline = Ustring.trim line in
@@ -173,18 +225,34 @@ let parse_ta_strings lines =
   
   (* Translate all strings to utf8 strings, which we can do pattern matching on *)
   let utf8tokens = List.map (fun (n,ls) -> (n,List.map Ustring.to_utf8 ls)) tokenlst in 
-  
+
   (* Extract timing analysis request data *)
   let rec extract tokens fname args gvars fwcet fbcet ta_req acc =
     match tokens with
-    | (line_no,["function";name])::ts -> (
-         match fname with
-         | Some(prename) -> 
-           (* We are done with this function. Process next *)
-           let new_functa =  {funcname = us prename; args; gvars; fwcet; fbcet; ta_req} in
-           extract ts (Some(name)) [] [] [] [] [] (new_functa::acc)
-         | None -> extract ts (Some(name)) [] [] [] [] [] acc)
-    | _ -> acc
+    | (_,["function";name])::ts -> (
+        match fname with
+        | Some(prename) ->
+        (* We are done with this function. Process next *)
+          let func =  {funcname = us prename; args = List.rev args; 
+                       gvars = List.rev gvars; fwcet = List.rev fwcet; 
+                       fbcet = List.rev fbcet; ta_req = List.rev ta_req} in
+          extract ts (Some(name)) [] [] [] [] [] (func::acc)
+        | None -> 
+             (* We have detected a new function (the first one) *)
+          extract ts (Some(name)) [] [] [] [] [] acc)
+    | (lineno,["arg";pos;value])::ts -> (
+        let pos' = parse_positive_int filename lineno pos in
+        let value' = parse_abstract_value filename lineno value in 
+        extract ts fname ((pos',value')::args) gvars fwcet fbcet ta_req acc)
+    | [] -> (
+        match fname with
+        | Some(prename) -> 
+          let func = {funcname = us prename; args = List.rev args; 
+                       gvars = List.rev gvars; fwcet = List.rev fwcet; 
+                       fbcet = List.rev fbcet; ta_req = List.rev ta_req} in
+          func::acc
+        | None -> acc)
+    | _::ts -> extract ts fname args gvars fwcet fbcet ta_req acc
   in 
   (* Test code *)
   let tlines = List.map (fun (no,toks) -> 
@@ -192,7 +260,7 @@ let parse_ta_strings lines =
     ustring_of_int no ^. us": " ^. l) tokenlst
   in
   uprint_endline (Ustring.concat (us"\n") tlines);
-  extract utf8tokens None [] [] [] [] [] [] 
+  List.rev (extract utf8tokens None [] [] [] [] [] [])
 
 
 
@@ -204,21 +272,36 @@ let parse_ta_file filename =
   let lines = Ustring.split (Ustring.read_file filename) (us"\n") in
 
   (* Parse requested string and return the request structure for a file *)
-  let tareqs = parse_ta_strings lines in
-  {filename; lines; ta_requests = tareqs} 
+  let func_ta_reqs = parse_ta_strings filename lines in
+  {filename; lines; func_ta_reqs} 
 
 
+
+type error_level = Error | Warning
+  
+
+(** Format and print an error message to the standard output *)
+let print_error filename line column level message =
+  uprint_endline (us filename ^. us":" ^. ustring_of_int line ^. 
+      us":" ^. ustring_of_int column ^. us" " ^.
+      us (match level with Error -> "error: " | Warning -> "warning: ") ^.
+      us message)
 
 
 
 
 let main =
   let filenames =  (List.tl (Array.to_list (Sys.argv))) in
-  let tas = List.map parse_ta_file filenames in
- (* let t_res_ = dummy_timing_analysis tas in
-  let str = make_ta_file t_res in *)
-  printf "---------------------\n";
-  printf "Filename: %s\n" (List.hd tas).filename;
+  let file_ta_req = 
+    try List.map parse_ta_file filenames
+    with 
+    | TA_file_syntax_error(filename,line) -> 
+        print_error filename line 0 Error "Syntax error in timing analysis file.";
+        exit 1
+  in
+  uprint_endline (Ustring.concat (us"") 
+    (List.map (fun x -> us"=============\n" ^. pprint_file_ta_req x) file_ta_req))
+
   
 
 

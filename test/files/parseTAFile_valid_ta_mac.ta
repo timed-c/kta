@@ -5,20 +5,19 @@
 
 # Optional assumptions
 arg        0    20
+arg        1    100
 globalvar  x    100
 funcWCET   foo2 56000
 
 # Requested timing analysis
-WCET 
-PATH 
+WCP 3 10 
 FWCET   5  10 
-LBCET   0  -1 
+LBCET   0  exit 
 
 
-function foo3
-GWCET
-
-
+function bar
+arg 0 40
+LWCET entry exit
 
 
 
