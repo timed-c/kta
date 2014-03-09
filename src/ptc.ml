@@ -84,11 +84,15 @@ type file_ta_req = {
   func_ta_reqs : func_ta_req list;    (* List of ta requests *)
 }
 
+
+
 (** Pretty print an abstract value *)
 let pprint_abstract_value v =
   match v with
   | VInt(i1,i2) when i1 = i2 -> ustring_of_int i1
   | VInt(i1,i2) -> ustring_of_int i1 ^. us".." ^. ustring_of_int i2
+
+
 
 
 (** Pretty print the timing request of a function *)
@@ -100,7 +104,14 @@ let pprint_func_ta_req func_ta_req =
   (if List.length func_ta_req.args = 0 then us"" else 
     Ustring.concat (us"\n") 
       (List.map (fun (argno,v) -> us"arg " ^. ustring_of_int argno ^. us" " ^.
-                 pprint_abstract_value v) func_ta_req.args) ^. us"\n") 
+                 pprint_abstract_value v) func_ta_req.args) ^. us"\n") ^.
+  (* Global variables *)
+  (if List.length func_ta_req.gvars = 0 then us"" else 
+    Ustring.concat (us"\n") 
+      (List.map (fun (x,v) -> us"globalvar " ^. ustring_of_sid x ^. us" " ^.
+                 pprint_abstract_value v) func_ta_req.gvars) ^. us"\n") 
+
+
 
   
 
@@ -112,10 +123,15 @@ let pprint_file_ta_req file_ta_req =
   Ustring.concat (us"----\n") (List.map pprint_func_ta_req (file_ta_req.func_ta_reqs)) ^.
   us"\n"
 
+
+
+
 (* Returns the pair of timing program points from a timing request *)
 let get_req_tpp req = 
   match req with ReqWCP(t1,t2)  | ReqBCP(t1,t2) | ReqLWCET(t1,t2) | ReqLBCET(t1,t2) |
                  ReqFWCET(t1,t2) | ReqFBCET(t1,t2) -> (t1,t2)
+
+
 
 
 (* Compare two tpp values. Compatible with the standard 'compare' interface. *)
@@ -128,6 +144,9 @@ let tpp_compare t1 t2 =
   | TppExit,_ -> 1
   | _,TppExit -> -1
   | TppNode(v1),TppNode(v2) -> compare v1 v2
+
+
+
   
 (* Function [list_remove_duplicates f l] takes a list [l], sorts it using comparsion
    function [f] and removes any duplicates that exists in the list. The returned
@@ -244,6 +263,9 @@ let parse_ta_strings filename lines =
         let pos' = parse_positive_int filename lineno pos in
         let value' = parse_abstract_value filename lineno value in 
         extract ts fname ((pos',value')::args) gvars fwcet fbcet ta_req acc)
+    | (lineno,["globalvar";var;value])::ts -> (
+        let value' = parse_abstract_value filename lineno value in 
+        extract ts fname args (((usid var),value')::gvars) fwcet fbcet ta_req acc)
     | [] -> (
         match fname with
         | Some(prename) -> 

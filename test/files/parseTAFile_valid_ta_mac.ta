@@ -7,6 +7,7 @@
 arg        0    20
 arg        1    100
 globalvar  x    100
+globalvar  y    300
 funcWCET   foo2 56000
 
 # Requested timing analysis
