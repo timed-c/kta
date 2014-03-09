@@ -72,10 +72,11 @@ type func_ta_req = {
   funcname : ustring;               (* Name of the function that should be analyzed *)
   args : (argno * value) list;      (* Argument assumptions. argno = 0 is first argument *)
   gvars : (sid * value) list;       (* Global variable assumptions *)
-  fwcet : (sid * int) list;         (* Assumed WCET in clock cycles for functions *)
-  fbcet : (sid * int) list;         (* Assumed BCET in clock cycles for functions *)  
+  fwcet : (sid * time) list;        (* Assumed WCET in clock cycles for functions *)
+  fbcet : (sid * time) list;        (* Assumed BCET in clock cycles for functions *)  
   ta_req : (lineno * ta_req) list;  (* Requested timing analysis values *)
 }
+
 
 (* Timing analysis requests within a file *)
 type file_ta_req = {
@@ -85,6 +86,24 @@ type file_ta_req = {
 }
 
 
+(** Pretty print a timing program point *)
+let pprint_tpp tpp =
+  match tpp with 
+  |TppEntry -> us"entry"
+  |TppExit -> us"exit"
+  |TppNode(i) -> ustring_of_int i
+
+
+
+
+(** Pretty print a time value *)
+let pprint_time_value v = 
+  match v with
+  | TimeCycles(i) -> ustring_of_int i
+  | TimeInfinity -> us"infinity"
+  | TimeUnknown -> us"unknown"
+
+
 
 (** Pretty print an abstract value *)
 let pprint_abstract_value v =
@@ -92,6 +111,21 @@ let pprint_abstract_value v =
   | VInt(i1,i2) when i1 = i2 -> ustring_of_int i1
   | VInt(i1,i2) -> ustring_of_int i1 ^. us".." ^. ustring_of_int i2
 
+
+let pprint_req_name req = 
+  match req with 
+  | ReqWCP(_,_) -> us"WCP"
+  | ReqBCP(_,_) -> us"BCP"
+  | ReqLWCET(_,_) -> us"LWCET"
+  | ReqLBCET(_,_) -> us"LBCET"
+  | ReqFWCET(_,_) -> us"FWCET"
+  | ReqFBCET(_,_) -> us"FBCET"
+
+
+(* Returns the pair of timing program points from a timing request *)
+let get_req_tpp req = 
+  match req with ReqWCP(t1,t2)  | ReqBCP(t1,t2) | ReqLWCET(t1,t2) | ReqLBCET(t1,t2) |
+                 ReqFWCET(t1,t2) | ReqFBCET(t1,t2) -> (t1,t2)
 
 
 
@@ -105,15 +139,37 @@ let pprint_func_ta_req func_ta_req =
     Ustring.concat (us"\n") 
       (List.map (fun (argno,v) -> us"arg " ^. ustring_of_int argno ^. us" " ^.
                  pprint_abstract_value v) func_ta_req.args) ^. us"\n") ^.
+
   (* Global variables *)
   (if List.length func_ta_req.gvars = 0 then us"" else 
     Ustring.concat (us"\n") 
       (List.map (fun (x,v) -> us"globalvar " ^. ustring_of_sid x ^. us" " ^.
-                 pprint_abstract_value v) func_ta_req.gvars) ^. us"\n") 
+                 pprint_abstract_value v) func_ta_req.gvars) ^. us"\n") ^. 
 
+  (* Function WCET assumptions *)
+  (if List.length func_ta_req.fwcet = 0 then us"" else 
+    Ustring.concat (us"\n") 
+      (List.map (fun (x,v) -> us"funcWCET " ^. ustring_of_sid x ^. us" " ^.
+                 pprint_time_value v) func_ta_req.fwcet) ^. us"\n")  ^.
 
-
+  (* Function BCET assumptions *)
+  (if List.length func_ta_req.fbcet = 0 then us"" else 
+    Ustring.concat (us"\n") 
+      (List.map (fun (x,v) -> us"funcBCET " ^. ustring_of_sid x ^. us" " ^.
+                 pprint_time_value v) func_ta_req.fbcet) ^. us"\n") ^.
   
+  (* Timing requests *)
+  (if List.length func_ta_req.ta_req = 0 then us"" else 
+    Ustring.concat (us"\n") 
+      (List.map (fun (_,req) -> 
+                 let (tpp1,tpp2) = get_req_tpp req in
+                 pprint_req_name req ^. us" " ^.
+                 pprint_tpp tpp1 ^. us" " ^. pprint_tpp tpp2) 
+                 func_ta_req.ta_req) ^. us"\n") 
+
+
+
+
 
 (** Pretty print the content of a timing analysis file *)
 let pprint_file_ta_req file_ta_req = 
@@ -125,11 +181,6 @@ let pprint_file_ta_req file_ta_req =
 
 
 
-
-(* Returns the pair of timing program points from a timing request *)
-let get_req_tpp req = 
-  match req with ReqWCP(t1,t2)  | ReqBCP(t1,t2) | ReqLWCET(t1,t2) | ReqLBCET(t1,t2) |
-                 ReqFWCET(t1,t2) | ReqFBCET(t1,t2) -> (t1,t2)
 
 
 
@@ -204,6 +255,31 @@ let dummy_timing_analysis func_ta_req =
   ) [] func_ta_req.ta_req)
 
 
+(* Parses a positive integer and raises TA_file_syntax_erro if something is wrong. *)
+let parse_positive_int filename line_no value  = 
+  let v = try int_of_string value 
+     with _ -> raise (TA_file_syntax_error(filename,line_no)) in
+  if v < 0 then raise (TA_file_syntax_error(filename,line_no))
+  else v
+
+
+
+(** Parse a timing program point *)
+let parse_tpp filename line_no str =
+  match str with 
+  | "entry" -> TppEntry
+  | "exit" -> TppExit
+  | _ -> TppNode(parse_positive_int filename line_no str)
+
+
+(* Parse an literal to to a time value *)
+let parse_time_literal filename line_no str =
+  if str = "infinity" then TimeInfinity else
+  let v = try int_of_string str
+    with _ -> raise (TA_file_syntax_error(filename,line_no)) in
+  TimeCycles(v)
+
+
 
                       
 (* Parse a value. Raise exception TA_file_syntax_error if the kind of value is
@@ -216,13 +292,6 @@ let parse_abstract_value filename line_no value =
 
   
   
-(* Parses a positive integer and raises TA_file_syntax_erro if something is wrong. *)
-let parse_positive_int filename line_no value  = 
-  let v = try int_of_string value 
-     with _ -> raise (TA_file_syntax_error(filename,line_no)) in
-  if v < 0 then raise (TA_file_syntax_error(filename,line_no))
-  else v
-
 
 
 
@@ -266,6 +335,36 @@ let parse_ta_strings filename lines =
     | (lineno,["globalvar";var;value])::ts -> (
         let value' = parse_abstract_value filename lineno value in 
         extract ts fname args (((usid var),value')::gvars) fwcet fbcet ta_req acc)
+    | (lineno,["funcWCET";var;time])::ts -> (
+        let tval = parse_time_literal filename lineno time in 
+        extract ts fname args gvars (((usid var),tval)::fwcet) fbcet ta_req acc)        
+    | (lineno,["funcBCET";var;time])::ts -> (
+        let tval = parse_time_literal filename lineno time in 
+        extract ts fname args gvars fwcet (((usid var),tval)::fbcet) ta_req acc)        
+    | (lineno,["WCP";tpp1;tpp2])::ts -> (
+        let mktpp = parse_tpp filename lineno in
+        let newreq = (lineno,ReqWCP(mktpp tpp1,mktpp tpp2)) in
+        extract ts fname args gvars fwcet fbcet (newreq::ta_req) acc)
+    | (lineno,["BCP";tpp1;tpp2])::ts -> (
+        let mktpp = parse_tpp filename lineno in
+        let newreq = (lineno,ReqBCP(mktpp tpp1,mktpp tpp2)) in
+        extract ts fname args gvars fwcet fbcet (newreq::ta_req) acc)
+    | (lineno,["LWCET";tpp1;tpp2])::ts -> (
+        let mktpp = parse_tpp filename lineno in
+        let newreq = (lineno,ReqLWCET(mktpp tpp1,mktpp tpp2)) in
+        extract ts fname args gvars fwcet fbcet (newreq::ta_req) acc)
+    | (lineno,["LBCET";tpp1;tpp2])::ts -> (
+        let mktpp = parse_tpp filename lineno in
+        let newreq = (lineno,ReqLBCET(mktpp tpp1,mktpp tpp2)) in
+        extract ts fname args gvars fwcet fbcet (newreq::ta_req) acc)
+    | (lineno,["FWCET";tpp1;tpp2])::ts -> (
+        let mktpp = parse_tpp filename lineno in
+        let newreq = (lineno,ReqFWCET(mktpp tpp1,mktpp tpp2)) in
+        extract ts fname args gvars fwcet fbcet (newreq::ta_req) acc)
+    | (lineno,["FBCET";tpp1;tpp2])::ts -> (
+        let mktpp = parse_tpp filename lineno in
+        let newreq = (lineno,ReqFBCET(mktpp tpp1,mktpp tpp2)) in
+        extract ts fname args gvars fwcet fbcet (newreq::ta_req) acc)
     | [] -> (
         match fname with
         | Some(prename) -> 

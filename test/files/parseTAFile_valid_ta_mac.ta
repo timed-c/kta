@@ -1,7 +1,7 @@
 # Comments must start with a # characters. Empty lines are ignored.
 
-   # Function name
- function foo 
+# Function name
+function foo 
 
 # Optional assumptions
 arg        0    20
@@ -10,13 +10,18 @@ globalvar  x    100
 globalvar  y    300
 funcWCET   foo2 56000
 funcBCET   foo2 2000
+funcWCET   foo3 infinity
 
 # Requested timing analysis
-WCP 3 10 
-FWCET   5  10 
-LBCET   0  exit 
+WCP   3     10 
+BCP   entry exit
+FWCET 5     10 
+FBCET 10    100
+LWCET entry 33
+LBCET 0     exit 
 
 
+# It is possible to have many functions in the same file
 function bar
 arg 0 40
 LWCET entry exit
