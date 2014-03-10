@@ -2,7 +2,7 @@
 
 # Function name
 function foo 
-
+  
 # Optional assumptions
 arg        0    20
 arg        1    100
@@ -13,18 +13,24 @@ funcBCET   foo2 2000
 funcWCET   foo3 infinity
 
 # Requested timing analysis
-WCP   3     10 
-BCP   entry exit
-FWCET 5     10 
-FBCET 10    100
-LWCET entry 33
-LBCET 0     exit 
+LWCET 1 3
+LWCET exit 2 
+LBCET entry 6
+LBCET entry 13
+WCP entry exit  
+WCP entry 4
+BCP 2 2
+BCP 3 exit
+FWCET 1 4 
+FWCET 6 2
+FBCET 2 5 
 
 
-# It is possible to have many functions in the same file
+
+# It is possible to have several functions in the same file
 function bar
-arg 0 40
-LWCET entry exit
+WCP   3     10 
+
 
 
 

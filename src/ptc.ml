@@ -13,6 +13,8 @@ exception Argument_error
    filename and line number for the error. *)
 exception TA_file_syntax_error of string * int
 
+(* Returns exception if a file cannot be open or read *)
+exception File_read_error of string
 
 (* Structure representing the sorted list of different file arguments 
    that were supplied when executing ptc. *)
@@ -95,6 +97,14 @@ let pprint_tpp tpp =
 
 
 
+(** Pretty print a path between timing program points *)
+let pprint_path path =
+  match path with  
+  | TppPath(tpps) -> Ustring.concat (us",") (List.map pprint_tpp tpps)
+  | TppPathInfinity -> us"infinity"  
+  | TppPathUnknown -> us"unknown"
+
+
 
 (** Pretty print a time value *)
 let pprint_time_value v = 
@@ -170,6 +180,24 @@ let pprint_func_ta_req func_ta_req =
 
 
 
+(* Pretty print simple output for timing analysis response (comma separated) *)
+let pprint_simple_ta_res ta_res =
+  List.fold_left (fun acc res ->
+    (match res with 
+     | ResWCP(path) -> acc ^. pprint_path path  
+     | ResBCP(path) -> acc ^. pprint_path path
+     | ResLWCET(t) | ResLBCET(t) | ResFWCET(t) | ResFBCET(t) 
+       -> acc ^. pprint_time_value t) ^. us"\n"
+  ) (us"") ta_res
+
+
+
+  
+(* Pretty print full output for timing analysis response (including all text of the
+   request *)
+let pprint_full_ta_res func_ta_req ta_res = us"Full!"
+
+
 
 (** Pretty print the content of a timing analysis file *)
 let pprint_file_ta_req file_ta_req = 
@@ -178,8 +206,6 @@ let pprint_file_ta_req file_ta_req =
      ustring_of_int (List.length (file_ta_req.func_ta_reqs)) ^. us"\n" ^.
   Ustring.concat (us"----\n") (List.map pprint_func_ta_req (file_ta_req.func_ta_reqs)) ^.
   us"\n"
-
-
 
 
 
@@ -217,13 +243,13 @@ let list_remove_duplicates compare_func list =
    responses *)
 let dummy_timing_analysis func_ta_req = 
   (* Get all programming point numbers *)
-  let tpps = List.fold_left (fun acc (_,tareq) -> 
+  let tpps = TppEntry::TppExit::(List.fold_left (fun acc (_,tareq) -> 
     let (t1,t2) = get_req_tpp tareq in t1::t2::acc 
-  ) [] (func_ta_req.ta_req)
+  ) [] (func_ta_req.ta_req))
   in
-  
+
   (* Remove all duplicates *)
-  let tpps_distinct = list_remove_duplicates tpp_compare tpps in
+  let tpps_distinct = List.rev (list_remove_duplicates tpp_compare tpps) in  
 
   (* Sort and create absolute time for each tpp as an associate list *)
   let timediff = 100 in
@@ -238,12 +264,16 @@ let dummy_timing_analysis func_ta_req =
       let cv = tpp_compare t1 t2 in
       if cv = 0 then TppPath([t1]) else if cv > 0 then TppPathInfinity else 
           TppPath(List.filter (fun x -> 
-            tpp_compare x t1 >= 0 && tpp_compare x t2 <= 0) tpps_distinct))
+            (match x with | TppNode(13) -> false | _ -> ( 
+            tpp_compare x t1 >= 0 && tpp_compare x t2 <= 0))) tpps_distinct))
     in
     let get_ta_time t1 t2 wrong_order =
+      match t1,t2 with 
+      | TppNode(13),_ | _,TppNode(13) -> TimeUnknown 
+      | _ ->  (
       let cv = tpp_compare t1 t2 in
       if cv = 0 then TimeCycles(0) else if cv > 0 then wrong_order else 
-      TimeCycles(List.assoc t2 tpp_times - List.assoc t1 tpp_times)
+      TimeCycles(List.assoc t2 tpp_times - List.assoc t1 tpp_times))
     in                                                               
     match tareq with
     | ReqWCP(t1,t2)  -> ResWCP(find_path t1 t2)::acc
@@ -253,6 +283,9 @@ let dummy_timing_analysis func_ta_req =
     | ReqFWCET(t1,t2) -> ResFWCET(get_ta_time t1 t2 (TimeCycles(0)))::acc
     | ReqFBCET(t1,t2) -> ResFBCET(get_ta_time t1 t2 (TimeCycles(0)))::acc
   ) [] func_ta_req.ta_req)
+
+
+
 
 
 (* Parses a positive integer and raises TA_file_syntax_erro if something is wrong. *)
@@ -365,6 +398,7 @@ let parse_ta_strings filename lines =
         let mktpp = parse_tpp filename lineno in
         let newreq = (lineno,ReqFBCET(mktpp tpp1,mktpp tpp2)) in
         extract ts fname args gvars fwcet fbcet (newreq::ta_req) acc)
+    | (lineno,_)::ts -> raise (TA_file_syntax_error(filename,lineno))
     | [] -> (
         match fname with
         | Some(prename) -> 
@@ -373,14 +407,7 @@ let parse_ta_strings filename lines =
                        fbcet = List.rev fbcet; ta_req = List.rev ta_req} in
           func::acc
         | None -> acc)
-    | _::ts -> extract ts fname args gvars fwcet fbcet ta_req acc
   in 
-  (* Test code *)
-  let tlines = List.map (fun (no,toks) -> 
-    let l = Ustring.concat (us",") toks in
-    ustring_of_int no ^. us": " ^. l) tokenlst
-  in
-  uprint_endline (Ustring.concat (us"\n") tlines);
   List.rev (extract utf8tokens None [] [] [] [] [] [])
 
 
@@ -390,16 +417,22 @@ let parse_ta_strings filename lines =
 (** Raises exception Sys_error if the file cannot be found. *)
 let parse_ta_file filename =
   (* Read file and split into list of lines *)
-  let lines = Ustring.split (Ustring.read_file filename) (us"\n") in
-
+  let lines = 
+    try 
+      Ustring.split (Ustring.read_file filename) (us"\n") 
+    with
+    | Sys_error(_) -> (raise (File_read_error filename))
+  in
+    
   (* Parse requested string and return the request structure for a file *)
   let func_ta_reqs = parse_ta_strings filename lines in
   {filename; lines; func_ta_reqs} 
 
 
-
+(** Error levels *)
 type error_level = Error | Warning
   
+
 
 (** Format and print an error message to the standard output *)
 let print_error filename line column level message =
@@ -410,10 +443,51 @@ let print_error filename line column level message =
 
 
 
+(** Function [run_timing_analysis names w s f] performs timing analysis
+    according to the specification in the list of files [names] using
+    timing analysis function [f]. If flag [w] is true, the result is
+    written to files with the same name as in [names], appended with the
+    suffix [".out"]. If the simple output flag [s] is true, then the generated
+    output format is simple. The function returns the concatenated string of 
+    all output. *)
+let run_timing_analysis filenames write_files simple_output func_timing_analysis =
+  (* Parse all files *)
+  let file_ta_requests = List.map parse_ta_file filenames in
+
+  (* Iterate over all file requests. *)
+  List.fold_left (fun acc file_ta_req -> 
+    (* Perform timing analysis on all functions *)
+    let ta_reps = List.map (fun x -> (x,func_timing_analysis x)) 
+      (file_ta_req.func_ta_reqs) in
+    (* Generate pretty printed output for one function *)
+    let output = Ustring.concat (us"") (List.map (fun (req,res) ->
+      (if simple_output then pprint_simple_ta_res else pprint_full_ta_res req) res)
+      (ta_reps)) in
+    (* If chosen, write to file *)
+    if write_files then Ustring.write_file (file_ta_req.filename ^ ".out") output;
+    (* Accumulate all output *)
+    acc ^. output 
+  ) (us"") file_ta_requests 
+
+
+
+
+    
+
+    
 
 let main =
   let filenames =  (List.tl (Array.to_list (Sys.argv))) in
-  let file_ta_req = 
+  try run_timing_analysis filenames true true dummy_timing_analysis
+  with 
+    | TA_file_syntax_error(filename,line) -> 
+      (print_error filename line 0 Error "Syntax error in timing analysis file.";
+      exit 1)
+    | File_read_error(filename) ->
+      (print_error filename 0 0 Error ("Error reading file '" ^ filename ^ "'");
+      exit 1)
+
+(*  let file_ta_req = 
     try List.map parse_ta_file filenames
     with 
     | TA_file_syntax_error(filename,line) -> 
@@ -422,7 +496,7 @@ let main =
   in
   uprint_endline (Ustring.concat (us"") 
     (List.map (fun x -> us"=============\n" ^. pprint_file_ta_req x) file_ta_req))
-
+*)
   
 
 
