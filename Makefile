@@ -6,7 +6,7 @@ DIRS = src,ext/ucamlib/src
 
 # Init submodules if needed and make native version. 
 # The resulting executable can be found under /bin and /library (symlinks)
-all:    ext/ucamlib/Makefile native gendoc
+all:    ext/ucamlib/Makefile native 
 
 
 # Compile native version
@@ -25,6 +25,10 @@ ext/ucamlib/Makefile:
 	@git submodule init
 	@git submodule update
 	@cd ext/ucamlib; git checkout master
+
+addsubtrees:
+	git subtree add --prefix etc/mlvm /Users/broman/Dropbox/ptcrepo/mlvm.git master --squash
+
 
 # Update git sub modules
 update:
