@@ -1,0 +1,8 @@
+
+
+Install on Ubuntu 12.04 LTS 
+sudo apt-get install clang libc6-dev-i386
+
+The latter is needed if you are using 64-bits version (check!)
+
+
