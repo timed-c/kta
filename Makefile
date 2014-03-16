@@ -35,17 +35,18 @@ doc/user/manual.html: doc/user/manual.txt
 
 # Handling subtree for ext/mlvm
 MLVM_GIT = /Users/broman/Dropbox/ptcrepo/mlvm.git
+MLVM_MSG = 'Updated mlvm'
 add_mlvm:
 	git subtree add --prefix ext/mlvm $(MLVM_GIT) master --squash
 pull_mlvm:
-	git subtree pull --prefix ext/mlvm $(MLVM_GIT) master --squash
+	git subtree pull --prefix ext/mlvm $(MLVM_GIT) master --squash -m $(MLVM_MSG)
 push_mlvm:
 	git subtree push --prefix ext/mlvm $(MLVM_GIT) master --squash
 
 
 # Handling subtree for ext/ucamlib
 UCAMLIB_GIT = https://github.com/david-broman/ucamlib.git
-UCAMLIB_MSG = 'Updated the ucamlib'
+UCAMLIB_MSG = 'Updated ucamlib'
 add_ucamlib:
 	git subtree add --prefix ext/ucamlib $(UCAMLIB_GIT) master --squash 
 pull_ucamlib:
