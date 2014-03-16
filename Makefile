@@ -6,7 +6,7 @@ DIRS = src,ext/ucamlib/src
 
 # Init submodules if needed and make native version. 
 # The resulting executable can be found under /bin and /library (symlinks)
-all:    ext native gendoc
+all:    ext/ucamlib/Makefile native gendoc
 
 
 # Compile native version
@@ -21,12 +21,15 @@ byte: 	bin
 
 
 # If ucamlib content does not exist, init and update submodules
-ext:
-	@mkdir ext
-	@mkdir ext/ucamlib
-	git submodule init
-	git submodule update
-	cd ext/ucamlib; git checkout master
+ext/ucamlib/Makefile:
+	@git submodule init
+	@git submodule update
+	@cd ext/ucamlib; git checkout master
+
+# Update git sub modules
+update:
+	@cd ext/ucamlib; git checkout master; git pull
+
 
 bin:	
 	@mkdir bin
@@ -42,10 +45,6 @@ gendoc: doc/user/manual.html
 doc/user/manual.html: doc/user/manual.txt
 	@cd doc/user/; asciidoc manual.txt
 
-
-# Update git sub modules
-update:
-	@cd ext/ucamlib; git checkout master; git pull
 
 
 # Clean all submodules and the main Modelyze source
