@@ -30,9 +30,13 @@ add_subtrees:
 	git subtree add --prefix ext/mlvm /Users/broman/Dropbox/ptcrepo/mlvm.git master --squash
 
 
-# Update git sub modules
-update:
+# Update subtrees from their main repositories.
+pull_mlvm:
 	git subtree pull --prefix ext/mlvm /Users/broman/Dropbox/ptcrepo/mlvm.git master --squash
+
+# Update subtrees from their main repositories.
+push_mlvm:
+	git subtree push --prefix ext/mlvm /Users/broman/Dropbox/ptcrepo/mlvm.git master --squash
 
 
 #	@cd ext/ucamlib; git checkout master; git pull
