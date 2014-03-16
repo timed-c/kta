@@ -37,7 +37,7 @@ all:    libs apidoc
 	@echo "--------------------------------------"	
 	@echo "Finished building ucamlib."	
 	@echo "The new libraries are availble in 'libs/'."
-	@echo "Generated API documenation is available in 'doc/api'."
+	@echo "The generated API documenation is available in 'doc/api'."
 
 libs:	
 	mkdir libs
