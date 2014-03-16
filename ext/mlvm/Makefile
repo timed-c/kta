@@ -17,7 +17,7 @@ libs:
 	@mkdir libs
 
 
-add_subtrees:
+add_ucamllib:
 	git subtree add --prefix ext/ucamlib https://github.com/david-broman/ucamlib.git master --squash
 
 
