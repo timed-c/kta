@@ -1,3 +1,0 @@
-[submodule "ext/ucamlib"]
-	path = ext/ucamlib
-	url = https://github.com/david-broman/ucamlib.git
