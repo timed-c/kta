@@ -1,0 +1,24 @@
+
+
+
+
+Comment:
+- It is unclear if new abbreviations can be added to a block if already a
+BLOCKINFO block has defined abbreviations. If so, should the abbreviation number be increased?
+
+- The blob (code 5) in DEFINE_ABBREV do not say what vbr6 stands for. I assume it is the
+  length of the blob, but it should be stated explicitly.
+
+- In ENTER_SUBBLOCK it is unclear what blocklen means. It should be made clear by an
+  example that it does not include the Enter_subblock data.
+
+- The LLVM IR Blocks are incorrect. Compare with file include/llvm/Bitcode/LLVMBitCodes.h
+
+- A bug in the documentation that took long time to find. In section
+  DEFINE_ABBREV Encoding. It is not clear that the literal operand
+  should not be emitted in the real string. To clarify this, it would
+  be good to state this explicitly and also to have a small example
+  show this (same way as was done with arrays.)
+
+- It is unclear how the bitcode file ends. When looking at many files, it seems that there
+  are some trailing bytes. 

@@ -1,0 +1,37 @@
+
+The PTC User Manual
+====================
+By David Broman. Copyright (C) 2013-2014.
+:toc:
+:numbered:
+
+Introduction
+------------
+
+The 'precision timed compiler (ptc)' is a tool chain designed for
+compiling and analyzing programs with respect to real-time. The ptc
+compiler uses 'clang' as front-end for compiling a C/C++ program into
+LLVM assembly code.
+
+
+Getting started 
+---------------- 
+
+This text...
+
+* This is a bullet item.
+* This is another.
+
+
+Timing Analysis Input Format
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If a filename with ending +.ta+ (for 'timing analysis') is supplied as
+arguments to the ptc compiler, the compiler will perform timing
+analysis as part of the compilation processes.
+
+
+
+
+Frequently Asked Questions (FAQs)
+---------------------------------
