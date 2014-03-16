@@ -1,8 +1,0 @@
-
-LIB_NAME = extlib
-FILES = enum pMap
-TEST_FILES = 
-ONLY_MLI_FILES = 
-INCLUDE_DIR = 
-DEP_LIBS = 
-UNITTEST_DIR = 
