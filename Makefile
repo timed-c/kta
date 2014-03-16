@@ -26,15 +26,13 @@ ext/ucamlib/Makefile:
 	@git submodule update
 	@cd ext/ucamlib; git checkout master
 
-add_subtrees:
+
+
+add_mlvm:
 	git subtree add --prefix ext/mlvm /Users/broman/Dropbox/ptcrepo/mlvm.git master --squash
 
-
-# Update subtrees from their main repositories.
 pull_mlvm:
 	git subtree pull --prefix ext/mlvm /Users/broman/Dropbox/ptcrepo/mlvm.git master --squash
-
-# Update subtrees from their main repositories.
 push_mlvm:
 	git subtree push --prefix ext/mlvm /Users/broman/Dropbox/ptcrepo/mlvm.git master --squash
 
