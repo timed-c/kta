@@ -6,7 +6,7 @@ DIRS = src,ext/ucamlib/src
 
 # Init submodules if needed and make native version. 
 # The resulting executable can be found under /bin and /library (symlinks)
-all:    ext/ucamlib/Makefile native 
+all:    native 
 
 
 # Compile native version
@@ -19,17 +19,8 @@ byte: 	bin
 	@ocamlbuild -Is $(DIRS) ptc.byte	
 	@mv -f ptc.byte bin/ptc
 
-
-# If ucamlib content does not exist, init and update submodules
-ext/ucamlib/Makefile:
-	@git submodule init
-	@git submodule update
-	@cd ext/ucamlib; git checkout master
-
-
 bin:	
 	@mkdir bin
-
 
 # Generate all documentation
 gendoc: doc/user/manual.html
