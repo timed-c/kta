@@ -32,7 +32,10 @@ add_subtrees:
 
 # Update git sub modules
 update:
-	@cd ext/ucamlib; git checkout master; git pull
+	git subtree pull --prefix ext/mlvm /Users/broman/Dropbox/ptcrepo/mlvm.git master --squash
+
+
+#	@cd ext/ucamlib; git checkout master; git pull
 
 
 bin:	
