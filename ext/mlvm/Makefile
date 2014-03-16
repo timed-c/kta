@@ -3,7 +3,7 @@ DIRS = src,test,ext/ucamlib/src,ext/extlib
 
 .PHONY: all test clean
 
-all:    ext/ucamlib/Makefile libs 
+all:    libs 
 	@ocamlbuild -Is $(DIRS) mlvm.cma
 	@ocamlbuild -Is $(DIRS) mlvm.cmxa
 	@cp _build/src/mlvm.cma libs/.
@@ -17,15 +17,9 @@ libs:
 	@mkdir libs
 
 
-# If ucamlib content does not exist, init and update submodules
-ext/ucamlib/Makefile:
-	@git submodule init
-	@git submodule update
-	@cd ext/ucamlib; git checkout master
+add_subtrees:
+	git subtree add --prefix ext/ucamlib https://github.com/david-broman/ucamlib.git master --squash
 
-# Update git sub modules
-update:
-	@cd ext/ucamlib; git checkout master; git pull
 
 test:
 	ocamlbuild -Is $(DIRS) maintest.byte --
