@@ -10,17 +10,16 @@ all:    native
 
 
 # Compile native version
-native: bin 
+native: 
 	@ocamlbuild -Is $(DIRS) ptc.native 
-	@mv -f ptc.native bin/ptc
+	@rm -f ptc.native
+	@rm -rf bin; mkdir bin; cd bin; cp ../_build/src/ptc.native ptc 
 
 # Compile byte code version
-byte: 	bin 
+byte: 	
 	@ocamlbuild -Is $(DIRS) ptc.byte	
-	@mv -f ptc.byte bin/ptc
-
-bin:	
-	@mkdir bin
+	@rm -f ptc.byte
+	@rm -rf bin; mkdir bin; cd bin; cp ../_build/src/ptc.byte ptc 
 
 # Generate all documentation
 gendoc: doc/user/manual.html
