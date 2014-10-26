@@ -15,7 +15,8 @@
 
 #define sign_extend(x,w) ((((int)(x)) << (intbits - (w))) >> (intbits - (w)))
 
-#define aint_set(name,l,h,w) \
+/* Set a variable to an interval. w is the word bith length  */
+#define aint_set_interval(name,l,h,w) \
   name##low = l & mask(w); \
   name##high = h & mask(w)
 
@@ -90,7 +91,9 @@ if((sign_extend(x##high) >= sign_extend(x##low) &&\
            "       Line %d, File: %s\n", name##low, name##high, \
            exp_low, exp_high,  __LINE__, __FILE__); \
     exit(1);\
-  } 
+  }\
+  else\
+    printf("Test [%d,%d] is OK.\n", exp_low, exp_high);
 
 void ptver_startup_check(){
   if(sizeof(int) != 4){
