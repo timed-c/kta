@@ -12,40 +12,18 @@ b1:
   %r1 = add i32 0, 0
   br label %b2
 b2:      
-  %i2 = phi i32 [%i1, %b1], [%i7, %b7]  
-  %r2 = phi i32 [%r1, %b1], [%r7, %b7]
+  %i2 = phi i32 [%i1, %b1], [%i3, %b3]  
+  %r2 = phi i32 [%r1, %b1], [%r3, %b3]
   %c2 = icmp slt i32 %i2, %max
-  br i1 %c2, label %b3, label %b8
+  br i1 %c2, label %b3, label %b4
 
 b3:
-  %c3 = icmp slt i32 %i2, %a
-  %j3 = add i32 0, %i2
-  br i1 %c3, label %b4, label %b6
-
-b4: 
-  %j4 = phi i32 [%j3, %b3], [%j5, %b5]
-  %r4 = phi i32 [%r2, %b3], [%r5, %b5]
-  %c4 = icmp slt i32 %j4, 10
-  br i1 %c4, label %b6, label %b5
-
-b5:
-  %r5 = add i32 %r4, %j4 
-  %j5 = add i32 %j4, -1
-  br label %b4
-
-b6:
-  %r6 = phi i32 [%r2, %b3], [%r4, %b4]
-  %c6 = icmp slt i32 %i2, %b
-  br i1 %c6, label %b7, label %b8
-
-b7:
-  %r7 = add i32 %r6, %i2
-  %i7 = add i32 %i2, %k
+  %r3 = add i32 %r2, %i2
+  %i3 = add i32 %i2, %k
   br label %b2
 
-b8:
-  %r8 = phi i32 [%r2, %b2], [%r6, %b6]
-  ret i32 %r8
+b4:
+  ret i32 %r2
 
 
 }
