@@ -47,12 +47,19 @@
   In the following, the semantics of each operation is described briefly
   
   ADD: z = x + y
-   - If x = TOP or y = TOP then z = TOP 
+   - If x = TOP or y = TOP then z := TOP 
    - Let th = x.high + y.high and tl = x.low + y.low
-       if th > maxval or tl < minval then z = TOP
-       else z.high = th and z.low = tl
+       if th > maxval or tl < minval then z := TOP
+       else z.high := th and z.low := tl
    - Note that we do not need to compare th < minval because 
         if th < minval, then tl < minval.
+
+  MERGE: z = merge(x,y)
+   - If x = TOP or y = TOP then z := TOP 
+   - z.high :=  max(x.high,y.high)
+   - z.low := min(x.low,y.low)
+
+  
 */
 
 
@@ -88,11 +95,18 @@
     }
   
 
-
 /* Merges the abstract values x and y and saves the result
    in z. Parameter w is the bit width. This macro assumes
    that both values x and y have the same bitwith w. */
-//#define merge(z,x,y,w)                        \
+#define merge(z,x,y,w)                        \
+  if(is_top(x) || is_top(y))\
+    {z##high = -777; z##low = 777;}  \
+  else{\
+     z##high = (x##high > y##high) ? x##high : y##high;  \
+     z##low = (x##low < y##low) ? x##low : y##low;         \
+    }
+
+
 
 #define icmp_sgt(z,x,y,w)\
 if((sign_extend(x##high) >= sign_extend(x##low) &&\

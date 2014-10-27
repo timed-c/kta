@@ -6,7 +6,7 @@
 #include "absint_interval.h"
 
 
-void test_add_instr()
+void test_add()
 {
   aint(x,32);
   aint(y,32);
@@ -61,12 +61,35 @@ void test_add_instr()
 }
 
 
+void test_merge()
+{
+  aint(x,32);
+  aint(y,32);
+  aint(z,32);
+
+  set_interval(x,100,1000,32);
+  set_interval(y,50,3000,32);
+  merge(z,x,y,32);
+  test_interval("merge: postive values (32-bit)",z,50,3000);
+
+  set_interval(x,-400,1000,32);
+  set_interval(y,-9000,-2000,32);
+  merge(z,x,y,32);
+  test_interval("merge: negative values (32-bit)",z,-9000,1000);
+
+  set_interval(x,100,100,32);
+  set_interval(y,500,500,32);
+  merge(z,x,y,32);
+  test_interval("merge: two numbers (32-bit)",z,100,500);  
+}
+
 
 int main()
 {
     ptver_startup_check();
  
-    test_add_instr();
+    test_add();
+    test_merge();
   return 0;
 }
 
