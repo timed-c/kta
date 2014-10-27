@@ -84,16 +84,16 @@ if((sign_extend(x##high) >= sign_extend(x##low) &&\
 #define aint_get_high(name) name##high
 
 
-#define test_aint(name,exp_low,exp_high) \
+#define test_aint(desc,name,exp_low,exp_high)           \
   if(name##low != exp_low || name##high != exp_high){   \
-    printf("ERROR! Incorrect interval. Current: [%u,%u] " \
+    printf("ERROR! Incorrect value for test '%s' Current: [%u,%u] " \
            "Expected: [%u,%u]\n"\
-           "       Line %d, File: %s\n", name##low, name##high, \
+           "       Line %d, File: %s\n", desc, name##low, name##high,    \
            exp_low, exp_high,  __LINE__, __FILE__); \
     exit(1);\
   }\
   else\
-    printf("Test [%d,%d] is OK.\n", exp_low, exp_high);
+    printf("Test '%s' is OK.\n", desc);
 
 void ptver_startup_check(){
   if(sizeof(int) != 4){
