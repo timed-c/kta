@@ -47,19 +47,46 @@
   In the following, the semantics of each operation is described briefly
   
   ADD: z = x + y
-   - If x = TOP or y = TOP then z := TOP 
-   - Let th = x.high + y.high and tl = x.low + y.low
-       if th > maxval or tl < minval then z := TOP
-       else z.high := th and z.low := tl
+   - if x = TOP or y = TOP then z := TOP 
+     else
+       let th = x.high + y.high and tl = x.low + y.low
+        if th > maxval or tl < minval then z := TOP
+        else z.high := th and z.low := tl
    - Note that we do not need to compare th < minval because 
         if th < minval, then tl < minval.
 
   MERGE: z = merge(x,y)
-   - If x = TOP or y = TOP then z := TOP 
-   - z.high :=  max(x.high,y.high)
-   - z.low := min(x.low,y.low)
+   - if x = TOP or y = TOP then z := TOP 
+     else 
+       z.high := max(x.high,y.high)
+       z.low := min(x.low,y.low)
+       
 
-  
+  ICMP SLT MTC: z,tx,ty = icmp_slt(x,y)   (signed less than)
+   - MT stands for "minimize true case". That is, if this results in both a
+     true and false case, this function tries to minize the abstact value for the
+     true branch. We want to minimize the in-loop edges.
+   - z is 0 if false, 1 if true, and 2 if true and false
+   - in the case if z = 2, then
+         tx and ty are the values for x and y, respectively, if z is true, 
+   - if x = TOP or y = TOP then z := TOP else
+     if x.high < y.low then z := 1 else  // only true (1)
+     if x.low >= y.high then z := 0      // only false  (2)
+     else                               
+       z := 2                            // both true and false
+       ty.high = y.high                  // fact from above
+       tx.low = x.low                    // fact from above
+    
+       if y.low <= x.low                 // can we make ty.low higher
+         ty.low := x.low + 1             // case:
+       else                              //        xxxxxxxx
+         ty.low := y.low                 //   yyyyyyy
+
+       if x.high >= y.high               // can we make tx.high lower
+         tx.high = y.high - 1            // case:
+       else                              //       xxxxxxxxxx
+         tx.high = x.high                //    yyyyyyy
+         
 */
 
 
@@ -108,30 +135,26 @@
 
 
 
-#define icmp_sgt(z,x,y,w)\
-if((sign_extend(x##high) >= sign_extend(x##low) &&\
-    (sign_extend(y##high) >= sign_extend(y##low))\
-  {\
-    if((sign_extend(x##low) > sign_extend(y##high))\
-    { \
-      z##low = 1;\
-      z##high = 1;\
+#define icmp_slt_mtc(z,tx,ty,x,y,w) \
+  if(is_top(x) || is_top(y))\
+    {z = 2;\
+     tx##high = -777; tx##low = 777;\
+     tx##high = -777; ty##low = 777;}\
+  else{\
+    if(x##high < y##low)\
+      z = 1;\
+    else{\
+      if(x##low >= y##high)\
+        z = 0;\
+      else{\
+        z = 2;\
+        ty##high = y##high;\
+        tx##low = x##low;\
+        ty##low = (y##low <= x##low) ? x##low + 1 : y##low;\
+        tx##high = (x##high >= y##high) ? y##high - 1 : x##high;\
+      }\
     }\
-    else if((sign_extend(x##high) <= sign_extend(y##low))\
-    {\
-      z##low = 0;\
-      z##high = 0;\
-    }\
-    else\
-    {\
-      z##low = 0;\
-      z##high = 1;\
-    }\
-  else\
-  {\
-    z##low = 0;\
-    z##high = 1;\
-  }
+  }  
 
 
    
@@ -151,6 +174,15 @@ if((sign_extend(x##high) >= sign_extend(x##low) &&\
   }\
   else\
     printf("Test '%s' is OK.\n", desc);
+
+#define test_case(desc,var,val)\
+  if(var != val) \
+    printf("ERROR. Incorrect result for test '%s'. Current: %d Expected: %d\n",\
+           desc, var, val);\
+  else\
+    printf("Test '%s' is OK.\n", desc)
+     
+
 
 void ptver_startup_check(){
   if(sizeof(int) != 4){
