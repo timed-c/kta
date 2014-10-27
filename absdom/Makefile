@@ -2,7 +2,7 @@
 
 
 all:
-	clang test_absint_interval.c -o test_absint_interval
+	gcc test_absint_interval.c -o test_absint_interval
 	clang loop1.c -o loop1
 	clang -S -O1 -emit-llvm loop1.c -o loop1.ll
 	clang loop1_llvm.ll -o loop1_llvm
