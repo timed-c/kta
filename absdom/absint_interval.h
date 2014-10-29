@@ -133,6 +133,10 @@
      z##low = (x##low < y##low) ? x##low : y##low;         \
     }
 
+ 
+#define move(z,x)                              \
+  z##high = x##high;\
+  z##low = x##low
 
 
 #define icmp_slt_mtc(z,tx,ty,x,y,w) \
