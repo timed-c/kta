@@ -11,15 +11,15 @@ all:    native
 
 # Compile native version
 native: 
-	@ocamlbuild -Is $(DIRS) ptc.native 
-	@rm -f ptc.native
-	@rm -rf bin; mkdir bin; cd bin; cp ../_build/src/ptc.native ptc 
+	@ocamlbuild -Is $(DIRS) ktc.native 
+	@rm -f ktc.native
+	@rm -rf bin; mkdir bin; cd bin; cp ../_build/src/ktc.native ktc 
 
 # Compile byte code version
 byte: 	
-	@ocamlbuild -Is $(DIRS) ptc.byte	
-	@rm -f ptc.byte
-	@rm -rf bin; mkdir bin; cd bin; cp ../_build/src/ptc.byte ptc 
+	@ocamlbuild -Is $(DIRS) ktc.byte	
+	@rm -f ktc.byte
+	@rm -rf bin; mkdir bin; cd bin; cp ../_build/src/ktc.byte ktc 
 
 # Generate all documentation
 gendoc: doc/user/manual.html
@@ -33,7 +33,7 @@ doc/user/manual.html: doc/user/manual.txt
 
 
 # Handling subtree for ext/mlvm
-MLVM_GIT = /Users/broman/Dropbox/ptcrepo/mlvm.git
+MLVM_GIT = https://gitr.sys.kth.se/dbro/code-mlvm.git
 MLVM_MSG = 'Updated mlvm'
 add_mlvm:
 	git subtree add --prefix ext/mlvm $(MLVM_GIT) master --squash
