@@ -120,6 +120,8 @@ let genlist f n =
 
 let xor b1 b2 = (b1 || b2) && (not (b1 && b2))
 
+let sign_extension v n =
+  if ((v lsr (n-1)) land 1) = 0 then v else (-1 lsl n) lor v 
 
 
 

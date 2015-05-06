@@ -461,6 +461,8 @@ let starts_with s2 s1 =
 let ends_with s2 s1 =
   try equal (sub s1 (length s1 - length s2) (length s2)) s2 with _ -> false
 
+
+
 (* TODO implement*) 
 let unix2dos s = s 
 
@@ -749,4 +751,9 @@ let write_file ?(encode_type=Utf8) fn s =
   Utils.write_binfile fn data
 
 
+let rec spaces_before s n =
+  if length s < n then spaces_before (Op.(^.) (Op.us" ")  s) n else s
+
+let rec spaces_after s n =
+  if length s < n then spaces_after (Op.(^.) s  (Op.us" ")) n else s
 

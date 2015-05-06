@@ -96,6 +96,11 @@ val genlist : (int -> 'a) -> int -> 'a list
 
 val xor : bool -> bool -> bool
 
+val sign_extension : int -> int -> int
+(** [sign_extension v n] assumes that the value in [v] is stored in
+    the lower [n] bits of [v]. The function sign extends the value to a
+    signed integer [int] *)
+
 module Int :
 sig
   type t = int
