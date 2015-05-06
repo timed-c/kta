@@ -474,8 +474,8 @@ let run_timing_analysis filenames write_files simple_output func_timing_analysis
 (* Simple test function that pretty prints the assembly code of 
    mips assembly code that is generated from compiling a C file. *)
 let mips_print filename = 
-  print_endline filename;
-  uprint_endline (MipsUtils.pprint_inst_list []) 
+  let insts = MipsUtils.decode (Utils.read_binfile filename) in
+  uprint_endline (MipsUtils.pprint_inst_list insts) 
     
 
     
