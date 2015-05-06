@@ -471,21 +471,31 @@ let run_timing_analysis filenames write_files simple_output func_timing_analysis
 
 
 
-
+(* Simple test function that pretty prints the assembly code of 
+   mips assembly code that is generated from compiling a C file. *)
+let mips_print filename = 
+  print_endline filename 
     
 
     
 
 let main =
-  let filenames =  (List.tl (Array.to_list (Sys.argv))) in
-  try run_timing_analysis filenames true true dummy_timing_analysis
-  with 
+  (* Do mips pretty printing test *)
+  if Sys.argv.(1) = "-mips" then 
+      mips_print (Sys.argv.(2)) 
+  else
+    (* Test and parse the timing analysis file *)
+    if true then (
+    let filenames =  (List.tl (Array.to_list (Sys.argv))) in
+    try let _ = run_timing_analysis filenames true true dummy_timing_analysis in ()
+    with 
     | TA_file_syntax_error(filename,line) -> 
       (print_error filename line 0 Error "Syntax error in timing analysis file.";
       exit 1)
     | File_read_error(filename) ->
       (print_error filename 0 0 Error ("Error reading file '" ^ filename ^ "'");
-      exit 1)
+      exit 1))
+   
 
 (*  let file_ta_req = 
     try List.map parse_ta_file filenames
