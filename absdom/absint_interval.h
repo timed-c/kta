@@ -145,8 +145,13 @@
      tx##high = -777; tx##low = 777;\
      tx##high = -777; ty##low = 777;}\
   else{\
-    if(x##high < y##low)\
+    if(x##high < y##low){                  \
       z = 1;\
+      ty##high = y##high;\
+      ty##low = y##low;\
+      tx##high = x##high;\
+      tx##low = x##low;\
+    }\
     else{\
       if(x##low >= y##high)\
         z = 0;\
