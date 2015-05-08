@@ -1,0 +1,24 @@
+
+#!/bin/bash
+
+P=mipsel-pic32-elf
+
+CFLAGS="-ffreestanding -march=mips32r2 -msoft-float -Wa,-msoft-float"
+
+# Compile 
+$P-gcc $CFLAGS -c $1.c -o $1.o 
+
+# Link
+$P-gcc $CFLAGS $1.o -o $1.elf 
+
+# Extract .text
+$P-objcopy -j.text $1.elf $1.elf_text
+$P-objcopy -Obinary $1.elf_text $1.bin_text
+
+# Asm
+$P-objdump -d $1.elf > $1.asm
+
+# Run MIPS decode and pretty print  
+ktc -mips $1.bin_text
+
+
