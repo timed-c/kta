@@ -475,6 +475,7 @@ let run_timing_analysis filenames write_files simple_output func_timing_analysis
    mips assembly code that is generated from compiling a C file. *)
 let mips_print filename = 
   let insts = MipsUtils.decode (Utils.read_binfile filename) in
+  print_endline "";
   uprint_endline (MipsUtils.pprint_inst_list insts) 
     
 

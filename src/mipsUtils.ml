@@ -10,7 +10,7 @@ exception Decode_error of string
 let decode ?(bigendian=false) data = 
   (* Check that the size of the input data is correct (multiple of 4 bytes) *)
   if (Bytes.length data) mod 4 != 0 then 
-    raise (Decode_error "MIPS decode error. The input data must be a multiple of 4 bytes.")
+    raise (Invalid_argument "MIPS decode error. The input data must be a multiple of 4 bytes.")
   else
 
   (* Function for returning endianness *)
@@ -26,7 +26,7 @@ let decode ?(bigendian=false) data =
       (int_of_char (Bytes.get data (i+1)) lsl 8) lor
       (int_of_char (Bytes.get data (i))) in
 
-  let bininst = get_32bits 0 in
+  let bininst = get_32bits 4 in
   let op = bininst lsr 26 in
   let rs() = (bininst lsr 21) land 0b11111 in
   let rt() = (bininst lsr 16) land 0b11111 in
@@ -36,9 +36,12 @@ let decode ?(bigendian=false) data =
   let imm() = Utils.sign_extension (bininst land 0xffff) 16 in
   let address() = bininst land 0x3ffffff in
   let inst = 
-    match op with 
+    match op with
+    | 0 -> (match funct() with
+            | 32 -> MipsADD(rd(),rs(),rt())
+            | 33 -> MipsADDU(rd(),rs(),rt()))
     | 9 -> MipsADDIU(rt(),rs(),imm())
-    | _ -> raise (Decode_error (sprintf "Cannot decode instruction %x." bininst))
+    | _ -> MipsUnknown(bininst)      
   in 
     [inst]
     
@@ -88,7 +91,8 @@ let pprint_inst inst =
   | MipsADD(rd,rs,rt) -> (istr "add") ^. (rdst rd rs rt)
   | MipsADDI(rt,rs,imm) -> (istr "addi") ^. (rtsimm rt rs imm)
   | MipsADDIU(rt,rs,imm) -> (istr "addiu") ^. (rtsimm rt rs imm)
-
+  | MipsADDU(rd,rs,rt) -> (istr "addu") ^. (rdst rd rs rt)
+  | MipsUnknown(inst) -> us(sprintf "0x%x" inst)
 
 
 let pprint_inst_list instlst = 

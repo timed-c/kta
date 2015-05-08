@@ -7,6 +7,9 @@ type imm = int (* Stored sign extended in the AST *)
 
 
 type inst =
-  | MipsADD    of rd * rs * rt
-  | MipsADDI   of rt * rs * imm
-  | MipsADDIU  of rt * rs * imm
+  | MipsADD     of rd * rs * rt
+  | MipsADDI    of rt * rs * imm
+  | MipsADDIU   of rt * rs * imm
+  | MipsADDU    of rd * rs * rt
+  | MipsUnknown of int
+      

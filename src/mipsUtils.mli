@@ -1,7 +1,6 @@
 
 open Ustring.Op
 
-exception Decode_error of string
 
 
 val decode : ?bigendian:bool -> bytes -> MipsAst.inst list
@@ -10,7 +9,7 @@ val decode : ?bigendian:bool -> bytes -> MipsAst.inst list
     function returns a list of MIPS assembly instructions. An optional
     parameter [bigendian] can be set to true if the input data should
     be decoded as big-endian. Default is little-endian. Raises exception
-    [Decode_error] if there is an error when decoding the data. *)
+    [Invalid_argument] if [b] is not a multiple of 4 bytes. *)
 
 val pprint_inst : MipsAst.inst -> ustring
 (** [pprint_inst i] pretty prints one instruction *)
