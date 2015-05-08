@@ -6,6 +6,23 @@ open MipsAst
 exception Decode_error of string
 
 
+let decode_inst bininst =   
+  let op = bininst lsr 26 in
+  let rs() = (bininst lsr 21) land 0b11111 in
+  let rt() = (bininst lsr 16) land 0b11111 in
+  let rd() = (bininst lsr 11) land 0b11111 in
+  let shamt() = (bininst lsr 6) land 0b11111 in
+  let funct() = bininst land 0b111111 in
+  let imm() = Utils.sign_extension (bininst land 0xffff) 16 in
+  let address() = bininst land 0x3ffffff in
+  match op with
+  | 0 -> (match funct() with
+           | 32 -> MipsADD(rd(),rs(),rt())
+           | 33 -> MipsADDU(rd(),rs(),rt())
+           | _ -> MipsUnknown(bininst))
+  | 9 -> MipsADDIU(rt(),rs(),imm())
+  | _ -> MipsUnknown(bininst)      
+    
 
 let decode ?(bigendian=false) data = 
   (* Check that the size of the input data is correct (multiple of 4 bytes) *)
@@ -24,27 +41,19 @@ let decode ?(bigendian=false) data =
       (int_of_char (Bytes.get data (i+3)) lsl 24) lor
       (int_of_char (Bytes.get data (i+2)) lsl 16) lor
       (int_of_char (Bytes.get data (i+1)) lsl 8) lor
-      (int_of_char (Bytes.get data (i))) in
+        (int_of_char (Bytes.get data (i)))
+  in
 
-  let bininst = get_32bits 4 in
-  let op = bininst lsr 26 in
-  let rs() = (bininst lsr 21) land 0b11111 in
-  let rt() = (bininst lsr 16) land 0b11111 in
-  let rd() = (bininst lsr 11) land 0b11111 in
-  let shamt() = (bininst lsr 6) land 0b11111 in
-  let funct() = bininst land 0b111111 in
-  let imm() = Utils.sign_extension (bininst land 0xffff) 16 in
-  let address() = bininst land 0x3ffffff in
-  let inst = 
-    match op with
-    | 0 -> (match funct() with
-            | 32 -> MipsADD(rd(),rs(),rt())
-            | 33 -> MipsADDU(rd(),rs(),rt()))
-    | 9 -> MipsADDIU(rt(),rs(),imm())
-    | _ -> MipsUnknown(bininst)      
-  in 
-    [inst]
-    
+  (* Decode all instructions and return a list *)
+  let rec decode_list k acc = 
+    if k < Bytes.length data then
+      decode_list (k+4) ((decode_inst (get_32bits k))::acc) 
+    else
+      acc 
+  in List.rev (decode_list 0 [])
+      
+
+  
 let reg x = us(
   match x with
   | 0  -> "$0"
@@ -92,7 +101,7 @@ let pprint_inst inst =
   | MipsADDI(rt,rs,imm) -> (istr "addi") ^. (rtsimm rt rs imm)
   | MipsADDIU(rt,rs,imm) -> (istr "addiu") ^. (rtsimm rt rs imm)
   | MipsADDU(rd,rs,rt) -> (istr "addu") ^. (rdst rd rs rt)
-  | MipsUnknown(inst) -> us(sprintf "0x%x" inst)
+  | MipsUnknown(inst) -> us(sprintf "[0x%x]" inst)
 
 
 let pprint_inst_list instlst = 
