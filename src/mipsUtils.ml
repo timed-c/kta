@@ -2,7 +2,7 @@
 open Ustring.Op
 open Printf
 open MipsAst
-
+ 
 exception Decode_error of string
 
 
@@ -17,10 +17,19 @@ let decode_inst bininst =
   let address() = bininst land 0x3ffffff in
   match op with
   | 0 -> (match funct() with
+           | 0  -> MipsNOP 
+           | 8  -> MipsJR(rs())
            | 32 -> MipsADD(rd(),rs(),rt())
-           | 33 -> MipsADDU(rd(),rs(),rt())
+           | 33 -> MipsADDU(rd(),rs(),rt())           
            | _ -> MipsUnknown(bininst))
-  | 9 -> MipsADDIU(rt(),rs(),imm())
+  | 2  -> MipsJ(address())
+  | 3  -> MipsJAL(address())
+  | 9  -> MipsADDIU(rt(),rs(),imm())
+  | 32 -> MipsLB(rt(),imm(),rs())
+  | 35 -> MipsLW(rt(),imm(),rs())
+  | 36 -> MipsLBU(rt(),imm(),rs())
+  | 40 -> MipsSB(rt(),imm(),rs())
+  | 43 -> MipsSW(rt(),imm(),rs())
   | _ -> MipsUnknown(bininst)      
     
 
@@ -90,18 +99,32 @@ let reg x = us(
   | 31 -> "$ra")
 
 let com = us","
-
+let lparan = us"("
+let rparan = us")"
 
 let pprint_inst inst = 
   let rdst rd rs rt = (reg rd) ^. com ^. (reg rs) ^. com ^. (reg rt) in
-  let rtsimm rt rs imm = (reg rt) ^. com ^. (reg rs) ^. com ^. ustring_of_int imm in
+  let rdst rd rs rt = (reg rd) ^. com ^. (reg rs) ^. com ^. (reg rt) in
+  let rtsi rt rs imm = (reg rt) ^. com ^. (reg rs) ^. com ^. ustring_of_int imm in
+  let rtis rt imm rs = (reg rt) ^. com ^. ustring_of_int imm ^. 
+                       lparan ^. (reg rs) ^. rparan in  
   let istr is = Ustring.spaces_after (us is) 8 in
+  let address a = us(sprintf "0x%x" a) in
   match inst with
-  | MipsADD(rd,rs,rt) -> (istr "add") ^. (rdst rd rs rt)
-  | MipsADDI(rt,rs,imm) -> (istr "addi") ^. (rtsimm rt rs imm)
-  | MipsADDIU(rt,rs,imm) -> (istr "addiu") ^. (rtsimm rt rs imm)
-  | MipsADDU(rd,rs,rt) -> (istr "addu") ^. (rdst rd rs rt)
-  | MipsUnknown(inst) -> us(sprintf "[0x%x]" inst)
+  | MipsADD(rd,rs,rt)    -> (istr "add") ^. (rdst rd rs rt)
+  | MipsADDI(rt,rs,imm)  -> (istr "addi") ^. (rtsi rt rs imm)
+  | MipsADDIU(rt,rs,imm) -> (istr "addiu") ^. (rtsi rt rs imm)
+  | MipsADDU(rd,rs,rt)   -> (istr "addu") ^. (rdst rd rs rt)
+  | MipsJR(rs)           -> (istr "jr") ^. (reg rs)
+  | MipsJ(addr)          -> (istr "j") ^. (address addr)
+  | MipsJAL(addr)        -> (istr "jal") ^. (address addr)
+  | MipsLB(rt,imm,rs)    -> (istr "lb") ^. (rtis rt imm rs)
+  | MipsLBU(rt,imm,rs)   -> (istr "lbu") ^. (rtis rt imm rs)
+  | MipsLW(rt,imm,rs)    -> (istr "lw") ^. (rtis rt imm rs)
+  | MipsSB(rt,imm,rs)    -> (istr "sb") ^. (rtis rt imm rs)
+  | MipsSW(rt,imm,rs)    -> (istr "sw") ^. (rtis rt imm rs)
+  | MipsNOP              -> (istr "nop") 
+  | MipsUnknown(inst)    -> us(sprintf "[0x%x]" inst)
 
 
 let pprint_inst_list instlst = 
