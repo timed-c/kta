@@ -16,6 +16,7 @@ type inst =
   | MipsANDI    of rt * rs  * imm
   | MipsBEQ     of rs * rt  * imm
   | MipsBNE     of rs * rt  * imm
+  | MipsJALR    of rs
   | MipsJR      of rs
   | MipsJ       of addr
   | MipsJAL     of addr
