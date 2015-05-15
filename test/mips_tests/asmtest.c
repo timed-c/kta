@@ -29,6 +29,14 @@ int main(){
    "addu $t1,$t2,$t3\n"      // 'addu'
    "and  $t1,$t2,$t3\n"      // 'and'
    "andi $s0,$s1,555\n"      // 'andi' 
+   "nop\n"
+   "nop\n"
+   "beq  $t1,$t2,label1\n"   // 'beq'
+   "nop\n"
+   "label1:\n"
+   "addi $t1,$0,0\n"
+   "bne  $t1,$0,label1\n"    // 'bne'
+   "nop\n"
    "\n"
    "\n"
    "nop\n"
