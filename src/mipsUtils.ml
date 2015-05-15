@@ -27,8 +27,11 @@ let decode_inst bininst =
            | 28 -> MipsMUL(rd(),rs(),rt())
            | 32 -> MipsADD(rd(),rs(),rt())
            | 33 -> MipsADDU(rd(),rs(),rt())           
+           | 34 -> MipsSUB(rd(),rs(),rt())           
+           | 35 -> MipsSUBU(rd(),rs(),rt())           
            | 36 -> MipsAND(rd(),rs(),rt())
            | 37 -> MipsOR(rd(),rs(),rt())
+           | 38 -> MipsXOR(rd(),rs(),rt())           
            | 39 -> MipsNOR(rd(),rs(),rt())
            | 42 -> MipsSLT(rd(),rs(),rt())
            | 43 -> MipsSLTU(rd(),rs(),rt())
@@ -43,6 +46,7 @@ let decode_inst bininst =
   | 11 -> MipsSLTIU(rt(),rs(),imm())
   | 12 -> MipsANDI(rt(),rs(),imm())
   | 13 -> MipsORI(rt(),rs(),imm())
+  | 14 -> MipsXORI(rt(),rs(),imm())
   | 15 -> MipsLUI(rt(),imm())
   | 28 -> (match funct() with
            | 2  -> MipsMUL(rd(),rs(),rt())
@@ -167,7 +171,10 @@ let pprint_inst inst =
   | MipsSRLV(rd,rt,rs)   -> (istr "srlv") ^. (rdts rd rt rs)
   | MipsSB(rt,imm,rs)    -> (istr "sb") ^. (rtis rt imm rs)
   | MipsSW(rt,imm,rs)    -> (istr "sw") ^. (rtis rt imm rs)
-  | MipsNOP              -> (istr "nop") 
+  | MipsSUB(rd,rs,rt)    -> (istr "sub") ^. (rdst rd rs rt)
+  | MipsSUBU(rd,rs,rt)   -> (istr "subu") ^. (rdst rd rs rt)
+  | MipsXOR(rd,rs,rt)    -> (istr "xor") ^. (rdst rd rs rt)
+  | MipsXORI(rt,rs,imm)  -> (istr "xori") ^. (rtsi rt rs imm)
   | MipsUnknown(inst)    -> us(sprintf "[0x%x]" inst)
 
 

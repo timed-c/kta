@@ -70,7 +70,25 @@ int main(){
    "sltiu $t1,$t2,100\n"      // 'sltiu'
    "nop\n"
    "nop\n"
+   "sll   $t1,$t2,0\n"        // 'sll' and test different shamt
+   "sll   $t1,$t2,4\n"         
+   "sll   $t1,$t2,31\n"        
    "nop\n"
+   "nop\n"
+   "sllv  $t1,$t2,$t3\n"      // 'sllv'
+   "sra   $t1,$t2,8\n"        // 'sra'
+   "srl   $t1,$t2,8\n"        // 'srl'
+   "srlv  $t1,$t2,$t3\n"      // 'srlv'
+   "nop\n"
+   "nop\n"
+   "sb    $t1,500($t2)\n"     // 'sb'
+   "sw    $t1,500($t2)\n"     // 'sw'
+   "nop\n"
+   "nop\n"
+   "sub   $t1,$t2,$t3\n"      // 'sub'
+   "subu  $t1,$t2,$t3\n"      // 'subu'
+   "xor   $t1,$t2,$t3\n"      // 'xor'
+   "xori  $t1,$t2,500\n"      // 'xori'
    :::);
 }
 

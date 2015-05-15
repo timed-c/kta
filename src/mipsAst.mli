@@ -39,6 +39,9 @@ type inst =
   | MipsSRLV    of rd * rt  * rs
   | MipsSB      of rt * imm * rs
   | MipsSW      of rt * imm * rs
-  | MipsNOP    
+  | MipsSUB     of rd * rs  * rt
+  | MipsSUBU    of rd * rs  * rt
+  | MipsXOR     of rd * rs  * rt
+  | MipsXORI    of rt * rs  * imm
   | MipsUnknown of int
       
