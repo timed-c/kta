@@ -64,6 +64,12 @@ int main(){
    "ori   $t1,$t2,8\n"        // 'ori'
    "nop\n"
    "nop\n"
+   "slt   $t1,$t2,$t3\n"      // 'slt'
+   "sltu  $t1,$t2,$t3\n"      // 'sltu'
+   "slti  $t1,$t2,100\n"      // 'slti'
+   "sltiu $t1,$t2,100\n"      // 'sltiu'
+   "nop\n"
+   "nop\n"
    "nop\n"
    :::);
 }
