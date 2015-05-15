@@ -24,9 +24,12 @@ let decode_inst bininst =
            | 6  -> MipsSRLV(rd(),rt(),rs())
            | 8  -> MipsJR(rs())
            | 9  -> MipsJALR(rs())
+           | 28 -> MipsMUL(rd(),rs(),rt())
            | 32 -> MipsADD(rd(),rs(),rt())
            | 33 -> MipsADDU(rd(),rs(),rt())           
            | 36 -> MipsAND(rd(),rs(),rt())
+           | 37 -> MipsOR(rd(),rs(),rt())
+           | 39 -> MipsNOR(rd(),rs(),rt())
            | 42 -> MipsSLT(rd(),rs(),rt())
            | 43 -> MipsSLTU(rd(),rs(),rt())
            | _ -> MipsUnknown(bininst))
@@ -39,6 +42,11 @@ let decode_inst bininst =
   | 10 -> MipsSLTI(rt(),rs(),imm())
   | 11 -> MipsSLTIU(rt(),rs(),imm())
   | 12 -> MipsANDI(rt(),rs(),imm())
+  | 13 -> MipsORI(rt(),rs(),imm())
+  | 15 -> MipsLUI(rt(),imm())
+  | 28 -> (match funct() with
+           | 2  -> MipsMUL(rd(),rs(),rt())
+           | _ -> MipsUnknown(bininst))
   | 32 -> MipsLB(rt(),imm(),rs())
   | 35 -> MipsLW(rt(),imm(),rs())
   | 36 -> MipsLBU(rt(),imm(),rs())
@@ -121,6 +129,7 @@ let pprint_inst inst =
   let rdts rd rt rs = rdst rd rt rs in
   let rdst rd rs rt = (reg rd) ^. com ^. (reg rs) ^. com ^. (reg rt) in
   let rtsi rt rs imm = (reg rt) ^. com ^. (reg rs) ^. com ^. ustring_of_int imm in
+  let rti  rt imm = (reg rt) ^. com ^. ustring_of_int imm in
   let rtis rt imm rs = (reg rt) ^. com ^. ustring_of_int imm ^. 
                        lparan ^. (reg rs) ^. rparan in  
   let dta  rd rt shamt = rtsi rd rt shamt in
@@ -139,6 +148,14 @@ let pprint_inst inst =
   | MipsJR(rs)           -> (istr "jr") ^. (reg rs)
   | MipsJ(addr)          -> (istr "j") ^. (address addr)
   | MipsJAL(addr)        -> (istr "jal") ^. (address addr)
+  | MipsLB(rt,imm,rs)    -> (istr "lb") ^. (rtis rt imm rs)
+  | MipsLBU(rt,imm,rs)   -> (istr "lbu") ^. (rtis rt imm rs)
+  | MipsLUI(rt,imm)      -> (istr "lui") ^. (rti rt imm)
+  | MipsLW(rt,imm,rs)    -> (istr "lw") ^. (rtis rt imm rs)
+  | MipsMUL(rd,rs,rt)    -> (istr "mul") ^. (rdst rd rs rt)
+  | MipsNOR(rd,rs,rt)    -> (istr "nor") ^. (rdst rd rs rt)
+  | MipsOR(rd,rs,rt)     -> (istr "or") ^. (rdst rd rs rt)
+  | MipsORI(rt,rs,imm)   -> (istr "ori") ^. (rtsi rt rs imm)
   | MipsSLT(rd,rs,rt)    -> (istr "slt") ^. (rdst rd rs rt)
   | MipsSLTU(rd,rs,rt)   -> (istr "sltu") ^. (rdst rd rs rt)  
   | MipsSLTI(rt,rs,imm)  -> (istr "slti") ^. (rtsi rt rs imm)
@@ -148,9 +165,6 @@ let pprint_inst inst =
   | MipsSRA(rd,rt,shamt) -> (istr "sra") ^. (dta rd rt shamt)
   | MipsSRL(rd,rt,shamt) -> (istr "srl") ^. (dta rd rt shamt)
   | MipsSRLV(rd,rt,rs)   -> (istr "srlv") ^. (rdts rd rt rs)
-  | MipsLB(rt,imm,rs)    -> (istr "lb") ^. (rtis rt imm rs)
-  | MipsLBU(rt,imm,rs)   -> (istr "lbu") ^. (rtis rt imm rs)
-  | MipsLW(rt,imm,rs)    -> (istr "lw") ^. (rtis rt imm rs)
   | MipsSB(rt,imm,rs)    -> (istr "sb") ^. (rtis rt imm rs)
   | MipsSW(rt,imm,rs)    -> (istr "sw") ^. (rtis rt imm rs)
   | MipsNOP              -> (istr "nop") 

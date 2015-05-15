@@ -39,7 +39,45 @@ int main(){
    "nop\n"
    "jalr  $t1\n"              // 'jalr'
    "jr    $t1\n"              // 'jr'
+   "label2:\n"
+   "j     label2\n"           // 'j'
+   "jal   label2\n"           // 'jal'
+   "nop\n"
+   "nop\n"
+   "lb    $t1,0($t2)\n"       // 'lb'
+   "lb    $t1,256($t2)\n"     
+   "lb    $t1,-256($t2)\n"    
+   "lb    $t1,32767($t2)\n"   
+   "lb    $t1,-1($t2)\n"     
+   "nop\n"
+   "lbu   $t1,500($t2)\n"     // 'lbu'
+   "lbu   $t1,-1($t2)\n"      
+   "nop\n"
+   "nop\n"
+   "lui   $t1,100\n"          // 'lui'
+   "nop\n"
+   "nop\n"
+   "lw    $t1,500($t2)\n"     // 'lw'
+   "mul   $t1,$t2,$t3\n"      // 'mul'
+   "nor   $t1,$t2,$t3\n"      // 'nor'
+   "or    $t1,$t2,$t3\n"      // 'or'
+   "ori   $t1,$t2,8\n"        // 'ori'
+   "nop\n"
+   "nop\n"
    "nop\n"
    :::);
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
 

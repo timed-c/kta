@@ -20,6 +20,14 @@ type inst =
   | MipsJR      of rs
   | MipsJ       of addr
   | MipsJAL     of addr
+  | MipsLB      of rt * imm * rs
+  | MipsLBU     of rt * imm * rs
+  | MipsLUI     of rt * imm
+  | MipsLW      of rt * imm * rs
+  | MipsMUL     of rd * rs  * rt
+  | MipsNOR     of rd * rs  * rt
+  | MipsOR      of rd * rs  * rt
+  | MipsORI     of rt * rs  * imm
   | MipsSLT     of rd * rs  * rt
   | MipsSLTU    of rd * rs  * rt
   | MipsSLTI    of rt * rs  * imm
@@ -29,9 +37,6 @@ type inst =
   | MipsSRA     of rd * rt  * shamt
   | MipsSRL     of rd * rt  * shamt
   | MipsSRLV    of rd * rt  * rs
-  | MipsLB      of rt * imm * rs
-  | MipsLBU     of rt * imm * rs
-  | MipsLW      of rt * imm * rs
   | MipsSB      of rt * imm * rs
   | MipsSW      of rt * imm * rs
   | MipsNOP    
