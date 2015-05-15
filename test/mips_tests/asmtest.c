@@ -27,6 +27,8 @@ int main(){
    "nop\n"
    "addiu $s0,$s1,555\n"     // 'addiu' 
    "addu $t1,$t2,$t3\n"      // 'addu'
+   "and  $t1,$t2,$t3\n"      // 'and'
+   "andi $s0,$s1,555\n"      // 'andi' 
    "\n"
    "\n"
    "nop\n"

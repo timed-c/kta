@@ -12,6 +12,8 @@ type inst =
   | MipsADDI    of rt * rs  * imm
   | MipsADDIU   of rt * rs  * imm
   | MipsADDU    of rd * rs  * rt
+  | MipsAND     of rd * rs  * rt
+  | MipsANDI    of rt * rs  * imm
   | MipsBEQ     of rs * rt  * imm
   | MipsBNE     of rs * rt  * imm
   | MipsJR      of rs
