@@ -17,14 +17,25 @@ let decode_inst bininst =
   let address() = bininst land 0x3ffffff in
   match op with
   | 0 -> (match funct() with
-           | 0  -> MipsNOP 
+           | 0  -> MipsSLL(rd(),rt(),shamt()) 
+           | 2  -> MipsSRL(rd(),rt(),shamt()) 
+           | 3  -> MipsSRA(rd(),rt(),shamt()) 
+           | 4  -> MipsSLLV(rd(),rt(),rs())
+           | 6  -> MipsSRLV(rd(),rt(),rs())
            | 8  -> MipsJR(rs())
            | 32 -> MipsADD(rd(),rs(),rt())
            | 33 -> MipsADDU(rd(),rs(),rt())           
+           | 42 -> MipsSLT(rd(),rs(),rt())
+           | 43 -> MipsSLTU(rd(),rs(),rt())
            | _ -> MipsUnknown(bininst))
   | 2  -> MipsJ(address())
   | 3  -> MipsJAL(address())
+  | 4  -> MipsBEQ(rs(),rt(),imm())
+  | 5  -> MipsBNE(rs(),rt(),imm())
+  | 8  -> MipsADDI(rt(),rs(),imm())
   | 9  -> MipsADDIU(rt(),rs(),imm())
+  | 10 -> MipsSLTI(rt(),rs(),imm())
+  | 11 -> MipsSLTIU(rt(),rs(),imm())
   | 32 -> MipsLB(rt(),imm(),rs())
   | 35 -> MipsLW(rt(),imm(),rs())
   | 36 -> MipsLBU(rt(),imm(),rs())
@@ -104,10 +115,12 @@ let rparan = us")"
 
 let pprint_inst inst = 
   let rdst rd rs rt = (reg rd) ^. com ^. (reg rs) ^. com ^. (reg rt) in
+  let rdts rd rt rs = rdst rd rt rs in
   let rdst rd rs rt = (reg rd) ^. com ^. (reg rs) ^. com ^. (reg rt) in
   let rtsi rt rs imm = (reg rt) ^. com ^. (reg rs) ^. com ^. ustring_of_int imm in
   let rtis rt imm rs = (reg rt) ^. com ^. ustring_of_int imm ^. 
                        lparan ^. (reg rs) ^. rparan in  
+  let dta  rd rt shamt = rtsi rd rt shamt in
   let istr is = Ustring.spaces_after (us is) 8 in
   let address a = us(sprintf "0x%x" a) in
   match inst with
@@ -115,9 +128,20 @@ let pprint_inst inst =
   | MipsADDI(rt,rs,imm)  -> (istr "addi") ^. (rtsi rt rs imm)
   | MipsADDIU(rt,rs,imm) -> (istr "addiu") ^. (rtsi rt rs imm)
   | MipsADDU(rd,rs,rt)   -> (istr "addu") ^. (rdst rd rs rt)
+  | MipsBEQ(rs,rt,imm)   -> (istr "beq") ^. (rtsi rs rt imm)
+  | MipsBNE(rs,rt,imm)   -> (istr "bne") ^. (rtsi rs rt imm)    
   | MipsJR(rs)           -> (istr "jr") ^. (reg rs)
   | MipsJ(addr)          -> (istr "j") ^. (address addr)
   | MipsJAL(addr)        -> (istr "jal") ^. (address addr)
+  | MipsSLT(rd,rs,rt)    -> (istr "slt") ^. (rdst rd rs rt)
+  | MipsSLTU(rd,rs,rt)   -> (istr "sltu") ^. (rdst rd rs rt)  
+  | MipsSLTI(rt,rs,imm)  -> (istr "slti") ^. (rtsi rt rs imm)
+  | MipsSLTIU(rt,rs,imm) -> (istr "sltiu") ^. (rtsi rt rs imm)
+  | MipsSLL(rd,rt,shamt) -> (istr "sll") ^. (dta rd rt shamt)
+  | MipsSLLV(rd,rt,rs)   -> (istr "sllv") ^. (rdts rd rt rs)
+  | MipsSRA(rd,rt,shamt) -> (istr "sra") ^. (dta rd rt shamt)
+  | MipsSRL(rd,rt,shamt) -> (istr "srl") ^. (dta rd rt shamt)
+  | MipsSRLV(rd,rt,rs)   -> (istr "srlv") ^. (rdts rd rt rs)
   | MipsLB(rt,imm,rs)    -> (istr "lb") ^. (rtis rt imm rs)
   | MipsLBU(rt,imm,rs)   -> (istr "lbu") ^. (rtis rt imm rs)
   | MipsLW(rt,imm,rs)    -> (istr "lw") ^. (rtis rt imm rs)
