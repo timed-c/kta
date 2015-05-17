@@ -35,7 +35,7 @@ let decode_inst bininst =
            | 39 -> MipsNOR(rd(),rs(),rt())
            | 42 -> MipsSLT(rd(),rs(),rt())
            | 43 -> MipsSLTU(rd(),rs(),rt())
-           | _ -> MipsUnknown(bininst))
+           | _  -> MipsUnknown(bininst))
   | 2  -> MipsJ(address())
   | 3  -> MipsJAL(address())
   | 4  -> MipsBEQ(rs(),rt(),imm())
@@ -50,7 +50,7 @@ let decode_inst bininst =
   | 15 -> MipsLUI(rt(),imm())
   | 28 -> (match funct() with
            | 2  -> MipsMUL(rd(),rs(),rt())
-           | _ -> MipsUnknown(bininst))
+           | _  -> MipsUnknown(bininst))
   | 32 -> MipsLB(rt(),imm(),rs())
   | 35 -> MipsLW(rt(),imm(),rs())
   | 36 -> MipsLBU(rt(),imm(),rs())
@@ -122,7 +122,8 @@ let reg x = us(
   | 28 -> "$gp"
   | 29 -> "$sp"
   | 30 -> "$fp"
-  | 31 -> "$ra")
+  | 31 -> "$ra"
+  | _  -> failwith "Not a register.")
 
 let com = us","
 let lparan = us"("

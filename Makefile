@@ -1,8 +1,8 @@
 
 
-DIRS = src,ext/ucamlib/src
+DIRS = src,test,ext/ucamlib/src
 
-.PHONY: all clean
+.PHONY: all test clean
 
 # Init submodules if needed and make native version. 
 # The resulting executable can be found under /bin and /library (symlinks)
@@ -53,6 +53,10 @@ pull_ucamlib:
 push_ucamlib:
 	git subtree push --prefix ext/ucamlib $(UCAMLIB_GIT) master --squash
 
+
+test:
+	@ocamlbuild -Is $(DIRS) maintest.native --
+	@rm -f maintest.native
 
 
 # Clean all submodules and the main Modelyze source

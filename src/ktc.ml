@@ -478,13 +478,24 @@ let mips_print filename =
   print_endline "";
   uprint_endline (MipsUtils.pprint_inst_list insts) 
     
-
+let mips_compile filename opt = 
+  let tmpname = "xxxtmpname" in
+  MipsSys.pic32_compile [filename] false opt tmpname;
+  let insts = MipsUtils.decode (MipsSys.get_section tmpname ".text") in
+  Sys.remove tmpname;
+  print_endline "";
+  uprint_endline (MipsUtils.pprint_inst_list insts) 
+  
     
 
 let main =
   (* Do mips pretty printing test *)
   if Sys.argv.(1) = "-mips" then 
       mips_print (Sys.argv.(2)) 
+  else if Sys.argv.(1) = "-compile" then 
+      mips_compile (Sys.argv.(2)) false
+  else if Sys.argv.(1) = "-compile-opt" then 
+      mips_compile (Sys.argv.(2)) true
   else
     (* Test and parse the timing analysis file *)
     if true then (

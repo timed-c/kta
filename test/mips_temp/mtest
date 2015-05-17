@@ -12,8 +12,9 @@ $P-gcc $CFLAGS -c -O0 $1.c -o $1.o
 $P-gcc $CFLAGS $1.o -o $1.elf 
 
 # Extract .text
-$P-objcopy -j.text $1.elf $1.elf_text
-$P-objcopy -Obinary $1.elf_text $1.bin_text
+#$P-objcopy -j.text -Obinary $1.elf $1.bin_text
+$P-objcopy $1.elf --dump-section .text=$1.bin_text
+
 
 # Asm
 $P-objdump -d $1.elf > $1.asm
