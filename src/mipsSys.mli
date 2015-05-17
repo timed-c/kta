@@ -18,3 +18,14 @@ val pic32_compile : string list -> bool -> bool -> string -> unit
     optimization is performed. Raises exception [Sys_error] if there
     is a compilation error.
 *)
+
+
+val section_info: string -> (string * (int * int)) list
+(** [section_info filename] returns an association list with the keys
+    are text strings representing sections and the values are tuples,
+    where the first element is the size of the section and the second
+    element is the virtual memory address to the section. For
+    instance, a returned list of element [(".text",(100,0xffff))]
+    means that there is a .text section, starting at address [0xffff]
+    that is of size 100 bytes.
+*)
