@@ -4,6 +4,7 @@ open Ustring.Op
 let comp_name = "mipsel-pic32-elf"
 let objcopy = comp_name ^ "-objcopy"
 let objdump = comp_name ^ "-objdump"
+let nm = comp_name ^ "-nm"
 let gcc = comp_name ^ "-gcc"
 let section_guid = "20b8de13-4db6-4ac8-89ff-0bb1ac7aadc8"
 
@@ -51,5 +52,21 @@ let section_info filename =
                             ("Error reading section data: " ^ stdout)))
             filtered
 
+let symbol_table filename = 
+  let (code,stdout,stderr) = USys.shellcmd (nm ^ " " ^ filename) in
+  if code != 0 then raise (Sys_error (stderr ^ " " ^ stdout));
+  let lines = List.map Ustring.trim (Ustring.split (us stdout) (us"\n")) in
+  List.fold_left 
+    (fun acc line ->
+      let sp = List.filter (fun y -> Ustring.length y != 0) 
+                            (Ustring.split line (us" ")) in
+      match sp with
+      | addr::_::sym::_ -> (
+          try
+            let addrno = int_of_string ("0x" ^ (Ustring.to_utf8 addr)) in
+            (Ustring.to_utf8 sym,addrno)::acc
+          with _ -> acc)
+      | _ -> acc
+    ) [] lines
   
   

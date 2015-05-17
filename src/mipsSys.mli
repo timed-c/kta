@@ -8,6 +8,7 @@ val get_section : string -> string -> bytes
     data, write [get_section "file.elf" ".sdata"]. Raises exception
     [Sys_error] if there an error. *)
 
+
 val pic32_compile : string list -> bool -> bool -> string -> unit
 (** [pic32_compile filenames only_compile optimization_ outputname]
     compiles a C file for the target of a PIC32 MIPS processor.
@@ -29,3 +30,8 @@ val section_info: string -> (string * (int * int)) list
     means that there is a .text section, starting at address [0xffff]
     that is of size 100 bytes.
 *)
+
+val symbol_table : string -> (string * int) list
+(** [symbol_table filename] returns an association list representing the
+    symbol table of object file [filename]. The key is the symbol and the
+    value is the address. *)

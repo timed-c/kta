@@ -491,9 +491,16 @@ let mips_sections filename opt =
   MipsSys.pic32_compile [filename] false opt tmpname;
   let secs  = MipsSys.section_info tmpname in
   Sys.remove tmpname;
-  List.iter (fun x -> let (k,(s,a)) = x in printf "%s %x,%x\n" k s a) secs;
-  printf "hej\n"
+  List.iter (fun x -> let (k,(s,a)) = x in printf "%s %x,%x\n" k s a) secs
   
+let mips_symbols filename opt = 
+  let tmpname = "__tmp__" in
+  MipsSys.pic32_compile [filename] false opt tmpname;
+  let symtbl  = MipsSys.symbol_table tmpname in
+  Sys.remove tmpname;
+  List.iter (fun x -> let (k,a) = x in printf "%s -> %x\n" k a) symtbl
+  
+
   
     
 
@@ -507,6 +514,8 @@ let main =
       mips_compile (Sys.argv.(2)) true
   else if Sys.argv.(1) = "-sections" then 
       mips_sections (Sys.argv.(2)) true
+  else if Sys.argv.(1) = "-symbols" then 
+      mips_symbols (Sys.argv.(2)) true
   else
     (* Test and parse the timing analysis file *)
     if true then (
