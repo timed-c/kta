@@ -36,13 +36,6 @@ let main =
   Utest.test_int  (txt ^ ".bss address.") prog.bss_addr 0x40104c;
   Utest.test_int  (txt ^ ".bss size.") prog.bss_size 4;
   Utest.test_int  (txt ^ "global pointer.") prog.gp 0x409040;
-(*
-  print_endline prog.filename;
-  printf "text: addr=0x%x size=%d\n" prog.text_addr prog.text_size;
-  printf "data: addr=0x%x size=%d\n" prog.data_addr prog.data_size;
-  printf "bss: addr=0x%x size=%d\n" prog.bss_addr prog.bss_size;
-  printf "gp = 0x%x\n" prog.gp;
-*)
   Sys.remove tmpname;
   
 
