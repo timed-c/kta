@@ -2,7 +2,7 @@
 
 open Printf
 open Ustring.Op
-
+open MipsAst
 
 type  arg_error_type = 
 | ArgErrorUnkownFileExtension of ustring
@@ -500,6 +500,16 @@ let mips_symbols filename opt =
   Sys.remove tmpname;
   List.iter (fun x -> let (k,a) = x in printf "%s -> %x\n" k a) symtbl
   
+let mips_eval filename opt = 
+  let tmpname = "__tmp__" in
+  MipsSys.pic32_compile [filename] false opt tmpname;
+  let prog = MipsSys.get_program tmpname in
+  print_endline prog.filename;
+  printf "text: addr=0x%x size=%d\n" prog.text_addr prog.text_size;
+  printf "data: addr=0x%x size=%d\n" prog.data_addr prog.data_size;
+  printf "bss: addr=0x%x size=%d\n" prog.bss_addr prog.bss_size;
+  printf "gp = 0x%x\n" prog.gp;
+  Sys.remove tmpname
 
   
     
@@ -516,6 +526,8 @@ let main =
       mips_sections (Sys.argv.(2)) true
   else if Sys.argv.(1) = "-symbols" then 
       mips_symbols (Sys.argv.(2)) true
+  else if Sys.argv.(1) = "-eval" then 
+      mips_eval (Sys.argv.(2)) true
   else
     (* Test and parse the timing analysis file *)
     if true then (

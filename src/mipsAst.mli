@@ -45,3 +45,26 @@ type inst =
   | MipsXORI    of rt * rs  * imm
   | MipsUnknown of int
       
+
+
+
+(** A MIPS program object that contains all information needed to 
+    execute the object. *)
+type program =
+{
+  filename : string;                      (* Name of the original MIPS binary file *)
+  symbols : (string * int) list;          (* Symbol table *)
+  sections : (string * (int * int)) list; (* Section info. Names, size, address. *)
+  text : bytes;                           (* Text section (code) *)
+  data : bytes;                           (* Data section *)
+  text_addr : int;                        (* Virtual address to the .text section *)
+  text_size : int;                        (* Size in bytes of the .text section *)
+  data_addr : int;                        (* Virtual address to the .sdata section *)
+  data_size : int;                        (* Size in bytes of the .sdata section *)
+  bss_addr : int;                         (* Virtual address to the .sbss section *)
+  bss_size : int;                         (* Size in bytes of the .sbss section *)
+  gp : int;                               (* Initial value for the global pointer, gp *)
+}
+
+
+

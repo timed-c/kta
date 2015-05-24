@@ -1,12 +1,12 @@
 
 
-
 val get_section : string -> string -> bytes
 (** [get_section filename section] returns the sequence of bytes from
     [section] in the file with name [filename]. For instance, to get
     the code, write [get_section "file.elf" ".text"] or to get the
-    data, write [get_section "file.elf" ".sdata"]. Raises exception
-    [Sys_error] if there an error. *)
+    data, write [get_section "file.elf" ".sdata"]. Returns an empty
+    byte array if there are any errors or if the section does not exist.
+*)
 
 
 val pic32_compile : string list -> bool -> bool -> string -> unit
@@ -35,3 +35,8 @@ val symbol_table : string -> (string * int) list
 (** [symbol_table filename] returns an association list representing the
     symbol table of object file [filename]. The key is the symbol and the
     value is the address. *)
+
+
+val get_program : string -> MipsAst.program 
+(** [get_program filename] reads a MIPS ELF file and returns a MIPS
+    program object. *)

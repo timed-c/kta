@@ -1,5 +1,6 @@
 
 open Ustring.Op
+open MipsAst
 
 let comp_name = "mipsel-pic32-elf"
 let objcopy = comp_name ^ "-objcopy"
@@ -10,13 +11,17 @@ let section_guid = "20b8de13-4db6-4ac8-89ff-0bb1ac7aadc8"
 
 
 let get_section filename section =
-  let (code,stdout,stderr) = 
-    USys.shellcmd (objcopy ^ " " ^ filename ^ " --dump-section " 
+  try 
+    let (code,stdout,stderr) = 
+      USys.shellcmd (objcopy ^ " " ^ filename ^ " --dump-section " 
                    ^ section ^ "=" ^ section_guid) in
-  if code != 0 then raise (Sys_error (stderr ^ " " ^ stdout));
-  let data = Utils.read_binfile section_guid in
-  Sys.remove section_guid;
-  data
+    if code != 0 then Bytes.empty 
+    else
+      let data = Utils.read_binfile section_guid in
+      Sys.remove section_guid;
+      data
+  with
+    _ -> Bytes.empty
   
 
 let pic32_compile filenames only_compile optimization outputname =
@@ -70,3 +75,29 @@ let symbol_table filename =
     ) [] lines
   
   
+let get_program filename = 
+  let l_symbols = symbol_table filename in
+  let l_sections = section_info filename in
+  let l_text = try Some(List.assoc ".text" l_sections) with _ -> None in
+  let l_data = try Some(List.assoc ".sdata" l_sections) with _ -> None in
+  let l_bss = try Some(List.assoc ".sbss" l_sections) with _ -> None in
+{ 
+  filename = filename;
+  symbols = l_symbols;
+  sections = l_sections;
+  text = get_section filename ".text";
+  data = get_section filename ".sdata";
+  text_addr = (match l_text with Some(_,a) -> a | None -> 0);
+  text_size = (match l_text with Some(s,_) -> s | None -> 0);
+  data_addr = (match l_data with Some(_,a) -> a | None -> 0);
+  data_size = (match l_data with Some(s,_) -> s | None -> 0);
+  bss_addr = (match l_bss with Some(_,a) -> a | None -> 0);
+  bss_size = (match l_bss with Some(s,_) -> s | None -> 0);
+  gp = try List.assoc "_gp" l_symbols with _ -> 0;
+}
+
+
+
+
+
+
