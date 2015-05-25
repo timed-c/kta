@@ -3,7 +3,7 @@
 open Printf
 open Ustring.Op
 open MipsAst
-
+open MipsEval 
 type  arg_error_type = 
 | ArgErrorUnkownFileExtension of ustring
 
@@ -504,6 +504,8 @@ let mips_eval filename opt =
   let tmpname = "__tmp__" in
   MipsSys.pic32_compile [filename] false opt tmpname;
   let prog = MipsSys.get_program tmpname in
+  let state = MipsEval.eval prog "main" in
+  printf "num: %d\n" (Int32.to_int (state.registers.(3)));
   print_endline prog.filename;
   printf "text: addr=0x%x size=%d\n" prog.text_addr prog.text_size;
   printf "data: addr=0x%x size=%d\n" prog.data_addr prog.data_size;
