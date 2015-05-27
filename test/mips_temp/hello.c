@@ -4,14 +4,22 @@
 int v;
 int k = 100;
 
-int foo(int x){
+int foo1(int x){
+  return x + 1;
+}
+
+int foo2(int x){
   return x + k + v;
+}
+
+int foo3(){
+  return foo1(4);
 }
 
 int main(){
   k = 5;
   v = 3;
-  return foo(4);
+  return foo2(4);
 }
 
 

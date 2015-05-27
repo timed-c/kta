@@ -81,19 +81,21 @@ let get_program filename =
   let l_text = try Some(List.assoc ".text" l_sections) with _ -> None in
   let l_data = try Some(List.assoc ".sdata" l_sections) with _ -> None in
   let l_bss = try Some(List.assoc ".sbss" l_sections) with _ -> None in
+  let l_textcode = get_section filename ".text" in 
 { 
   filename = filename;
   symbols = l_symbols;
   sections = l_sections;
-  text = get_section filename ".text";
+  text = l_textcode;
   data = get_section filename ".sdata";
   text_addr = (match l_text with Some(_,a) -> a | None -> 0);
-  text_size = (match l_text with Some(s,_) -> s | None -> 0);
+  text_size = (match l_text with Some(s,_) -> s | None -> 0); 
   data_addr = (match l_data with Some(_,a) -> a | None -> 0);
   data_size = (match l_data with Some(s,_) -> s | None -> 0);
-  bss_addr = (match l_bss with Some(_,a) -> a | None -> 0);
-  bss_size = (match l_bss with Some(s,_) -> s | None -> 0);
-  gp = try List.assoc "_gp" l_symbols with _ -> 0;
+  bss_addr =  (match l_bss  with Some(_,a) -> a | None -> 0);
+  bss_size =  (match l_bss  with Some(s,_) -> s | None -> 0);
+  gp = (try List.assoc "_gp" l_symbols with _ -> 0);
+  code = Array.of_list (MipsUtils.decode l_textcode);
 }
 
 

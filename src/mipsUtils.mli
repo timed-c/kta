@@ -11,9 +11,12 @@ val decode : ?bigendian:bool -> bytes -> MipsAst.inst list
     be decoded as big-endian. Default is little-endian. Raises exception
     [Invalid_argument] if [b] is not a multiple of 4 bytes. *)
 
+
 val pprint_inst : MipsAst.inst -> ustring
 (** [pprint_inst i] pretty prints one instruction *)
 
+
 val pprint_inst_list : MipsAst.inst list -> ustring
 (** [pprint_inst lst] pretty prints the list [lst] of instructions  *)
+
 

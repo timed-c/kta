@@ -64,7 +64,9 @@ type program =
   bss_addr : int;                         (* Virtual address to the .sbss section *)
   bss_size : int;                         (* Size in bytes of the .sbss section *)
   gp : int;                               (* Initial value for the global pointer, gp *)
+  code : inst array;                      (* Array of decoded instructions *)
 }
+
 
 
 
