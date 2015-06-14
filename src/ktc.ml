@@ -504,13 +504,17 @@ let mips_eval filename opt =
   let tmpname = "__tmp__" in
   MipsSys.pic32_compile [filename] false opt tmpname;
   let prog = MipsSys.get_program tmpname in
-  let state = MipsEval.eval prog "main" in
+  let state = MipsEval.eval prog "main" 0 in
+  
   printf "num: %d\n" (Int32.to_int (state.registers.(3)));
   print_endline prog.filename;
   printf "text: addr=0x%x size=%d\n" prog.text_addr prog.text_size;
   printf "data: addr=0x%x size=%d\n" prog.data_addr prog.data_size;
   printf "bss: addr=0x%x size=%d\n" prog.bss_addr prog.bss_size;
   printf "gp = 0x%x\n" prog.gp;
+  print_endline "----------------------------------------";
+  uprint_endline (MipsEval.pprint_state state);
+
   Sys.remove tmpname
 
   
@@ -521,9 +525,9 @@ let main =
   if Sys.argv.(1) = "-mips" then 
       mips_print (Sys.argv.(2)) 
   else if Sys.argv.(1) = "-compile" then 
-      mips_compile (Sys.argv.(2)) false
-  else if Sys.argv.(1) = "-compile-opt" then 
       mips_compile (Sys.argv.(2)) true
+  else if Sys.argv.(1) = "-compile-no-opt" then 
+      mips_compile (Sys.argv.(2)) false
   else if Sys.argv.(1) = "-sections" then 
       mips_sections (Sys.argv.(2)) true
   else if Sys.argv.(1) = "-symbols" then 

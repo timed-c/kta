@@ -12,6 +12,10 @@ val decode : ?bigendian:bool -> bytes -> MipsAst.inst list
     [Invalid_argument] if [b] is not a multiple of 4 bytes. *)
 
 
+val pprint_reg : int -> ustring
+(** [pprint_reg regno] returns the ustring representation of register number
+    [regno] *)
+
 val pprint_inst : MipsAst.inst -> ustring
 (** [pprint_inst i] pretty prints one instruction *)
 

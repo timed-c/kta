@@ -125,6 +125,8 @@ let reg x = us(
   | 31 -> "$ra"
   | _  -> failwith "Not a register.")
 
+let pprint_reg x = reg x
+
 let com = us","
 let lparan = us"("
 let rparan = us")"
