@@ -500,12 +500,12 @@ let mips_symbols filename opt =
   Sys.remove tmpname;
   List.iter (fun x -> let (k,a) = x in printf "%s -> %x\n" k a) symtbl
   
-let mips_eval filename opt = 
+let mips_eval filename func args opt = 
   let tmpname = "__tmp__" in
   MipsSys.pic32_compile [filename] false opt tmpname;
   let prog = MipsSys.get_program tmpname in
-  let state = MipsEval.eval prog "main" 0 in
-  
+  let state = MipsEval.eval prog func args 0 in
+(*  
   printf "num: %d\n" (Int32.to_int (state.registers.(3)));
   print_endline prog.filename;
   printf "text: addr=0x%x size=%d\n" prog.text_addr prog.text_size;
@@ -513,15 +513,17 @@ let mips_eval filename opt =
   printf "bss: addr=0x%x size=%d\n" prog.bss_addr prog.bss_size;
   printf "gp = 0x%x\n" prog.gp;
   print_endline "----------------------------------------";
+*)
   uprint_endline (MipsEval.pprint_state state);
-
   Sys.remove tmpname
 
   
     
 
+
 let main =
   (* Do mips pretty printing test *)
+  let len = Array.length Sys.argv in
   if Sys.argv.(1) = "-mips" then 
       mips_print (Sys.argv.(2)) 
   else if Sys.argv.(1) = "-compile" then 
@@ -533,7 +535,17 @@ let main =
   else if Sys.argv.(1) = "-symbols" then 
       mips_symbols (Sys.argv.(2)) true
   else if Sys.argv.(1) = "-eval" then 
-      mips_eval (Sys.argv.(2)) true
+    let filename = if len >= 3 then (Sys.argv.(2)) else failwith "No filename" in
+    let funcname = if len >= 4 then (Sys.argv.(3)) else "main" in
+    let args = 
+      if len <= 4 then [] 
+      else
+        let int32arg x = Int32.of_int (int_of_string x) in
+        let lst = Array.to_list (Array.sub Sys.argv 4 
+                                   ((Array.length Sys.argv)-4)) in        
+        List.map int32arg lst   
+    in     
+        mips_eval filename funcname args true
   else
     (* Test and parse the timing analysis file *)
     if true then (
