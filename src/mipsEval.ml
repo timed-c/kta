@@ -51,6 +51,11 @@ let rec step prog state =
   | _ -> failwith "Unknown instruction."
 
 
+(* ---------------------------------------------------------------------*)
+let cycle_count inst delay_slot state count =
+  (count + 1, false)
+
+
 
 (* ---------------------------------------------------------------------*)
 let pprint_state state =
@@ -84,7 +89,7 @@ let init prog =
 
 (* ---------------------------------------------------------------------*)
 (* Evaluate a program *)
-let eval prog func args timeout = 
+let eval prog func args timeout opfunc opinit = 
   (* Create the initial state. Init all registers to zero *)
   let state = init prog in
 
@@ -105,11 +110,11 @@ let eval prog func args timeout =
   (* Call the step function *)
   let rec multistep() =
      step prog state;
-     if state.pc = 0 || (timeout != 0) && (state.ticks > timeout) then ()
+     if state.pc = 0 then ()
      else multistep()
   in
     multistep(); 
-    state
+    (state,opinit)
 
 
 

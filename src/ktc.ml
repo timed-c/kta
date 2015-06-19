@@ -500,11 +500,13 @@ let mips_symbols filename opt =
   Sys.remove tmpname;
   List.iter (fun x -> let (k,a) = x in printf "%s -> %x\n" k a) symtbl
   
+
+
 let mips_eval filename func args opt = 
   let tmpname = "__tmp__" in
   MipsSys.pic32_compile [filename] false opt tmpname;
   let prog = MipsSys.get_program tmpname in
-  let state = MipsEval.eval prog func args 0 in
+  let (state,count) = MipsEval.eval prog func args MipsEval.cycle_count 0 in
 (*  
   printf "num: %d\n" (Int32.to_int (state.registers.(3)));
   print_endline prog.filename;
