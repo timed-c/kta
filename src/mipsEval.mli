@@ -23,7 +23,7 @@ val pprint_state : machinestate -> ustring
 
 val init : MipsAst.program -> machinestate
 
-val cycle_count : MipsAst.inst -> bool -> machinesatate -> int -> (int * bool)
+val cycle_count : MipsAst.inst -> bool -> machinestate -> int -> (int * bool)
 (** This is an example opfunc that counts the number of elapsed clock
     cycles during an function evaluation. This function assumes a
     5-stage pipeline without cache (each memory load or store takes one

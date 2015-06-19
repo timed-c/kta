@@ -507,16 +507,8 @@ let mips_eval filename func args opt =
   MipsSys.pic32_compile [filename] false opt tmpname;
   let prog = MipsSys.get_program tmpname in
   let (state,count) = MipsEval.eval prog func args MipsEval.cycle_count 0 in
-(*  
-  printf "num: %d\n" (Int32.to_int (state.registers.(3)));
-  print_endline prog.filename;
-  printf "text: addr=0x%x size=%d\n" prog.text_addr prog.text_size;
-  printf "data: addr=0x%x size=%d\n" prog.data_addr prog.data_size;
-  printf "bss: addr=0x%x size=%d\n" prog.bss_addr prog.bss_size;
-  printf "gp = 0x%x\n" prog.gp;
-  print_endline "----------------------------------------";
-*)
   uprint_endline (MipsEval.pprint_state state);
+  printf "Cycle count: %d\n"  count;
   Sys.remove tmpname
 
   

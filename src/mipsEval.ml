@@ -15,45 +15,54 @@ type machinestate =
 }
 
 
+
 (* Functions not implemented 
    - Trapping for addu and subu is not implemented.
 *)
 (* ---------------------------------------------------------------------*)
-let rec step prog state =
+let rec step prog state opfunc opval delay_slot =
   let reg r = state.registers.(r) in
   let wreg r v = state.registers.(r) <- v in
   let tick t = state.ticks <- state.ticks + t in
   let pc pc = state.pc <- state.pc + pc in
-  match prog.code.((state.pc - prog.text_addr)/4) with 
+  let inst = prog.code.((state.pc - prog.text_addr)/4) in
+  let op() = opfunc inst delay_slot state opval in
+  match inst  with 
   | MipsADD(rd,rs,rt) -> 
        wreg rd (Int32.add (reg rs) (reg rt)); 
-       tick 1; pc 4
+       tick 1; pc 4; op()
   | MipsADDIU(rt,rs,imm) -> 
        wreg rt (Int32.add (reg rs) (Int32.of_int (imm land 0xff))); 
-       tick 1; pc 4;
+       tick 1; pc 4; op()
   | MipsADDU(rd,rs,rt) -> 
        wreg rd (Int32.add (reg rs) (reg rt)); 
-       tick 1; pc 4
+       tick 1; pc 4; op()
   | MipsJR(rs) -> 
        state.pc <- state.pc + 4; 
-       step prog state; 
-       state.pc <- Int32.to_int state.registers.(rs);
-       tick 1
+       let (opval', term) = step prog state opfunc opval true in
+       if term then (opval',term) 
+       else(
+         state.pc <- Int32.to_int state.registers.(rs);
+         tick 1;
+         opfunc inst false state opval')
   | MipsSLL(rd,rt,shamt) -> 
        wreg rd (Int32.shift_left (reg rt) shamt); 
-       tick 1; pc 4       
+       tick 1; pc 4; op() 
   | MipsSUB(rd,rs,rt) -> 
        wreg rd (Int32.sub (reg rs) (reg rt)); 
-       tick 1; pc 4
+       tick 1; pc 4; op()
   | MipsSUBU(rd,rs,rt) -> 
        wreg rd (Int32.sub (reg rs) (reg rt)); 
-       tick 1; pc 4
+       tick 1; pc 4; op()
   | _ -> failwith "Unknown instruction."
+   
+  
+
 
 
 (* ---------------------------------------------------------------------*)
 let cycle_count inst delay_slot state count =
-  (count + 1, false)
+  ((if delay_slot then count + 1 else count + 1), false)
 
 
 
@@ -89,7 +98,7 @@ let init prog =
 
 (* ---------------------------------------------------------------------*)
 (* Evaluate a program *)
-let eval prog func args timeout opfunc opinit = 
+let eval prog func args opfunc opinit = 
   (* Create the initial state. Init all registers to zero *)
   let state = init prog in
 
@@ -108,13 +117,13 @@ let eval prog func args timeout opfunc opinit =
   ) args;
   
   (* Call the step function *)
-  let rec multistep() =
-     step prog state;
-     if state.pc = 0 then ()
-     else multistep()
+  let rec multistep opval =
+     let (opval',terminate) = step prog state opfunc opval false in
+     if state.pc = 0 || terminate then opval'
+     else multistep opval'
   in
-    multistep(); 
-    (state,opinit)
+     let opval = multistep opinit in
+     (state,opval)
 
 
 
