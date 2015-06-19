@@ -10,7 +10,6 @@ type machinestate =
   registers : int32 array;
   data : bytes;
   bss : bytes;
-  mutable ticks : int;
   mutable pc : int;
 }
 
@@ -23,37 +22,29 @@ type machinestate =
 let rec step prog state opfunc opval delay_slot =
   let reg r = state.registers.(r) in
   let wreg r v = state.registers.(r) <- v in
-  let tick t = state.ticks <- state.ticks + t in
   let pc pc = state.pc <- state.pc + pc in
   let inst = prog.code.((state.pc - prog.text_addr)/4) in
   let op() = opfunc inst delay_slot state opval in
   match inst  with 
   | MipsADD(rd,rs,rt) -> 
-       wreg rd (Int32.add (reg rs) (reg rt)); 
-       tick 1; pc 4; op()
+       wreg rd (Int32.add (reg rs) (reg rt)); pc 4; op()
   | MipsADDIU(rt,rs,imm) -> 
-       wreg rt (Int32.add (reg rs) (Int32.of_int (imm land 0xff))); 
-       tick 1; pc 4; op()
+       wreg rt (Int32.add (reg rs) (Int32.of_int (imm land 0xff))); pc 4; op()
   | MipsADDU(rd,rs,rt) -> 
-       wreg rd (Int32.add (reg rs) (reg rt)); 
-       tick 1; pc 4; op()
+       wreg rd (Int32.add (reg rs) (reg rt)); pc 4; op()
   | MipsJR(rs) -> 
-       state.pc <- state.pc + 4; 
+       pc 4;
        let (opval', term) = step prog state opfunc opval true in
        if term then (opval',term) 
        else(
          state.pc <- Int32.to_int state.registers.(rs);
-         tick 1;
          opfunc inst false state opval')
   | MipsSLL(rd,rt,shamt) -> 
-       wreg rd (Int32.shift_left (reg rt) shamt); 
-       tick 1; pc 4; op() 
+       wreg rd (Int32.shift_left (reg rt) shamt); pc 4; op() 
   | MipsSUB(rd,rs,rt) -> 
-       wreg rd (Int32.sub (reg rs) (reg rt)); 
-       tick 1; pc 4; op()
+       wreg rd (Int32.sub (reg rs) (reg rt)); pc 4; op()
   | MipsSUBU(rd,rs,rt) -> 
-       wreg rd (Int32.sub (reg rs) (reg rt)); 
-       tick 1; pc 4; op()
+       wreg rd (Int32.sub (reg rs) (reg rt)); pc 4; op()
   | _ -> failwith "Unknown instruction."
    
   
@@ -61,8 +52,9 @@ let rec step prog state opfunc opval delay_slot =
 
 
 (* ---------------------------------------------------------------------*)
+(* TODO: Update with correct handling for a 5 stage pipeline *)
 let cycle_count inst delay_slot state count =
-  ((if delay_slot then count + 1 else count + 1), false)
+  (count + 1, false )
 
 
 
@@ -79,7 +71,7 @@ let pprint_state state =
       p_no (no+16) ^. p_reg state.registers.(no+16) ^.
       p_no (no+24) ^. p_reg state.registers.(no+24) ^. us"\n")
   in
-    us (sprintf "PC  0x%08x      ticks %d\n" state.pc state.ticks) ^.
+    us (sprintf "PC  0x%08x \n" state.pc) ^.
     regs 0 (us"")
 
   
@@ -90,7 +82,6 @@ let init prog =
   registers = Array.make 32 Int32.zero;
   data = Bytes.copy prog.data_sec;
   bss = Bytes.make prog.bss_size (char_of_int 0);
-  ticks = 0;
   pc = 0;
 }
 

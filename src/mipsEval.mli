@@ -10,7 +10,6 @@ type machinestate =
   registers : int32 array;
   data : bytes;
   bss : bytes;
-  mutable ticks : int;
   mutable pc : int;
 }
 
