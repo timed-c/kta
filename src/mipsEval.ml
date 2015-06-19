@@ -14,6 +14,10 @@ type machinestate =
   mutable pc : int;
 }
 
+
+(* Functions not implemented 
+   - Trapping for addu and subu is not implemented.
+*)
 (* ---------------------------------------------------------------------*)
 let rec step prog state =
   let reg r = state.registers.(r) in
@@ -22,16 +26,28 @@ let rec step prog state =
   let pc pc = state.pc <- state.pc + pc in
   match prog.code.((state.pc - prog.text_addr)/4) with 
   | MipsADD(rd,rs,rt) -> 
-       wreg rd (Int32.add (reg rt) (reg rt)); 
+       wreg rd (Int32.add (reg rs) (reg rt)); 
        tick 1; pc 4
   | MipsADDIU(rt,rs,imm) -> 
        wreg rt (Int32.add (reg rs) (Int32.of_int (imm land 0xff))); 
        tick 1; pc 4;
+  | MipsADDU(rd,rs,rt) -> 
+       wreg rd (Int32.add (reg rs) (reg rt)); 
+       tick 1; pc 4
   | MipsJR(rs) -> 
        state.pc <- state.pc + 4; 
        step prog state; 
        state.pc <- Int32.to_int state.registers.(rs);
        tick 1
+  | MipsSLL(rd,rt,shamt) -> 
+       wreg rd (Int32.shift_left (reg rt) shamt); 
+       tick 1; pc 4       
+  | MipsSUB(rd,rs,rt) -> 
+       wreg rd (Int32.sub (reg rs) (reg rt)); 
+       tick 1; pc 4
+  | MipsSUBU(rd,rs,rt) -> 
+       wreg rd (Int32.sub (reg rs) (reg rt)); 
+       tick 1; pc 4
   | _ -> failwith "Unknown instruction."
 
 
