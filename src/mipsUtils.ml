@@ -39,8 +39,8 @@ let decode_inst bininst =
            | _  -> MipsUnknown(bininst))
   | 2  -> MipsJ(address())
   | 3  -> MipsJAL(address())
-  | 4  -> MipsBEQ(rs(),rt(),imm(),"xx")
-  | 5  -> MipsBNE(rs(),rt(),imm(),"xx")
+  | 4  -> MipsBEQ(rs(),rt(),imm(),"")
+  | 5  -> MipsBNE(rs(),rt(),imm(),"")
   | 8  -> MipsADDI(rt(),rs(),imm())
   | 9  -> MipsADDIU(rt(),rs(),imm())
   | 10 -> MipsSLTI(rt(),rs(),imm())
@@ -140,13 +140,13 @@ let rparan = us")"
 
 
 (* ---------------------------------------------------------------------*)
-let pprint_inst readable inst = 
+let pprint_inst inst = 
   let rdst rd rs rt = (reg rd) ^. com ^. (reg rs) ^. com ^. (reg rt) in
   let rdts rd rt rs = rdst rd rt rs in
   let rdst rd rs rt = (reg rd) ^. com ^. (reg rs) ^. com ^. (reg rt) in
   let rtsi rt rs imm = (reg rt) ^. com ^. (reg rs) ^. com ^. ustring_of_int imm in
   let rtsis rt rs imm s = (reg rt) ^. com ^. (reg rs) ^. com ^. 
-                  if readable then us s else ustring_of_int imm in
+                  if String.length s <> 0 then us s else ustring_of_int imm in
   let rti  rt imm = (reg rt) ^. com ^. ustring_of_int imm in
   let rtis rt imm rs = (reg rt) ^. com ^. ustring_of_int imm ^. 
                        lparan ^. (reg rs) ^. rparan in  
@@ -193,13 +193,13 @@ let pprint_inst readable inst =
 
 
 (* ---------------------------------------------------------------------*)
-let pprint_inst_list instlst readable  = 
-  (Ustring.concat (us"\n") (List.map (pprint_inst readable) instlst)) ^. us"\n"
+let pprint_inst_list instlst  = 
+  (Ustring.concat (us"\n") (List.map pprint_inst instlst)) ^. us"\n"
 
 
 
 (* ---------------------------------------------------------------------*)
-let pprint_asm prog addr len print_addr readable =
+let pprint_asm prog addr len print_addr =
   let pos = (addr - prog.text_addr) / 4 in  
   let pprint_label caddr =
     try 
@@ -217,7 +217,7 @@ let pprint_asm prog addr len print_addr readable =
          else us"") ^.
         pprint_label caddr ^.  
         (us"  ") ^.
-        (pprint_inst readable (prog.code.(cpos))) ^. us"\n"
+        (pprint_inst (prog.code.(cpos))) ^. us"\n"
       )
     else
       acc 

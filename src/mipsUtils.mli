@@ -16,18 +16,16 @@ val pprint_reg : int -> ustring
 (** [pprint_reg regno] returns the ustring representation of register number
     [regno] *)
 
-val pprint_inst : bool-> MipsAst.inst ->  ustring
-(** [pprint_inst readable inst ] pretty prints one instruction [inst]. If
-    parameter [readable] is true, readable text elements such as labels
-    will be used instead of addresses. For instance, beq will use a label.*)
+val pprint_inst : MipsAst.inst ->  ustring
+(** [pprint_inst inst ] pretty prints one instruction [inst]. *)
 
 
-val pprint_inst_list :  MipsAst.inst list -> bool -> ustring
-(** [pprint_inst readable lst] pretty prints the list [lst] of
+val pprint_inst_list :  MipsAst.inst list -> ustring
+(** [pprint_inst lst] pretty prints the list [lst] of
     instructions *)
 
-val pprint_asm : MipsAst.program -> int -> int -> bool -> bool -> ustring
-(** [pprint_asm prog addre len prnaddr readable] pretty prints program [prog],
+val pprint_asm : MipsAst.program -> int -> int -> bool -> ustring
+(** [pprint_asm prog addre len prnaddr] pretty prints program [prog],
     starting at address [addr] and prints [len] length of program code
     (in bytes). If boolean parameter [prnaddr] is true, the address of
     each instruction is also printed. *)

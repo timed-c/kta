@@ -476,7 +476,7 @@ let run_timing_analysis filenames write_files simple_output func_timing_analysis
 let mips_print filename = 
   let insts = MipsUtils.decode (Utils.read_binfile filename) in
   print_endline "";
-  uprint_endline (MipsUtils.pprint_inst_list insts true) 
+  uprint_endline (MipsUtils.pprint_inst_list insts) 
     
 let mips_compile filename opt = 
   let tmpname = "__tmp__" in
@@ -484,7 +484,7 @@ let mips_compile filename opt =
   let prog =  MipsUtils.add_branch_symbols (MipsSys.get_program tmpname) in
   Sys.remove tmpname;
   print_endline "";
-  uprint_endline (MipsUtils.pprint_asm prog prog.text_addr prog.text_size true true)
+  uprint_endline (MipsUtils.pprint_asm prog prog.text_addr prog.text_size true)
 
 let mips_sections filename opt = 
   let tmpname = "__tmp__" in
