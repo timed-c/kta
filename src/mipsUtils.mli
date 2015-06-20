@@ -24,6 +24,10 @@ val pprint_inst_list :  MipsAst.inst list -> ustring
 (** [pprint_inst lst] pretty prints the list [lst] of
     instructions *)
 
+val pprint_inst_ext : MipsAst.inst -> MipsAst.program -> int -> bool -> ustring
+(* [pprint_inst_ext inst prog addr print_addr] pretty prints an instruction
+   together with labels etc. *)
+
 val pprint_asm : MipsAst.program -> int -> int -> bool -> ustring
 (** [pprint_asm prog addre len prnaddr] pretty prints program [prog],
     starting at address [addr] and prints [len] length of program code
@@ -35,3 +39,4 @@ val add_branch_symbols : MipsAst.program -> MipsAst.program
  and adds them to the fields sym2addr and add2sym in the returned program. The
  string labels are also added to the instructions in fields 'code' field of the program.
 *)
+

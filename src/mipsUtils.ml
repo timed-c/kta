@@ -41,6 +41,7 @@ let decode_inst bininst =
   | 3  -> MipsJAL(address())
   | 4  -> MipsBEQ(rs(),rt(),imm(),"")
   | 5  -> MipsBNE(rs(),rt(),imm(),"")
+  | 6  -> MipsBLEZ(rs(),imm(),"")
   | 8  -> MipsADDI(rt(),rs(),imm())
   | 9  -> MipsADDIU(rt(),rs(),imm())
   | 10 -> MipsSLTI(rt(),rs(),imm())
@@ -147,6 +148,8 @@ let pprint_inst inst =
   let rtsi rt rs imm = (reg rt) ^. com ^. (reg rs) ^. com ^. ustring_of_int imm in
   let rtsis rt rs imm s = (reg rt) ^. com ^. (reg rs) ^. com ^. 
                   if String.length s <> 0 then us s else ustring_of_int imm in
+  let rsis rt imm s = (reg rt) ^. com ^. 
+                  if String.length s <> 0 then us s else ustring_of_int imm in
   let rti  rt imm = (reg rt) ^. com ^. ustring_of_int imm in
   let rtis rt imm rs = (reg rt) ^. com ^. ustring_of_int imm ^. 
                        lparan ^. (reg rs) ^. rparan in  
@@ -161,6 +164,7 @@ let pprint_inst inst =
   | MipsAND(rd,rs,rt)    -> (istr "and") ^. (rdst rd rs rt)
   | MipsANDI(rt,rs,imm)  -> (istr "andi") ^. (rtsi rt rs imm)
   | MipsBEQ(rs,rt,imm,s) -> (istr "beq") ^. (rtsis rs rt imm s)
+  | MipsBLEZ(rs,imm,s)   -> (istr "blez") ^. (rsis rs imm s)    
   | MipsBNE(rs,rt,imm,s) -> (istr "bne") ^. (rtsis rs rt imm s)    
   | MipsJALR(rs)         -> (istr "jalr") ^. (reg rs)
   | MipsJR(rs)           -> (istr "jr") ^. (reg rs)
@@ -197,10 +201,8 @@ let pprint_inst_list instlst  =
   (Ustring.concat (us"\n") (List.map pprint_inst instlst)) ^. us"\n"
 
 
-
 (* ---------------------------------------------------------------------*)
-let pprint_asm prog addr len print_addr =
-  let pos = (addr - prog.text_addr) / 4 in  
+let pprint_inst_ext inst prog addr print_addr =
   let pprint_label caddr =
     try 
       let sym = Addr2Sym.find caddr prog.addr2sym in
@@ -208,21 +210,25 @@ let pprint_asm prog addr len print_addr =
       (if print_addr then us"           " else us"")          
     with Not_found -> us""     
   in
+    (if print_addr then us(sprintf "0x%08x " addr) else us"") ^.
+        pprint_label addr ^. (us"  ") ^.
+        (pprint_inst (inst)) 
+
+
+
+(* ---------------------------------------------------------------------*)
+let pprint_asm prog addr len print_addr =
+  let pos = (addr - prog.text_addr) / 4 in  
   let rec loop cpos acc = 
     if cpos < len/4 then
       let caddr = cpos*4 + prog.text_addr in
       loop (cpos + 1) (
-        acc ^. 
-        (if print_addr then us(sprintf "0x%08x " caddr )
-         else us"") ^.
-        pprint_label caddr ^.  
-        (us"  ") ^.
-        (pprint_inst (prog.code.(cpos))) ^. us"\n"
-      )
+          acc ^. pprint_inst_ext (prog.code.(cpos)) prog caddr print_addr ^. us"\n")
     else
       acc 
   in
     loop pos (us"")
+
 
 
 (* ---------------------------------------------------------------------*)
@@ -246,15 +252,21 @@ let add_branch_symbols prog =
     in
 
     match inst with
-    | MipsBEQ(rs,rt,imm,s) ->
+    | MipsBEQ(_,_,imm,_) | MipsBLEZ(_,imm,_) | MipsBNE(_,_,imm,_)  ->
         let (newlabel,s2a',a2s') = makenew imm in
-        codearray.(i) <- MipsBEQ(rs,rt,imm,newlabel);
-        (i+1,s2a',a2s')
-    | MipsBNE(rs,rt,imm,s) -> 
-        let (newlabel,s2a',a2s') = makenew imm in
-        codearray.(i) <- MipsBNE(rs,rt,imm,newlabel);
+        let i2 = (match inst with
+          | MipsBEQ(rs,rt,_,_)  -> MipsBEQ(rs,rt,imm,newlabel)
+          | MipsBLEZ(rs,_,_) -> MipsBLEZ(rs,imm,newlabel)
+          | MipsBNE(rs,rt,_,_)  -> MipsBNE(rs,rt,imm,newlabel)
+          | _ -> failwith "Should not happen"
+        )in
+        codearray.(i) <- i2;
         (i+1,s2a',a2s')
     | _ -> (i+1,s2a,a2s)
   ) (0,prog.sym2addr,prog.addr2sym) codearray in
   { prog with code = codearray ; sym2addr = s2a ; addr2sym = a2s}
+
+
+
+
 

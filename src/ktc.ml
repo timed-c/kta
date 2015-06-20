@@ -511,6 +511,15 @@ let mips_eval filename func args opt =
   printf "Cycle count: %d\n"  count;
   Sys.remove tmpname
 
+let mips_debug filename func args opt = 
+  let tmpname = "__tmp__" in
+  MipsSys.pic32_compile [filename] false opt tmpname;
+  let prog = MipsSys.get_program tmpname in
+  let (state,(str,_)) = MipsEval.eval prog func args MipsEval.debug_print 
+                      (us"", Array.make 32 Int32.zero) in
+  uprint_endline str;
+  Sys.remove tmpname
+
   
     
 
@@ -528,7 +537,7 @@ let main =
       mips_sections (Sys.argv.(2)) true
   else if Sys.argv.(1) = "-symbols" then 
       mips_symbols (Sys.argv.(2)) true
-  else if Sys.argv.(1) = "-eval" then 
+  else if Sys.argv.(1) = "-eval" || Sys.argv.(1) = "-debug"  then 
     let filename = if len >= 3 then (Sys.argv.(2)) else failwith "No filename" in
     let funcname = if len >= 4 then (Sys.argv.(3)) else "main" in
     let args = 
@@ -539,7 +548,9 @@ let main =
                                    ((Array.length Sys.argv)-4)) in        
         List.map int32arg lst   
     in     
-        mips_eval filename funcname args true
+    match Sys.argv.(1) with
+    | "-eval" ->  mips_eval filename funcname args true
+    | "-debug" ->  mips_debug filename funcname args true
   else
     (* Test and parse the timing analysis file *)
     if true then (
