@@ -19,12 +19,20 @@ type machinestate =
    - Trapping for addu and subu is not implemented.
 *)
 (* ---------------------------------------------------------------------*)
-let rec step prog state opfunc opval delay_slot =
+let rec step prog state opfunc opval is_a_delay_slot =
   let reg r = state.registers.(r) in
   let wreg r v = state.registers.(r) <- v in
   let pc pc = state.pc <- state.pc + pc in
   let inst = prog.code.((state.pc - prog.text_addr)/4) in
-  let op() = opfunc inst delay_slot state opval in
+  let op() = opfunc inst is_a_delay_slot state opval in
+  let branch dst = 
+       pc 4;
+       let (opval', term) = step prog state opfunc opval true in
+       if term then (opval',term) 
+       else(
+         state.pc <- dst;
+         opfunc inst false state opval')
+  in
   match inst  with 
   | MipsADD(rd,rs,rt) -> 
        wreg rd (Int32.add (reg rs) (reg rt)); pc 4; op()
@@ -32,20 +40,27 @@ let rec step prog state opfunc opval delay_slot =
        wreg rt (Int32.add (reg rs) (Int32.of_int (imm land 0xff))); pc 4; op()
   | MipsADDU(rd,rs,rt) -> 
        wreg rd (Int32.add (reg rs) (reg rt)); pc 4; op()
+  | MipsBEQ(rs,rt,imm,s) ->
+       if Int32.compare (reg rs) (reg rt) = 0 then branch (imm*4 + 4 + state.pc)
+       else (pc 4; op())
+  | MipsBNE(rs,rt,imm,s) ->
+       if Int32.compare (reg rs) (reg rt) <> 0 then branch (imm*4 + 4 + state.pc)
+       else (pc 4; op())
   | MipsJR(rs) -> 
-       pc 4;
-       let (opval', term) = step prog state opfunc opval true in
-       if term then (opval',term) 
-       else(
-         state.pc <- Int32.to_int state.registers.(rs);
-         opfunc inst false state opval')
+       branch (Int32.to_int state.registers.(rs))
+  | MipsMUL(rd,rs,rt) -> 
+       wreg rd (Int32.mul (reg rs) (reg rt)); pc 4; op()
   | MipsSLL(rd,rt,shamt) -> 
        wreg rd (Int32.shift_left (reg rt) shamt); pc 4; op() 
+  | MipsSLT(rd,rs,rt) ->
+       wreg rd (Int32.shift_right_logical (Int32.sub (reg rs) (reg rt)) 31); 
+       pc 4; op() 
   | MipsSUB(rd,rs,rt) -> 
        wreg rd (Int32.sub (reg rs) (reg rt)); pc 4; op()
   | MipsSUBU(rd,rs,rt) -> 
        wreg rd (Int32.sub (reg rs) (reg rt)); pc 4; op()
-  | _ -> failwith "Unknown instruction."
+  | _ -> failwith ("Unknown instruction: " ^
+                    Ustring.to_utf8 (MipsUtils.pprint_inst inst))
    
   
 
@@ -53,7 +68,7 @@ let rec step prog state opfunc opval delay_slot =
 
 (* ---------------------------------------------------------------------*)
 (* TODO: Update with correct handling for a 5 stage pipeline *)
-let cycle_count inst delay_slot state count =
+let cycle_count inst is_a_delay_slot state count =
   (count + 1, false )
 
 
