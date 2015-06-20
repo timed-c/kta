@@ -225,4 +225,36 @@ let pprint_asm prog addr len print_addr readable =
     loop pos (us"")
 
 
+(* ---------------------------------------------------------------------*)
+let add_branch_symbols prog = 
+  let codearray = Array.copy prog.code in
+  let x = ref 1 in
+  let (_,s2a,a2s) = Array.fold_left (fun (i,s2a,a2s) inst -> 
+    let makenew imm =
+      let addr = i*4 + 4 + imm*4 + prog.text_addr in
+      if Addr2Sym.mem addr a2s then 
+        (Addr2Sym.find addr a2s,s2a,a2s)
+      else 
+        let rec find_unique() =
+          let l = "l" ^ string_of_int !x in
+          if not (Sym2Addr.mem l s2a) then 
+            (x := !x + 1;
+            (l,Sym2Addr.add l addr s2a,Addr2Sym.add addr l a2s))
+          else
+            find_unique()
+        in find_unique()
+    in
+
+    match inst with
+    | MipsBEQ(rs,rt,imm,s) ->
+        let (newlabel,s2a',a2s') = makenew imm in
+        codearray.(i) <- MipsBEQ(rs,rt,imm,newlabel);
+        (i+1,s2a',a2s')
+    | MipsBNE(rs,rt,imm,s) -> 
+        let (newlabel,s2a',a2s') = makenew imm in
+        codearray.(i) <- MipsBNE(rs,rt,imm,newlabel);
+        (i+1,s2a',a2s')
+    | _ -> (i+1,s2a,a2s)
+  ) (0,prog.sym2addr,prog.addr2sym) codearray in
+  { prog with code = codearray ; sym2addr = s2a ; addr2sym = a2s}
 

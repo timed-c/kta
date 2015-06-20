@@ -481,7 +481,7 @@ let mips_print filename =
 let mips_compile filename opt = 
   let tmpname = "__tmp__" in
   MipsSys.pic32_compile [filename] false opt tmpname;
-  let prog = MipsSys.get_program tmpname in
+  let prog =  MipsUtils.add_branch_symbols (MipsSys.get_program tmpname) in
   Sys.remove tmpname;
   print_endline "";
   uprint_endline (MipsUtils.pprint_asm prog prog.text_addr prog.text_size true true)
