@@ -1,5 +1,6 @@
 
 
+
 type rd = int
 type rs = int
 type rt = int
@@ -45,8 +46,10 @@ type inst =
   | MipsXORI    of rt * rs  * imm
   | MipsUnknown of int
       
-
-
+module Sym2Addr = Map.Make(String)
+type sym2addr_map = int Sym2Addr.t
+module Addr2Sym = Map.Make(Utils.Int)
+type addr2sym_map = string Addr2Sym.t
 
 (** A MIPS program object that contains all information needed to 
     execute the object. *)
@@ -54,6 +57,8 @@ type program =
 {
   filename : string;                      (* Name of the original MIPS binary file *)
   symbols : (string * int) list;          (* Symbol table *)
+  sym2addr : sym2addr_map;                (* Fast lookup using module Sym2Addr *) 
+  addr2sym : addr2sym_map;                (* Fast lookup using module Addr2Sym *) 
   sections : (string * (int * int)) list; (* Section info. Names, size, address. *)
   text_sec : bytes;                       (* Text section (code) *)
   data_sec : bytes;                       (* Data section *)

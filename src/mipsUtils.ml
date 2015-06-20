@@ -6,6 +6,7 @@ open MipsAst
 exception Decode_error of string
 
 
+(* ---------------------------------------------------------------------*)
 let decode_inst bininst =   
   let op = bininst lsr 26 in
   let rs() = (bininst lsr 21) land 0b11111 in
@@ -59,6 +60,7 @@ let decode_inst bininst =
   | _ -> MipsUnknown(bininst)      
     
 
+(* ---------------------------------------------------------------------*)
 let decode ?(bigendian=false) data = 
   (* Check that the size of the input data is correct (multiple of 4 bytes) *)
   if (Bytes.length data) mod 4 != 0 then 
@@ -89,6 +91,7 @@ let decode ?(bigendian=false) data =
       
 
   
+(* ---------------------------------------------------------------------*)
 let reg x = us(
   match x with
   | 0  -> "$0"
@@ -125,12 +128,18 @@ let reg x = us(
   | 31 -> "$ra"
   | _  -> failwith "Not a register.")
 
+
+
+(* ---------------------------------------------------------------------*)
 let pprint_reg x = reg x
 
 let com = us","
 let lparan = us"("
 let rparan = us")"
 
+
+
+(* ---------------------------------------------------------------------*)
 let pprint_inst inst = 
   let rdst rd rs rt = (reg rd) ^. com ^. (reg rs) ^. com ^. (reg rt) in
   let rdts rd rt rs = rdst rd rt rs in
@@ -181,9 +190,37 @@ let pprint_inst inst =
   | MipsUnknown(inst)    -> us(sprintf "[0x%x]" inst)
 
 
+(* ---------------------------------------------------------------------*)
 let pprint_inst_list instlst = 
   (Ustring.concat (us"\n") (List.map pprint_inst instlst)) ^. us"\n"
 
+
+
+(* ---------------------------------------------------------------------*)
+let pprint_asm prog addr len print_addr =
+  let pos = (addr - prog.text_addr) / 4 in  
+  let pprint_label caddr =
+    try 
+      let sym = Addr2Sym.find caddr prog.addr2sym in
+      us sym ^. us":\n" ^. 
+      (if print_addr then us"           " else us"")          
+    with Not_found -> us""     
+  in
+  let rec loop cpos acc = 
+    if cpos < len/4 then
+      let caddr = cpos*4 + prog.text_addr in
+      loop (cpos + 1) (
+        acc ^. 
+        (if print_addr then us(sprintf "0x%08x " caddr )
+         else us"") ^.
+        pprint_label caddr ^.  
+        (us"  ") ^.
+        (pprint_inst (prog.code.(cpos))) ^. us"\n"
+      )
+    else
+      acc 
+  in
+    loop pos (us"")
 
 
 

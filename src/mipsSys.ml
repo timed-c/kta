@@ -10,6 +10,7 @@ let gcc = comp_name ^ "-gcc"
 let section_guid = "20b8de13-4db6-4ac8-89ff-0bb1ac7aadc8"
 
 
+(* ---------------------------------------------------------------------*)
 let get_section filename section =
   try 
     let (code,stdout,stderr) = 
@@ -24,6 +25,7 @@ let get_section filename section =
     _ -> Bytes.empty
   
 
+(* ---------------------------------------------------------------------*)
 let pic32_compile filenames only_compile optimization outputname =
   let cflags = " -ffreestanding -march=mips32r2 -msoft-float -Wa,-msoft-float " in
   let (code,stdout,stderr) = 
@@ -33,7 +35,9 @@ let pic32_compile filenames only_compile optimization outputname =
                    "-o " ^ outputname) in
   if code != 0 then raise (Sys_error (stderr ^ " " ^ stdout)) else ()
   
+
     
+(* ---------------------------------------------------------------------*)
 let section_info filename = 
   let (code,stdout,stderr) = 
     USys.shellcmd (objdump ^ " -h " ^ filename) in
@@ -57,6 +61,9 @@ let section_info filename =
                             ("Error reading section data: " ^ stdout)))
             filtered
 
+
+
+(* ---------------------------------------------------------------------*)
 let symbol_table filename = 
   let (code,stdout,stderr) = USys.shellcmd (nm ^ " " ^ filename) in
   if code != 0 then raise (Sys_error (stderr ^ " " ^ stdout));
@@ -75,8 +82,9 @@ let symbol_table filename =
     ) [] lines
   
   
+(* ---------------------------------------------------------------------*)
 let get_program filename = 
-  let l_symbols = symbol_table filename in
+  let l_symbols = List.rev (symbol_table filename) in
   let l_sections = section_info filename in
   let l_text = try Some(List.assoc ".text" l_sections) with _ -> None in
   let l_data = try Some(List.assoc ".sdata" l_sections) with _ -> None in
@@ -85,6 +93,10 @@ let get_program filename =
 { 
   filename = filename;
   symbols = l_symbols;
+  sym2addr = List.fold_left (fun m (s,a) -> Sym2Addr.add s a m) 
+                Sym2Addr.empty l_symbols;
+  addr2sym = List.fold_left (fun m (s,a) -> Addr2Sym.add a s m) 
+                Addr2Sym.empty l_symbols;
   sections = l_sections;
   text_sec = l_textcode;
   data_sec = get_section filename ".sdata";
