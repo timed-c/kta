@@ -18,7 +18,7 @@ let main =
   Sys.remove tmpname;
 
   let expected = Ustring.read_file "test/mips_tests/asmtest.expected_asm" in
-  let result = MipsUtils.pprint_inst_list insts in
+  let result = MipsUtils.pprint_inst_list insts false in
   Utest.test_ustr "Test decoding of basic MIPS ISA instructions."
     result expected;
 
