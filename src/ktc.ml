@@ -506,7 +506,8 @@ let mips_eval filename func args opt =
   let tmpname = "__tmp__" in
   MipsSys.pic32_compile [filename] false opt tmpname;
   let prog = MipsSys.get_program tmpname in
-  let (state,count) = MipsEval.eval prog func args MipsEval.cycle_count 0 in
+  let initstate = MipsEval.init prog func args in
+  let (state,count) = MipsEval.eval prog initstate MipsEval.cycle_count 0 in
   uprint_endline (MipsEval.pprint_state state);
   printf "Cycle count: %d\n"  count;
   Sys.remove tmpname
@@ -515,9 +516,12 @@ let mips_debug filename func args opt =
   let tmpname = "__tmp__" in
   MipsSys.pic32_compile [filename] false opt tmpname;
   let prog = MipsSys.get_program tmpname in
-  let (state,(str,_)) = MipsEval.eval prog func args MipsEval.debug_print 
+  let initstate = MipsEval.init prog func args in
+  uprint_endline (MipsEval.pprint_state initstate);  
+  let (state,(str,_)) = MipsEval.eval prog initstate MipsEval.debug_print 
                       (us"", Array.make 32 Int32.zero) in
   uprint_endline str;
+  uprint_endline (MipsEval.pprint_state state);
   Sys.remove tmpname
 
   
@@ -551,6 +555,7 @@ let main =
     match Sys.argv.(1) with
     | "-eval" ->  mips_eval filename funcname args true
     | "-debug" ->  mips_debug filename funcname args true
+    | _ -> failwith "Cannot happen"
   else
     (* Test and parse the timing analysis file *)
     if true then (

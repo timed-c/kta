@@ -123,10 +123,19 @@ let debug_print inst pc prog state is_a_delay_slot (acc,regfile) =
       (match List.rev (Ustring.split str (us"\n")) with
         | x::xs -> List.rev ((Ustring.spaces_after x 36)::xs)
         | [] -> [])
-  in  
+  in
+  let preg reg sign = 
+    if reg = 0 then us"" else
+      Ustring.spaces_after (MipsUtils.pprint_reg reg ^. 
+      us(sprintf "%s%d" sign (Int32.to_int state.registers.(reg)))) 14
+  in
   let str = 
     acc ^. pad_right (MipsUtils.pprint_inst_ext inst prog pc true) 36 ^. 
-    us"|\n" ^.
+    us"   " ^.
+    preg dreg " := " ^.
+    preg sreg1 " = " ^.
+    preg sreg2 " = " ^.
+    us"\n" ^.    
     if pc + 4 <> state.pc then us"\n" else us""    
     
   in
@@ -155,23 +164,14 @@ let pprint_state state =
   
 
 (* ---------------------------------------------------------------------*)
-let init prog = 
-{
-  registers = Array.make 32 Int32.zero;
-  data = Bytes.copy prog.data_sec;
-  bss = Bytes.make prog.bss_size (char_of_int 0);
-  pc = 0;
-}
-
-
-
-
-
-(* ---------------------------------------------------------------------*)
-(* Evaluate a program *)
-let eval prog func args opfunc opinit = 
-  (* Create the initial state. Init all registers to zero *)
-  let state = init prog in
+let init prog func args = 
+  let state = {
+    registers = Array.make 32 Int32.zero;
+    data = Bytes.copy prog.data_sec;
+    bss = Bytes.make prog.bss_size (char_of_int 0);
+    pc = 0;
+  } 
+  in 
 
   (* Set the PC address to the address given by the func parameter *)
   (try state.pc <- List.assoc func prog.symbols 
@@ -179,13 +179,22 @@ let eval prog func args opfunc opinit =
     Not_found -> raise (Function_not_found func));   
 
   (* Set return address to 0. Used for checking termination. *)
-  let ra_reg = 31 in
-  state.registers.(ra_reg) <- Int32.zero; 
+  state.registers.(31) <- Int32.zero; 
   
   (* Set the arguments. For now, max 4 arguments. *)
   List.iteri (fun i x ->
     if i < 4 then state.registers.(i + 4) <- x else () 
   ) args;
+  
+  (* Return the state *)
+  state
+
+
+
+
+(* ---------------------------------------------------------------------*)
+(* Evaluate a program *)
+let eval prog state opfunc opinit = 
   
   (* Call the step function *)
   let rec multistep opval =
