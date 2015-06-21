@@ -38,7 +38,7 @@ int foo(int x){
 */
 
 
-/*
+
 // TODO: FIx, not supportet yet
 // mult, mfhi
 int foo(int x){
@@ -49,10 +49,10 @@ int foo(int x){
   }  
   return r;
 }
-*/
 
 
-//strange asm using xor and no branch
+/*
+// mult mflo
 int foo(int x, int y){
   int z = x * y;
   if(x == y)
@@ -60,7 +60,12 @@ int foo(int x, int y){
   else
     return z;
 }
+*/
 
+/*
+ 0000 0000 1000 0101   0001 0000 0000 1010
+
+ */
 
 int main()
 {

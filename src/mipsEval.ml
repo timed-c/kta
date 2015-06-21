@@ -36,6 +36,12 @@ let rec step prog state opfunc opval is_a_delay_slot =
          state.pc <- dst;
          opfunc inst thispc prog state false opval')
   in
+  let sethi_lo v =
+    state.lo <- Int64.to_int32 (Int64.shift_right_logical (Int64.shift_left v 32) 32);
+    state.hi <- Int64.to_int32 (Int64.shift_right_logical v 32)
+  in    
+  let to64unsig v =  Int64.shift_right_logical (Int64.shift_left 
+                    (Int64.of_int32 (reg v)) 32) 32 in
   match inst  with 
   | MipsADD(rd,rs,rt) -> 
        wreg rd (Int32.add (reg rs) (reg rt)); pc 4; op()
@@ -54,14 +60,22 @@ let rec step prog state opfunc opval is_a_delay_slot =
        else (pc 4; op())
   | MipsJR(rs) -> 
        branch (Int32.to_int state.registers.(rs))
+  | MipsMFHI(rd) -> 
+       wreg rd (state.hi); pc 4; op()
+  | MipsMFLO(rd) -> 
+       wreg rd (state.lo); pc 4; op()
+  | MipsMTHI(rs) -> 
+       state.hi <- reg rs; pc 4; op()
+  | MipsMTLO(rs) -> 
+       state.lo <- reg rs; pc 4; op()
   | MipsMUL(rd,rs,rt) -> 
        wreg rd (Int32.mul (reg rs) (reg rt)); pc 4; op()
   | MipsMULT(rs,rt) -> 
-      let r = Int64.mul (Int64.of_int32 (reg rs)) (Int64.of_int32 (reg rt)) in
-      state.lo <- Int64.to_int32 (Int64.shift_right_logical 
-                                    (Int64.shift_left r 32) 32);
-      state.hi <- Int64.to_int32 (Int64.shift_right_logical r 32);
-      pc 4; op()
+       sethi_lo (Int64.mul (Int64.of_int32 (reg rs)) (Int64.of_int32 (reg rt)));
+       pc 4; op()
+  | MipsMULTU(rs,rt) -> 
+       sethi_lo (Int64.mul (to64unsig rs) (to64unsig rt));
+       pc 4; op()
   | MipsSLL(rd,rt,shamt) -> 
        wreg rd (Int32.shift_left (reg rt) shamt); pc 4; op() 
   | MipsSLT(rd,rs,rt) ->
@@ -107,8 +121,13 @@ let debug_print inst pc prog state is_a_delay_slot (acc,regfile) =
     | MipsLBU(rt,_,rs) -> (rt,rs,0)
     | MipsLUI(rt,_) -> (rt,0,0)
     | MipsLW(rt,_,rs) -> (rt,rs,0)
+    | MipsMFHI(rd) -> (rd,0,0)
+    | MipsMFLO(rd) -> (rd,0,0)
+    | MipsMTHI(rs) -> (0,rs,0)
+    | MipsMTLO(rs) -> (0,rs,0)
     | MipsMUL(rd,rs,rt) -> (rd,rs,rt)
     | MipsMULT(rs,rt) -> (0,rs,rt)
+    | MipsMULTU(rs,rt) -> (0,rs,rt)
     | MipsNOR(rd,rs,rt) -> (rd,rs,rt)
     | MipsOR(rd,rs,rt) -> (rd,rs,rt) 
     | MipsORI(rt,rs,_) -> (rt,rs,0)
