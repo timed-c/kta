@@ -20,8 +20,8 @@ type machinestate =
 *)
 (* ---------------------------------------------------------------------*)
 let rec step prog state opfunc opval is_a_delay_slot =
-  let reg r = state.registers.(r) in
-  let wreg r v = state.registers.(r) <- v in
+  let reg r = if r = 0 then Int32.zero else state.registers.(r) in
+  let wreg r v = if r = 0 then () else state.registers.(r) <- v in
   let pc pc = state.pc <- state.pc + pc in
   let inst = prog.code.((state.pc - prog.text_addr)/4) in
   let thispc = state.pc in
@@ -38,7 +38,7 @@ let rec step prog state opfunc opval is_a_delay_slot =
   | MipsADD(rd,rs,rt) -> 
        wreg rd (Int32.add (reg rs) (reg rt)); pc 4; op()
   | MipsADDIU(rt,rs,imm) -> 
-       wreg rt (Int32.add (reg rs) (Int32.of_int (imm land 0xff))); pc 4; op()
+       wreg rt (Int32.add (reg rs) (Int32.of_int (imm land 0xffff))); pc 4; op()
   | MipsADDU(rd,rs,rt) -> 
        wreg rd (Int32.add (reg rs) (reg rt)); pc 4; op()
   | MipsBEQ(rs,rt,imm,s) ->

@@ -1,5 +1,5 @@
 
-//#define PRINT_MAIN
+#define PRINT_MAIN
 
 #ifdef PRINT_MAIN
 #include <stdio.h>
@@ -25,7 +25,8 @@ int foo(int x, int y){
 }
 */
 
-// Tests: blez
+/*
+// Tests: blez, subu, sll, addiu, bne
 int foo(int x){
   int i;
   int r = 23;
@@ -34,8 +35,11 @@ int foo(int x){
   }  
   return r;
 }
+*/
+
 
 /*
+// TODO: FIx, not supportet yet
 // mult, mfhi
 int foo(int x){
   int i;
@@ -47,8 +51,8 @@ int foo(int x){
 }
 */
 
-/*
-strange asm using xor and no branch
+
+//strange asm using xor and no branch
 int foo(int x, int y){
   int z = x * y;
   if(x == y)
@@ -56,12 +60,12 @@ int foo(int x, int y){
   else
     return z;
 }
-*/
+
 
 int main()
 {
   #ifdef PRINT_MAIN
-  int x = foo(1);
+  int x = foo(1,2);
   printf("Result: 0x%x  %d\n", x, x);
   #endif
   return 0;
