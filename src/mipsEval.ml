@@ -11,6 +11,8 @@ type machinestate =
   data : bytes;
   bss : bytes;
   mutable pc : int;
+  mutable hi : int32;
+  mutable lo : int32;
 }
 
 
@@ -54,6 +56,12 @@ let rec step prog state opfunc opval is_a_delay_slot =
        branch (Int32.to_int state.registers.(rs))
   | MipsMUL(rd,rs,rt) -> 
        wreg rd (Int32.mul (reg rs) (reg rt)); pc 4; op()
+  | MipsMULT(rs,rt) -> 
+      let r = Int64.mul (Int64.of_int32 (reg rs)) (Int64.of_int32 (reg rt)) in
+      state.lo <- Int64.to_int32 (Int64.shift_right_logical 
+                                    (Int64.shift_left r 32) 32);
+      state.hi <- Int64.to_int32 (Int64.shift_right_logical r 32);
+      pc 4; op()
   | MipsSLL(rd,rt,shamt) -> 
        wreg rd (Int32.shift_left (reg rt) shamt); pc 4; op() 
   | MipsSLT(rd,rs,rt) ->
@@ -63,6 +71,8 @@ let rec step prog state opfunc opval is_a_delay_slot =
        wreg rd (Int32.sub (reg rs) (reg rt)); pc 4; op()
   | MipsSUBU(rd,rs,rt) -> 
        wreg rd (Int32.sub (reg rs) (reg rt)); pc 4; op()
+  | MipsXOR(rd,rs,rt) -> 
+       wreg rd (Int32.logxor (reg rs) (reg rt)); pc 4; op()
   | _ -> failwith ("Unknown instruction: " ^
                     Ustring.to_utf8 (MipsUtils.pprint_inst inst))
    
@@ -98,6 +108,7 @@ let debug_print inst pc prog state is_a_delay_slot (acc,regfile) =
     | MipsLUI(rt,_) -> (rt,0,0)
     | MipsLW(rt,_,rs) -> (rt,rs,0)
     | MipsMUL(rd,rs,rt) -> (rd,rs,rt)
+    | MipsMULT(rs,rt) -> (0,rs,rt)
     | MipsNOR(rd,rs,rt) -> (rd,rs,rt)
     | MipsOR(rd,rs,rt) -> (rd,rs,rt) 
     | MipsORI(rt,rs,_) -> (rt,rs,0)
@@ -170,6 +181,8 @@ let init prog func args =
     data = Bytes.copy prog.data_sec;
     bss = Bytes.make prog.bss_size (char_of_int 0);
     pc = 0;
+    hi = Int32.zero;
+    lo = Int32.zero;
   } 
   in 
 

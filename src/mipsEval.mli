@@ -11,6 +11,8 @@ type machinestate =
   data : bytes;
   bss : bytes;
   mutable pc : int;
+  mutable hi : int32;
+  mutable lo : int32;
 }
 
 

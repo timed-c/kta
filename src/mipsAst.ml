@@ -27,6 +27,7 @@ type inst =
   | MipsLUI     of rt * imm
   | MipsLW      of rt * imm * rs
   | MipsMUL     of rd * rs  * rt
+  | MipsMULT    of rs * rt
   | MipsNOR     of rd * rs  * rt
   | MipsOR      of rd * rs  * rt
   | MipsORI     of rt * rs  * imm

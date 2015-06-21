@@ -25,7 +25,7 @@ let decode_inst bininst =
            | 6  -> MipsSRLV(rd(),rt(),rs())
            | 8  -> MipsJR(rs())
            | 9  -> MipsJALR(rs())
-           | 28 -> MipsMUL(rd(),rs(),rt())
+           | 24 -> MipsMULT(rs(),rt())
            | 32 -> MipsADD(rd(),rs(),rt())
            | 33 -> MipsADDU(rd(),rs(),rt())           
            | 34 -> MipsSUB(rd(),rs(),rt())           
@@ -144,7 +144,7 @@ let rparan = us")"
 let pprint_inst inst = 
   let rdst rd rs rt = (reg rd) ^. com ^. (reg rs) ^. com ^. (reg rt) in
   let rdts rd rt rs = rdst rd rt rs in
-  let rdst rd rs rt = (reg rd) ^. com ^. (reg rs) ^. com ^. (reg rt) in
+  let rst rs rt = (reg rs) ^. com ^. (reg rt) in
   let rtsi rt rs imm = (reg rt) ^. com ^. (reg rs) ^. com ^. ustring_of_int imm in
   let rtsis rt rs imm s = (reg rt) ^. com ^. (reg rs) ^. com ^. 
                   if String.length s <> 0 then us s else ustring_of_int imm in
@@ -175,6 +175,7 @@ let pprint_inst inst =
   | MipsLUI(rt,imm)      -> (istr "lui") ^. (rti rt imm)
   | MipsLW(rt,imm,rs)    -> (istr "lw") ^. (rtis rt imm rs)
   | MipsMUL(rd,rs,rt)    -> (istr "mul") ^. (rdst rd rs rt)
+  | MipsMULT(rs,rt)      -> (istr "mult") ^. (rst rs rt)
   | MipsNOR(rd,rs,rt)    -> (istr "nor") ^. (rdst rd rs rt)
   | MipsOR(rd,rs,rt)     -> (istr "or") ^. (rdst rd rs rt)
   | MipsORI(rt,rs,imm)   -> (istr "ori") ^. (rtsi rt rs imm)

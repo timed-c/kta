@@ -1,5 +1,5 @@
 
-#define PRINT_MAIN
+//#define PRINT_MAIN
 
 #ifdef PRINT_MAIN
 #include <stdio.h>
@@ -65,7 +65,7 @@ int foo(int x, int y){
 int main()
 {
   #ifdef PRINT_MAIN
-  int x = foo(1,2);
+  int x = foo(7,7);
   printf("Result: 0x%x  %d\n", x, x);
   #endif
   return 0;
