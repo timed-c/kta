@@ -39,8 +39,7 @@ int foo(int x){
 
 
 
-// TODO: FIx, not supportet yet
-// mult, mfhi
+// mult, mfhi, teq, div (reminder part)
 int foo(int x){
   int i;
   int r = 23;
@@ -49,7 +48,7 @@ int foo(int x){
   }  
   return r;
 }
-
+//43
 
 /*
 // mult mflo
@@ -70,7 +69,7 @@ int foo(int x, int y){
 int main()
 {
   #ifdef PRINT_MAIN
-  int x = foo(7,7);
+  int x = foo(5);
   printf("Result: 0x%x  %d\n", x, x);
   #endif
   return 0;

@@ -3,7 +3,8 @@
 
 P=mipsel-pic32-elf
 
-CFLAGS="-ffreestanding -march=mips32r2 -msoft-float -Wa,-msoft-float"
+# CFLAGS="-ffreestanding -march=mips32r2 -msoft-float -Wa,-msoft-float"
+CFLAGS="-ffreestanding -mips32 -mips2 -msoft-float -Wa,-msoft-float"
 
 # Compile 
 $P-gcc $CFLAGS -c -O3 $1.c -o $1.o 

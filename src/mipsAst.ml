@@ -4,6 +4,7 @@
 type rd = int
 type rs = int
 type rt = int
+type code = int (* 10 bits of information *)
 type imm = int (* Stored sign extended in the AST *)
 type addr = int
 type shamt = int
@@ -18,6 +19,8 @@ type inst =
   | MipsBEQ     of rs * rt  * imm * string
   | MipsBLEZ    of rs * imm * string
   | MipsBNE     of rs * rt  * imm * string
+  | MipsDIV     of rs * rt
+  | MipsDIVU    of rs * rt
   | MipsJALR    of rs
   | MipsJR      of rs
   | MipsJ       of addr
@@ -49,6 +52,7 @@ type inst =
   | MipsSW      of rt * imm * rs
   | MipsSUB     of rd * rs  * rt
   | MipsSUBU    of rd * rs  * rt
+  | MipsTEQ     of rs * rt  * code
   | MipsXOR     of rd * rs  * rt
   | MipsXORI    of rt * rs  * imm
   | MipsUnknown of int

@@ -12,6 +12,7 @@ let decode_inst bininst =
   let rs() = (bininst lsr 21) land 0b11111 in
   let rt() = (bininst lsr 16) land 0b11111 in
   let rd() = (bininst lsr 11) land 0b11111 in
+  let code() = (bininst lsr 6) land 0b1111111111 in
   let shamt() = (bininst lsr 6) land 0b11111 in
   let funct() = bininst land 0b111111 in
   let imm() = Utils.sign_extension (bininst land 0xffff) 16 in
@@ -31,6 +32,8 @@ let decode_inst bininst =
            | 19 -> MipsMTLO(rs())
            | 24 -> MipsMULT(rs(),rt())
            | 25 -> MipsMULTU(rs(),rt())
+           | 26 -> MipsDIV(rs(),rt())
+           | 27 -> MipsDIVU(rs(),rt())
            | 32 -> MipsADD(rd(),rs(),rt())
            | 33 -> MipsADDU(rd(),rs(),rt())           
            | 34 -> MipsSUB(rd(),rs(),rt())           
@@ -41,6 +44,7 @@ let decode_inst bininst =
            | 39 -> MipsNOR(rd(),rs(),rt())
            | 42 -> MipsSLT(rd(),rs(),rt())
            | 43 -> MipsSLTU(rd(),rs(),rt())
+           | 52 -> MipsTEQ(rs(),rt(),code())
            | _  -> MipsUnknown(bininst))
   | 2  -> MipsJ(address())
   | 3  -> MipsJAL(address())
@@ -186,6 +190,8 @@ let pprint_inst inst =
   | MipsMUL(rd,rs,rt)    -> (istr "mul") ^. (rdst rd rs rt)
   | MipsMULT(rs,rt)      -> (istr "mult") ^. (rst rs rt)
   | MipsMULTU(rs,rt)     -> (istr "multu") ^. (rst rs rt)
+  | MipsDIV(rs,rt)       -> (istr "div") ^. (rst rs rt)
+  | MipsDIVU(rs,rt)      -> (istr "divu") ^. (rst rs rt)
   | MipsNOR(rd,rs,rt)    -> (istr "nor") ^. (rdst rd rs rt)
   | MipsOR(rd,rs,rt)     -> (istr "or") ^. (rdst rd rs rt)
   | MipsORI(rt,rs,imm)   -> (istr "ori") ^. (rtsi rt rs imm)
@@ -202,6 +208,7 @@ let pprint_inst inst =
   | MipsSW(rt,imm,rs)    -> (istr "sw") ^. (rtis rt imm rs)
   | MipsSUB(rd,rs,rt)    -> (istr "sub") ^. (rdst rd rs rt)
   | MipsSUBU(rd,rs,rt)   -> (istr "subu") ^. (rdst rd rs rt)
+  | MipsTEQ(rs,rt,code)  -> (istr "teq") ^. (rtsi rs rt code)
   | MipsXOR(rd,rs,rt)    -> (istr "xor") ^. (rdst rd rs rt)
   | MipsXORI(rt,rs,imm)  -> (istr "xori") ^. (rtsi rt rs imm)
   | MipsUnknown(inst)    -> us(sprintf "[0x%x]" inst)
