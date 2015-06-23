@@ -4,6 +4,7 @@ open Ustring.Op
 open Printf
 
 exception Function_not_found of string
+exception Out_of_bound of string
 
 type machinestate = 
 {
@@ -23,7 +24,7 @@ type machinestate =
    - Conditional trap 'teq' is implemented as NOP
 *)
 (* ---------------------------------------------------------------------*)
-let rec step prog state opfunc opval is_a_delay_slot =
+let rec step bigendian prog state opfunc opval is_a_delay_slot =
   let reg r = if r = 0 then Int32.zero else state.registers.(r) in
   let wreg r v = if r = 0 then () else state.registers.(r) <- v in
   let pc pc = state.pc <- state.pc + pc in
@@ -31,12 +32,20 @@ let rec step prog state opfunc opval is_a_delay_slot =
   let thispc = state.pc in
   let op() = opfunc inst thispc prog state is_a_delay_slot opval in
   let branch dst = 
+    let (opval1,term1) = opfunc inst thispc prog state false opval in 
+    pc 4;
+    if term1 then (opval1,term1) else
+    let (opval2, term2) = step bigendian prog state opfunc opval1 true in
+    state.pc <- dst;
+    (opval2, term2)
+(*
        pc 4;
-       let (opval', term) = step prog state opfunc opval true in
+       let (opval', term) = step bigendian prog state opfunc opval true in
        if term then (opval',term) 
        else(
          state.pc <- dst;
          opfunc inst thispc prog state false opval')
+*)
   in
   let sethi_lo v =
     state.lo <- Int64.to_int32 (Int64.shift_right_logical (Int64.shift_left v 32) 32);
@@ -45,6 +54,16 @@ let rec step prog state opfunc opval is_a_delay_slot =
   let to64sig v =  Int64.of_int32 (reg v) in
   let to64unsig v =  Int64.shift_right_logical (Int64.shift_left 
                     (Int64.of_int32 (reg v)) 32) 32 in
+  let getmemptr addr size = 
+    if addr >= prog.data_addr && addr + size <= prog.data_addr + prog.data_size then
+      (state.data,addr - prog.data_addr)
+    else if addr >= prog.bss_addr && addr + size <= prog.bss_addr + prog.bss_size then
+      (state.bss,addr - prog.bss_addr)
+    else
+      raise (Out_of_bound (sprintf 
+      "%d bytes memory access at address 0x%x is outside memory." size addr))
+  in
+
   match inst  with 
   | MipsADD(rd,rs,rt) -> 
        wreg rd (Int32.add (reg rs) (reg rt)); pc 4; op()
@@ -71,6 +90,10 @@ let rec step prog state opfunc opval is_a_delay_slot =
        pc 4; op()
   | MipsJR(rs) -> 
        branch (Int32.to_int state.registers.(rs))
+  | MipsLW(rt,imm,rs) -> 
+      let (mem,i) = getmemptr ((Int32.to_int (reg rs)) + imm) 4 in
+      wreg rt (MipsUtils.get_32_bits_from_bytes bigendian mem i);
+      pc 4; op()
   | MipsMFHI(rd) -> 
        wreg rd (state.hi); pc 4; op()
   | MipsMFLO(rd) -> 
@@ -244,11 +267,11 @@ let init prog func args =
 
 (* ---------------------------------------------------------------------*)
 (* Evaluate a program *)
-let eval prog state opfunc opinit = 
+let eval ?(bigendian=false) prog state opfunc opinit = 
   
   (* Call the step function *)
   let rec multistep opval =
-     let (opval',terminate) = step prog state opfunc opval false in
+     let (opval',terminate) = step bigendian prog state opfunc opval false in
      if state.pc = 0 || terminate then opval'
      else multistep opval'
   in

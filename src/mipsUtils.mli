@@ -34,9 +34,25 @@ val pprint_asm : MipsAst.program -> int -> int -> bool -> ustring
     (in bytes). If boolean parameter [prnaddr] is true, the address of
     each instruction is also printed. *)
 
+
 val add_branch_symbols : MipsAst.program -> MipsAst.program
 (** [add_branch_symbols prog] creates branch symbols for all BEQ and BNE instructions
  and adds them to the fields sym2addr and add2sym in the returned program. The
  string labels are also added to the instructions in fields 'code' field of the program.
 *)
+
+val get_32_bits_from_bytes : bool -> bytes -> int -> int32 
+(** [get_32_bits_from_bytes bigendian b i] reads out a 32-bit value
+    from byte array [b] at index [i]. *)
+
+
+val pprint_bytes : bytes -> int -> int -> int -> bool -> ustring
+(** [pprint_bytes b i len addr bigendian] pretty prints [len] number of bytes from
+    byte array [b], starting at index [i], assuming that the first address is [addr] *)
+
+
+
+
+
+
 

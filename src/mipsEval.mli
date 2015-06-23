@@ -3,6 +3,7 @@
 open Ustring.Op
 
 exception Function_not_found of string
+exception Out_of_bound of string
 
 
 type machinestate = 
@@ -44,7 +45,7 @@ val init : MipsAst.program -> string -> int32 list -> machinestate
     execution. *)
 
 
-val eval : MipsAst.program -> machinestate ->
+val eval : ?bigendian:bool -> MipsAst.program -> machinestate ->
            (MipsAst.inst -> int -> MipsAst.program -> machinestate -> 
              bool -> 'a -> ('a * bool)) -> 
             'a -> (machinestate * 'a)

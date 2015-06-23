@@ -285,6 +285,48 @@ let add_branch_symbols prog =
   { prog with code = codearray ; sym2addr = s2a ; addr2sym = a2s}
 
 
+(* ---------------------------------------------------------------------*)
+let get_shift array index shift =
+  Int32.shift_left (Int32.of_int (int_of_char (Bytes.get array index))) shift
 
+
+(* ---------------------------------------------------------------------*)
+let get_32_bits_from_bytes bigendian array i =
+    if bigendian then
+      Int32.logor (get_shift array (i) 24)
+       (Int32.logor (get_shift array (i+1) 16)
+        (Int32.logor (get_shift array (i+2) 8)
+                       (get_shift array (i+3) 0)))
+    else
+      Int32.logor (get_shift array (i+3) 24)
+       (Int32.logor (get_shift array (i+2) 16)
+        (Int32.logor (get_shift array (i+1) 8)
+                       (get_shift array (i) 0)))
+
+
+(* ---------------------------------------------------------------------*)
+let pprint_bytes b index len addr bigendian =
+  let pc k = us(if k < len then  
+                let v = Bytes.get b (k+index) in 
+                sprintf "%c" (if v < ' ' || v > '~' then '.' else v)
+                else " ") in
+  let pb k = us(if k < len then sprintf "%3d" 
+                (int_of_char (Bytes.get b (k+index))) else " ") in
+  let get32 k = Int32.to_int 
+    (get_32_bits_from_bytes bigendian b (k+index)) land 0xffffffff in
+  let rec work k acc =
+    if k < len then
+      let str = us(sprintf "0x%08x |" (addr+k)) ^. 
+                pc k ^. pc (k+1) ^. pc (k+2) ^. pc (k+3) ^. us"|" ^.
+                pb k ^. pb (k+1) ^. pb (k+2) ^. pb (k+3) ^.
+                us(if k+4 <= len then 
+                    let v = get32 k in
+                    sprintf " | 0x%08x | %d" v v else "") ^.
+                us"\n"
+      in                
+      work (k+4) str
+    else acc
+  in
+    work 0 (us"")
 
 

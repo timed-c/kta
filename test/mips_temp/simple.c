@@ -6,12 +6,12 @@
 #endif
 
 int k;
-int v = 1;
-
+int v = 7;
+int v2 = 8;
+char str[] = "123 qwd 1231 ";
 
 int foo(int x, int y){
-  return (int)&k;
-  //return x + y * 10;
+  return &v;
 }
 
 

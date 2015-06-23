@@ -66,24 +66,25 @@ type addr2sym_map = string Addr2Sym.t
     execute the object. *)
 type program =
 {
-  filename : string;                      (* Name of the original MIPS binary file *)
-  symbols : (string * int) list;          (* Symbol table *)
-  sym2addr : sym2addr_map;                (* Fast lookup using module Sym2Addr *) 
-  addr2sym : addr2sym_map;                (* Fast lookup using module Addr2Sym *) 
-  sections : (string * (int * int)) list; (* Section info. Names, size, address. *)
-  text_sec : bytes;                       (* Text section (code) *)
-  data_sec : bytes;                       (* Data section *)
-  text_addr : int;                        (* Virtual address to the .text section *)
-  text_size : int;                        (* Size in bytes of the .text section *)
-  data_addr : int;                        (* Virtual address to the .sdata section *)
-  data_size : int;                        (* Size in bytes of the .sdata section *)
-  bss_addr : int;                         (* Virtual address to the .sbss section *)
-  bss_size : int;                         (* Size in bytes of the .sbss section *)
-  gp : int;                               (* Initial value for the global pointer, gp *)
-  code : inst array;                      (* Array of decoded instructions *)
+  filename   : string;                      (* Name of the original MIPS binary file *)
+  symbols    : (string * int) list;         (* Symbol table *)
+  sym2addr   : sym2addr_map;                (* Fast lookup using module Sym2Addr *) 
+  addr2sym   : addr2sym_map;                (* Fast lookup using module Addr2Sym *) 
+  sections   : (string * (int * int)) list; (* Section info. Names, size, address. *)
+  text_sec   : bytes;                       (* Text section (code) *)
+  data_sec   : bytes;                       (* Data section *)
+  text_addr  : int;                         (* Virtual address to the .text section *)
+  text_size  : int;                         (* Size in bytes of the .text section *)
+  data_addr  : int;                         (* Virtual address to the .data section *)
+  data_size  : int;                         (* Size in bytes of the .data section *)
+  bss_addr   : int;                         (* Virtual address to the .bss section *)
+  bss_size   : int;                         (* Size in bytes of the .bss section *)
+  gp         : int;                         (* Initial value for the global pointer, gp *)
+  code       : inst array;                  (* Array of decoded instructions *)
 }
 
 
+(* Convenient names *)
 let reg_0 = 0
 let reg_at = 1
 let reg_v0 = 2
@@ -118,3 +119,4 @@ let reg_fp = 30
 let reg_ra = 31
 
 
+ 
