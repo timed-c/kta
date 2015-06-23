@@ -8,11 +8,12 @@
 int k;
 int v = 1;
 
-/*
+
 int foo(int x, int y){
-  return x + y * 10;
+  return (int)&k;
+  //return x + y * 10;
 }
-*/
+
 
 /*
 // Tests: slt,bne,sll,jr,mul,addiu
@@ -38,7 +39,7 @@ int foo(int x){
 */
 
 
-
+/*
 // mult, mfhi, teq, div (reminder part)
 int foo(int x){
   int i;
@@ -48,7 +49,8 @@ int foo(int x){
   }  
   return r;
 }
-//43
+*/
+
 
 /*
 // mult mflo

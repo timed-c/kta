@@ -18,7 +18,8 @@ type machinestate =
 
 
 (* Functions not implemented 
-   - Trapping for addu and subu is not implemented.
+   - 'add' and sub do not trigger integer overflow exceptions
+   - 'addi' does not trigger a arithmetic overflow exception
    - Conditional trap 'teq' is implemented as NOP
 *)
 (* ---------------------------------------------------------------------*)
@@ -48,7 +49,7 @@ let rec step prog state opfunc opval is_a_delay_slot =
   | MipsADD(rd,rs,rt) -> 
        wreg rd (Int32.add (reg rs) (reg rt)); pc 4; op()
   | MipsADDIU(rt,rs,imm) -> 
-       wreg rt (Int32.add (reg rs) (Int32.of_int (imm land 0xffff))); pc 4; op()
+       wreg rt (Int32.add (reg rs) (Int32.of_int imm)); pc 4; op()
   | MipsADDU(rd,rs,rt) -> 
        wreg rd (Int32.add (reg rs) (reg rt)); pc 4; op()
   | MipsBEQ(rs,rt,imm,s) ->
@@ -171,7 +172,7 @@ let debug_print inst pc prog state is_a_delay_slot (acc,prev_regfile) =
   let preg reg sign regfile = 
     if reg = 0 then us"" else
       Ustring.spaces_after (MipsUtils.pprint_reg reg ^. 
-      us(sprintf "%s%d" sign (Int32.to_int regfile.(reg)))) 14
+      us(sprintf "%s%d" sign (Int32.to_int regfile.(reg)))) 16
   in
   let str = 
     acc ^. pad_right (MipsUtils.pprint_inst_ext inst prog pc true) 36 ^. 
@@ -225,7 +226,10 @@ let init prog func args =
     Not_found -> raise (Function_not_found func));   
 
   (* Set return address to 0. Used for checking termination. *)
-  state.registers.(31) <- Int32.zero; 
+  state.registers.(reg_ra) <- Int32.zero; 
+
+  (* Setup the global pointer *)
+  state.registers.(reg_gp) <- Int32.of_int prog.gp;
   
   (* Set the arguments. For now, max 4 arguments. *)
   List.iteri (fun i x ->

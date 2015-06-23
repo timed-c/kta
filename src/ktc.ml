@@ -491,14 +491,14 @@ let mips_sections filename opt =
   MipsSys.pic32_compile [filename] false opt tmpname;
   let secs  = MipsSys.section_info tmpname in
   Sys.remove tmpname;
-  List.iter (fun x -> let (k,(s,a)) = x in printf "%s %x,%x\n" k s a) secs
+  List.iter (fun x -> let (k,(s,a)) = x in printf "%s %d,0x%x\n" k s a) secs
   
 let mips_symbols filename opt = 
   let tmpname = "__tmp__" in
   MipsSys.pic32_compile [filename] false opt tmpname;
   let symtbl  = MipsSys.symbol_table tmpname in
   Sys.remove tmpname;
-  List.iter (fun x -> let (k,a) = x in printf "%s -> %x\n" k a) symtbl
+  List.iter (fun x -> let (k,a) = x in printf "%s -> 0x%x\n" k a) symtbl
   
 let print_res state =
   printf "Result v1 = %d\n" (Int32.to_int state.registers.(2))
@@ -521,7 +521,7 @@ let mips_debug filename func args opt =
   let initstate = MipsEval.init prog func args in
   uprint_endline (MipsEval.pprint_state initstate);  
   let (state,(str,_)) = MipsEval.eval prog initstate MipsEval.debug_print 
-                      (us"", Array.make 32 Int32.zero) in
+                      (us"", initstate.registers) in
   uprint_endline str;
   printf "Result v0 = %d\n\n" (Int32.to_int state.registers.(2));
   uprint_endline (MipsEval.pprint_state state);

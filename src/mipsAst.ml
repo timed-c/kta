@@ -84,5 +84,37 @@ type program =
 }
 
 
+let reg_0 = 0
+let reg_at = 1
+let reg_v0 = 2
+let reg_v1 = 3
+let reg_a0 = 4
+let reg_a1 = 5
+let reg_a2 = 6
+let reg_a3 = 7
+let reg_t0 = 8
+let reg_t1 = 9
+let reg_t2 = 10
+let reg_t3 = 11
+let reg_t4 = 12
+let reg_t5 = 13
+let reg_t6 = 14
+let reg_t7 = 15
+let reg_s0 = 16
+let reg_s1 = 17
+let reg_s2 = 18
+let reg_s3 = 19
+let reg_s4 = 20
+let reg_s5 = 21
+let reg_s6 = 22
+let reg_s7 = 23
+let reg_t8 = 24
+let reg_t9 = 25
+let reg_k0 = 26
+let reg_k1 = 27
+let reg_gp = 28
+let reg_sp = 29
+let reg_fp = 30
+let reg_ra = 31
 
 
