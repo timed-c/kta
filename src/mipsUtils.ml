@@ -236,10 +236,10 @@ let pprint_inst_ext inst prog addr print_addr =
 
 (* ---------------------------------------------------------------------*)
 let pprint_asm prog addr len print_addr =
-  let pos = (addr - prog.text_addr) / 4 in  
+  let pos = (addr - prog.text_sec.addr) / 4 in  
   let rec loop cpos acc = 
     if cpos < len/4 then
-      let caddr = cpos*4 + prog.text_addr in
+      let caddr = cpos*4 + prog.text_sec.addr in
       loop (cpos + 1) (
           acc ^. pprint_inst_ext (prog.code.(cpos)) prog caddr print_addr ^. us"\n")
     else
@@ -255,7 +255,7 @@ let add_branch_symbols prog =
   let x = ref 1 in
   let (_,s2a,a2s) = Array.fold_left (fun (i,s2a,a2s) inst -> 
     let makenew imm =
-      let addr = i*4 + 4 + imm*4 + prog.text_addr in
+      let addr = i*4 + 4 + imm*4 + prog.text_sec.addr in
       if Addr2Sym.mem addr a2s then 
         (Addr2Sym.find addr a2s,s2a,a2s)
       else 

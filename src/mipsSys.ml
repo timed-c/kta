@@ -100,14 +100,18 @@ let get_program filename =
   addr2sym = List.fold_left (fun m (s,a) -> Addr2Sym.add a s m) 
                 Addr2Sym.empty l_symbols;
   sections = l_sections;
-  text_sec = l_textcode;
-  data_sec = get_section filename ".sdata";
-  text_addr = (match l_text with Some(_,a) -> a | None -> 0);
-  text_size = (match l_text with Some(s,_) -> s | None -> 0); 
-  data_addr = (match l_data with Some(_,a) -> a | None -> 0);
-  data_size = (match l_data with Some(s,_) -> s | None -> 0);
-  bss_addr =  (match l_bss  with Some(_,a) -> a | None -> 0);
-  bss_size =  (match l_bss  with Some(s,_) -> s | None -> 0);
+  text_sec = {d = l_textcode;
+              addr = (match l_text with Some(_,a) -> a | None -> 0);
+              size = (match l_text with Some(s,_) -> s | None -> 0); 
+             };
+  data_sec = {d = get_section filename ".sdata";
+              addr = (match l_data with Some(_,a) -> a | None -> 0);
+              size = (match l_data with Some(s,_) -> s | None -> 0);
+             };
+  bss_sec = {d = Bytes.empty;
+             addr =  (match l_bss  with Some(_,a) -> a | None -> 0);
+             size =  (match l_bss  with Some(s,_) -> s | None -> 0);
+            };
   gp = (try List.assoc "_gp" l_symbols with _ -> 0);
   code = Array.of_list (MipsUtils.decode l_textcode);
 }

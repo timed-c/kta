@@ -62,6 +62,13 @@ type sym2addr_map = int Sym2Addr.t
 module Addr2Sym = Map.Make(Utils.Int)
 type addr2sym_map = string Addr2Sym.t
 
+type section = 
+{ 
+  d    : bytes;
+  addr : int;
+  size : int;
+}
+
 (** A MIPS program object that contains all information needed to 
     execute the object. *)
 type program =
@@ -71,14 +78,11 @@ type program =
   sym2addr   : sym2addr_map;                (* Fast lookup using module Sym2Addr *) 
   addr2sym   : addr2sym_map;                (* Fast lookup using module Addr2Sym *) 
   sections   : (string * (int * int)) list; (* Section info. Names, size, address. *)
-  text_sec   : bytes;                       (* Text section (code) *)
-  data_sec   : bytes;                       (* Data section *)
-  text_addr  : int;                         (* Virtual address to the .text section *)
-  text_size  : int;                         (* Size in bytes of the .text section *)
-  data_addr  : int;                         (* Virtual address to the .data section *)
-  data_size  : int;                         (* Size in bytes of the .data section *)
-  bss_addr   : int;                         (* Virtual address to the .bss section *)
-  bss_size   : int;                         (* Size in bytes of the .bss section *)
+  text_sec   : section;                     (* .text section (code) *)
+  data_sec   : section;                     (* .data section *)
+(*   sdata_sec  : section;             *)        (* .sdata (small data) section *)
+  bss_sec    : section;                     (* .bss section. No data is allocated. *)
+(*  sbss       : section;              *)       (* .sbss (small bss) section *)
   gp         : int;                         (* Initial value for the global pointer, gp *)
   code       : inst array;                  (* Array of decoded instructions *)
 }

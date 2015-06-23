@@ -28,7 +28,7 @@ let rec step bigendian prog state opfunc opval is_a_delay_slot =
   let reg r = if r = 0 then Int32.zero else state.registers.(r) in
   let wreg r v = if r = 0 then () else state.registers.(r) <- v in
   let pc pc = state.pc <- state.pc + pc in
-  let inst = prog.code.((state.pc - prog.text_addr)/4) in
+  let inst = prog.code.((state.pc - prog.text_sec.addr)/4) in
   let thispc = state.pc in
   let op() = opfunc inst thispc prog state is_a_delay_slot opval in
   let branch dst = 
@@ -55,10 +55,10 @@ let rec step bigendian prog state opfunc opval is_a_delay_slot =
   let to64unsig v =  Int64.shift_right_logical (Int64.shift_left 
                     (Int64.of_int32 (reg v)) 32) 32 in
   let getmemptr addr size = 
-    if addr >= prog.data_addr && addr + size <= prog.data_addr + prog.data_size then
-      (state.data,addr - prog.data_addr)
-    else if addr >= prog.bss_addr && addr + size <= prog.bss_addr + prog.bss_size then
-      (state.bss,addr - prog.bss_addr)
+    if addr >= prog.data_sec.addr && addr + size <= prog.data_sec.addr + prog.data_sec.size then
+      (state.data,addr - prog.data_sec.addr)
+    else if addr >= prog.bss_sec.addr && addr + size <= prog.bss_sec.addr + prog.bss_sec.size then
+      (state.bss,addr - prog.bss_sec.addr)
     else
       raise (Out_of_bound (sprintf 
       "%d bytes memory access at address 0x%x is outside memory." size addr))
@@ -235,8 +235,8 @@ let pprint_state state =
 let init prog func args = 
   let state = {
     registers = Array.make 32 Int32.zero;
-    data = Bytes.copy prog.data_sec;
-    bss = Bytes.make prog.bss_size (char_of_int 0);
+    data = Bytes.copy (prog.data_sec.d);
+    bss = Bytes.make prog.bss_sec.size (char_of_int 0);
     pc = 0;
     hi = Int32.zero;
     lo = Int32.zero;

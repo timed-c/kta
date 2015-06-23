@@ -484,7 +484,7 @@ let mips_compile filename opt =
   let prog =  MipsUtils.add_branch_symbols (MipsSys.get_program tmpname) in
   Sys.remove tmpname;
   print_endline "";
-  uprint_endline (MipsUtils.pprint_asm prog prog.text_addr prog.text_size true)
+  uprint_endline (MipsUtils.pprint_asm prog prog.text_sec.addr prog.text_sec.size true)
 
 let mips_sections filename opt = 
   let tmpname = "__tmp__" in
@@ -508,7 +508,7 @@ let mips_eval filename func args opt =
   MipsSys.pic32_compile [filename] false opt tmpname;
   let prog = MipsSys.get_program tmpname in
   let initstate = MipsEval.init prog func args in
-  uprint_endline (MipsUtils.pprint_bytes initstate.data 0 prog.data_size prog.data_addr false);
+  uprint_endline (MipsUtils.pprint_bytes initstate.data 0 prog.data_sec.size prog.data_sec.addr false);
   let (state,count) = MipsEval.eval prog initstate MipsEval.cycle_count 0 in
   printf "Result v0 = %d\n" (Int32.to_int state.registers.(2));
   printf "Cycle count = %d\n\n"  count;
