@@ -80,9 +80,9 @@ type program =
   sections   : (string * (int * int)) list; (* Section info. Names, size, address. *)
   text_sec   : section;                     (* .text section (code) *)
   data_sec   : section;                     (* .data section *)
-(*   sdata_sec  : section;             *)        (* .sdata (small data) section *)
+  sdata_sec  : section;                     (* .sdata (small data) section *)
   bss_sec    : section;                     (* .bss section. No data is allocated. *)
-(*  sbss       : section;              *)       (* .sbss (small bss) section *)
+  sbss_sec   : section;                     (* .sbss (small bss) section *)
   gp         : int;                         (* Initial value for the global pointer, gp *)
   code       : inst array;                  (* Array of decoded instructions *)
 }

@@ -89,8 +89,10 @@ let get_program filename =
   let l_symbols = List.rev (symbol_table filename) in
   let l_sections = section_info filename in
   let l_text = try Some(List.assoc ".text" l_sections) with _ -> None in
-  let l_data = try Some(List.assoc ".sdata" l_sections) with _ -> None in
-  let l_bss = try Some(List.assoc ".sbss" l_sections) with _ -> None in
+  let l_data = try Some(List.assoc ".data" l_sections) with _ -> None in
+  let l_sdata = try Some(List.assoc ".sdata" l_sections) with _ -> None in
+  let l_bss = try Some(List.assoc ".bss" l_sections) with _ -> None in
+  let l_sbss = try Some(List.assoc ".sbss" l_sections) with _ -> None in
   let l_textcode = get_section filename ".text" in 
 { 
   filename = filename;
@@ -104,13 +106,21 @@ let get_program filename =
               addr = (match l_text with Some(_,a) -> a | None -> 0);
               size = (match l_text with Some(s,_) -> s | None -> 0); 
              };
-  data_sec = {d = get_section filename ".sdata";
+  data_sec = {d = get_section filename ".data";
               addr = (match l_data with Some(_,a) -> a | None -> 0);
               size = (match l_data with Some(s,_) -> s | None -> 0);
+             };
+  sdata_sec = {d = get_section filename ".sdata";
+              addr = (match l_sdata with Some(_,a) -> a | None -> 0);
+              size = (match l_sdata with Some(s,_) -> s | None -> 0);
              };
   bss_sec = {d = Bytes.empty;
              addr =  (match l_bss  with Some(_,a) -> a | None -> 0);
              size =  (match l_bss  with Some(s,_) -> s | None -> 0);
+            };
+  sbss_sec = {d = Bytes.empty;
+             addr =  (match l_sbss  with Some(_,a) -> a | None -> 0);
+             size =  (match l_sbss  with Some(s,_) -> s | None -> 0);
             };
   gp = (try List.assoc "_gp" l_symbols with _ -> 0);
   code = Array.of_list (MipsUtils.decode l_textcode);
