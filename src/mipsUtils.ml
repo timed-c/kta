@@ -310,13 +310,14 @@ let pprint_bytes b index len addr bigendian =
                 let v = Bytes.get b (k+index) in 
                 sprintf "%c" (if v < ' ' || v > '~' then '.' else v)
                 else " ") in
-  let pb k = us(if k < len then sprintf "%3d" 
+  let pb k = us(if k < len then sprintf "%4d" 
                 (int_of_char (Bytes.get b (k+index))) else " ") in
   let get32 k = Int32.to_int 
     (get_32_bits_from_bytes bigendian b (k+index)) land 0xffffffff in
   let rec work k acc =
     if k < len then
-      let str = us(sprintf "0x%08x |" (addr+k)) ^. 
+      let str = acc ^.
+                us(sprintf "0x%08x |" (addr+k)) ^. 
                 pc k ^. pc (k+1) ^. pc (k+2) ^. pc (k+3) ^. us"|" ^.
                 pb k ^. pb (k+1) ^. pb (k+2) ^. pb (k+3) ^.
                 us(if k+4 <= len then 

@@ -8,7 +8,7 @@
 int k;
 int v = 7;
 int v2 = 8;
-char str[] = "123 qwd 1231 ";
+char str[] = "Hello my name is David";
 
 int foo(int x, int y){
   return &v;

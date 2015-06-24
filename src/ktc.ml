@@ -508,11 +508,12 @@ let mips_eval filename func args opt =
   MipsSys.pic32_compile [filename] false opt tmpname;
   let prog = MipsSys.get_program tmpname in
   let initstate = MipsEval.init prog func args in
-  uprint_endline (MipsUtils.pprint_bytes initstate.data 0 prog.data_sec.size prog.data_sec.addr false);
   let (state,count) = MipsEval.eval prog initstate MipsEval.cycle_count 0 in
-  printf "Result v0 = %d\n" (Int32.to_int state.registers.(2));
-  printf "Cycle count = %d\n\n"  count;
+  let res = Int32.to_int state.registers.(2) in
   uprint_endline (MipsEval.pprint_state state);
+  printf "Result v0 = %d (0x%x)\n" res res;
+  printf "Cycle count = %d\n\n"  count;
+  uprint_endline (MipsUtils.pprint_bytes initstate.data 0 (prog.data_sec.size  ) prog.data_sec.addr false);
   Sys.remove tmpname
 
 let mips_debug filename func args opt = 

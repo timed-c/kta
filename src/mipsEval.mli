@@ -8,9 +8,11 @@ exception Out_of_bound of string
 
 type machinestate = 
 {
-  registers : int32 array;
-  data : bytes;
-  bss : bytes;
+  registers  : int32 array;
+  data       : bytes;
+  sdata      : bytes;
+  bss        : bytes;
+  sbss       : bytes;
   mutable pc : int;
   mutable hi : int32;
   mutable lo : int32;

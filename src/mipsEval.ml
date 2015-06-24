@@ -8,9 +8,11 @@ exception Out_of_bound of string
 
 type machinestate = 
 {
-  registers : int32 array;
-  data : bytes;
-  bss : bytes;
+  registers  : int32 array;
+  data       : bytes;
+  sdata      : bytes;
+  bss        : bytes;
+  sbss       : bytes;
   mutable pc : int;
   mutable hi : int32;
   mutable lo : int32;
@@ -236,7 +238,9 @@ let init prog func args =
   let state = {
     registers = Array.make 32 Int32.zero;
     data = Bytes.copy (prog.data_sec.d);
+    sdata = Bytes.copy (prog.sdata_sec.d);
     bss = Bytes.make prog.bss_sec.size (char_of_int 0);
+    sbss = Bytes.make prog.sbss_sec.size (char_of_int 0);
     pc = 0;
     hi = Int32.zero;
     lo = Int32.zero;
