@@ -6,12 +6,13 @@
 #endif
 
 int k;
-int v = 7;
-int v2 = 8;
+int v = 7000;
+int v2 = 8000;
 char str[] = "Hello my name is David. Can this work??? No, probably not.";
 
 int foo(int x, int y){
-  return &str;
+  v = -10000 + v;
+  return &v;
 }
 
 

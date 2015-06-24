@@ -289,9 +289,13 @@ let add_branch_symbols prog =
 let get_shift array index shift =
   Int32.shift_left (Int32.of_int (int_of_char (Bytes.get array index))) shift
 
+(* ---------------------------------------------------------------------*)
+let set_shift array index shift value =
+  Bytes.set array index (char_of_int (((Int32.to_int value) lsr shift) land 0xff))
+
 
 (* ---------------------------------------------------------------------*)
-let get_32_bits_from_bytes bigendian array i =
+let get_32_bits bigendian array i =
     if bigendian then
       Int32.logor (get_shift array (i) 24)
        (Int32.logor (get_shift array (i+1) 16)
@@ -305,6 +309,20 @@ let get_32_bits_from_bytes bigendian array i =
 
 
 (* ---------------------------------------------------------------------*)
+let set_32_bits bigendian array i v =
+  if bigendian then (
+    set_shift array (i) 24 v;
+    set_shift array (i+1) 16 v;
+    set_shift array (i+2) 8 v;
+    set_shift array (i+3) 0 v)
+  else(
+    set_shift array (i+3) 24 v;
+    set_shift array (i+2) 16 v;
+    set_shift array (i+1) 8 v;
+    set_shift array (i) 0 v)
+
+
+(* ---------------------------------------------------------------------*)
 let pprint_bytes b index len addr bigendian =
   let pc k = us(if k < len then  
                 let v = Bytes.get b (k+index) in 
@@ -313,7 +331,7 @@ let pprint_bytes b index len addr bigendian =
   let pb k = us(if k < len then sprintf "%4d" 
                 (int_of_char (Bytes.get b (k+index))) else " ") in
   let get32 k = Int32.to_int 
-    (get_32_bits_from_bytes bigendian b (k+index)) land 0xffffffff in
+    (get_32_bits bigendian b (k+index)) land 0xffffffff in
   let rec work k acc =
     if k < len then 
       let str = acc ^.

@@ -8,7 +8,7 @@ type code = int (* 10 bits of information *)
 type imm = int (* Stored sign extended in the AST *)
 type addr = int
 type shamt = int
-
+ 
 type inst =
   | MipsADD     of rd * rs  * rt
   | MipsADDI    of rt * rs  * imm

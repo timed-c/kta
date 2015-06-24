@@ -41,9 +41,13 @@ val add_branch_symbols : MipsAst.program -> MipsAst.program
  string labels are also added to the instructions in fields 'code' field of the program.
 *)
 
-val get_32_bits_from_bytes : bool -> bytes -> int -> int32 
-(** [get_32_bits_from_bytes bigendian b i] reads out a 32-bit value
+val get_32_bits : bool -> bytes -> int -> int32 
+(** [get_32_bits bigendian b i] reads out a 32-bit value
     from byte array [b] at index [i]. *)
+
+val set_32_bits : bool -> bytes -> int -> int32 -> unit
+(** [set_32_bits bigendian b i v] writes 32-bit value [v]
+    to a byte array [b] at index [i]. *)
 
 
 val pprint_bytes : bytes -> int -> int -> int -> bool -> ustring

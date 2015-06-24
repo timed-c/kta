@@ -103,7 +103,7 @@ let rec step bigendian prog state opfunc opval is_a_delay_slot =
       wreg rt (Int32.shift_left (Int32.of_int imm) 16); pc 4; op()
   | MipsLW(rt,imm,rs) -> 
       let (mem,i,_) = getmemptr state prog ((Int32.to_int (reg rs)) + imm) 4 in
-      wreg rt (MipsUtils.get_32_bits_from_bytes bigendian mem i);
+      wreg rt (MipsUtils.get_32_bits bigendian mem i);
       pc 4; op()
   | MipsMFHI(rd) -> 
        wreg rd (state.hi); pc 4; op()
@@ -126,6 +126,10 @@ let rec step bigendian prog state opfunc opval is_a_delay_slot =
   | MipsSLT(rd,rs,rt) ->
        wreg rd (Int32.shift_right_logical (Int32.sub (reg rs) (reg rt)) 31); 
        pc 4; op() 
+  | MipsSW(rt,imm,rs) ->
+      let (mem,i,_) = getmemptr state prog ((Int32.to_int (reg rs)) + imm) 4 in
+      MipsUtils.set_32_bits bigendian mem i (reg rt);
+      pc 4; op()    
   | MipsSUB(rd,rs,rt) -> 
        wreg rd (Int32.sub (reg rs) (reg rt)); pc 4; op()
   | MipsSUBU(rd,rs,rt) -> 
