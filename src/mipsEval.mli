@@ -1,7 +1,7 @@
 
 
 open Ustring.Op
-
+open MipsAst
 exception Function_not_found of string
 exception Out_of_bound of string
 
@@ -18,6 +18,14 @@ type machinestate =
   mutable lo : int32;
 }
 
+val getmemptr : machinestate -> program -> int -> int -> (bytes * int * int)
+(** [getmemptr state prog addr size] takes address [addr] for the machinestate
+    [state] and the expected access [size]. It returns a triple
+    containing i) the byte array containing the memory ii) the
+    position in the byte array, and iii) the size in bytes that are
+    left in the array from the pointer position. An expection
+    [Out_of_bound] is raised if the accesses can be outside a
+    section. *)
 
 val pprint_state : machinestate -> ustring
 (** Pretty prints the machine state *)

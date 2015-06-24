@@ -8,10 +8,10 @@
 int k;
 int v = 7;
 int v2 = 8;
-char str[] = "Hello my name is David";
+char str[] = "Hello my name is David. Can this work??? No, probably not.";
 
 int foo(int x, int y){
-  return &v;
+  return &str;
 }
 
 

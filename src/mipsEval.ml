@@ -19,6 +19,19 @@ type machinestate =
 }
 
 
+(* ---------------------------------------------------------------------*)
+let getmemptr state prog addr size =
+  let check sec = (addr >= sec.addr && addr + size <= sec.addr + sec.size) in
+  let res stbytes sec = (stbytes, addr - sec.addr, sec.addr + sec.size - addr) in
+  if check prog.data_sec then res state.data prog.data_sec else
+  if check prog.sdata_sec then res state.sdata prog.sdata_sec else
+  if check prog.bss_sec then res state.bss prog.bss_sec else
+  if check prog.sbss_sec then res state.sbss prog.sbss_sec else
+    raise (Out_of_bound (sprintf 
+    "%d bytes memory access at address 0x%x is outside memory." size addr))
+  
+  
+
 
 (* Functions not implemented 
    - 'add' and sub do not trigger integer overflow exceptions
@@ -40,14 +53,6 @@ let rec step bigendian prog state opfunc opval is_a_delay_slot =
     let (opval2, term2) = step bigendian prog state opfunc opval1 true in
     state.pc <- dst;
     (opval2, term2)
-(*
-       pc 4;
-       let (opval', term) = step bigendian prog state opfunc opval true in
-       if term then (opval',term) 
-       else(
-         state.pc <- dst;
-         opfunc inst thispc prog state false opval')
-*)
   in
   let sethi_lo v =
     state.lo <- Int64.to_int32 (Int64.shift_right_logical (Int64.shift_left v 32) 32);
@@ -56,7 +61,9 @@ let rec step bigendian prog state opfunc opval is_a_delay_slot =
   let to64sig v =  Int64.of_int32 (reg v) in
   let to64unsig v =  Int64.shift_right_logical (Int64.shift_left 
                     (Int64.of_int32 (reg v)) 32) 32 in
-  let getmemptr addr size = 
+(*
+  let getmemptr addr size =
+    
     if addr >= prog.data_sec.addr && addr + size <= prog.data_sec.addr + prog.data_sec.size then
       (state.data,addr - prog.data_sec.addr)
     else if addr >= prog.bss_sec.addr && addr + size <= prog.bss_sec.addr + prog.bss_sec.size then
@@ -65,7 +72,7 @@ let rec step bigendian prog state opfunc opval is_a_delay_slot =
       raise (Out_of_bound (sprintf 
       "%d bytes memory access at address 0x%x is outside memory." size addr))
   in
-
+  *)
   match inst  with 
   | MipsADD(rd,rs,rt) -> 
        wreg rd (Int32.add (reg rs) (reg rt)); pc 4; op()
@@ -92,8 +99,10 @@ let rec step bigendian prog state opfunc opval is_a_delay_slot =
        pc 4; op()
   | MipsJR(rs) -> 
        branch (Int32.to_int state.registers.(rs))
+  | MipsLUI(rt,imm) ->
+      wreg rt (Int32.shift_left (Int32.of_int imm) 16); pc 4; op()
   | MipsLW(rt,imm,rs) -> 
-      let (mem,i) = getmemptr ((Int32.to_int (reg rs)) + imm) 4 in
+      let (mem,i,_) = getmemptr state prog ((Int32.to_int (reg rs)) + imm) 4 in
       wreg rt (MipsUtils.get_32_bits_from_bytes bigendian mem i);
       pc 4; op()
   | MipsMFHI(rd) -> 

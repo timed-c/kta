@@ -315,7 +315,7 @@ let pprint_bytes b index len addr bigendian =
   let get32 k = Int32.to_int 
     (get_32_bits_from_bytes bigendian b (k+index)) land 0xffffffff in
   let rec work k acc =
-    if k < len then
+    if k < len then 
       let str = acc ^.
                 us(sprintf "0x%08x |" (addr+k)) ^. 
                 pc k ^. pc (k+1) ^. pc (k+2) ^. pc (k+3) ^. us"|" ^.
@@ -328,6 +328,6 @@ let pprint_bytes b index len addr bigendian =
       work (k+4) str
     else acc
   in
-    work 0 (us"")
+    work 0 (us"") 
 
 

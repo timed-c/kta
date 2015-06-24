@@ -513,7 +513,10 @@ let mips_eval filename func args opt =
   uprint_endline (MipsEval.pprint_state state);
   printf "Result v0 = %d (0x%x)\n" res res;
   printf "Cycle count = %d\n\n"  count;
-  uprint_endline (MipsUtils.pprint_bytes initstate.data 0 (prog.data_sec.size  ) prog.data_sec.addr false);
+  try 
+    let (b,ptr,maxval) = MipsEval.getmemptr state prog res 1 in
+    uprint_endline (MipsUtils.pprint_bytes b ptr (min maxval 32) res false)
+  with Out_of_bound _ -> ();    
   Sys.remove tmpname
 
 let mips_debug filename func args opt = 
