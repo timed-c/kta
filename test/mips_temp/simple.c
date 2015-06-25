@@ -8,13 +8,25 @@
 int k;
 int v = 7000;
 int v2 = 8000;
-char str[] = "Hello my name is David. Can this work??? No, probably not.";
+char str[] = "\xf0Hello my name is David.";
 
+int foo(int x){
+  int i;
+  int k;
+  while(str[i] != 0){
+    str[i] = str[i] + x;
+    i++;
+  }
+  return &str;
+}
+
+/*
+// Tests: lw, sw
 int foo(int x, int y){
   v = -10000 + v;
   return &v;
 }
-
+*/
 
 /*
 // Tests: slt,bne,sll,jr,mul,addiu

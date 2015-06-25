@@ -61,25 +61,19 @@ let rec step bigendian prog state opfunc opval is_a_delay_slot =
   let to64sig v =  Int64.of_int32 (reg v) in
   let to64unsig v =  Int64.shift_right_logical (Int64.shift_left 
                     (Int64.of_int32 (reg v)) 32) 32 in
-(*
-  let getmemptr addr size =
-    
-    if addr >= prog.data_sec.addr && addr + size <= prog.data_sec.addr + prog.data_sec.size then
-      (state.data,addr - prog.data_sec.addr)
-    else if addr >= prog.bss_sec.addr && addr + size <= prog.bss_sec.addr + prog.bss_sec.size then
-      (state.bss,addr - prog.bss_sec.addr)
-    else
-      raise (Out_of_bound (sprintf 
-      "%d bytes memory access at address 0x%x is outside memory." size addr))
-  in
-  *)
   match inst  with 
   | MipsADD(rd,rs,rt) -> 
        wreg rd (Int32.add (reg rs) (reg rt)); pc 4; op()
+  | MipsADDI(rt,rs,imm) -> 
+       wreg rt (Int32.add (reg rs) (Int32.of_int imm)); pc 4; op()
   | MipsADDIU(rt,rs,imm) -> 
        wreg rt (Int32.add (reg rs) (Int32.of_int imm)); pc 4; op()
   | MipsADDU(rd,rs,rt) -> 
        wreg rd (Int32.add (reg rs) (reg rt)); pc 4; op()
+  | MipsAND(rd,rs,rt) -> 
+       wreg rd (Int32.logand (reg rs) (reg rt)); pc 4; op()
+  | MipsANDI(rt,rs,imm) -> 
+       wreg rt (Int32.logand (reg rs) (Int32.of_int imm)); pc 4; op()
   | MipsBEQ(rs,rt,imm,s) ->
        if Int32.compare (reg rs) (reg rt) = 0 then branch (imm*4 + 4 + state.pc)
        else (pc 4; op())
@@ -101,6 +95,15 @@ let rec step bigendian prog state opfunc opval is_a_delay_slot =
        branch (Int32.to_int state.registers.(rs))
   | MipsLUI(rt,imm) ->
       wreg rt (Int32.shift_left (Int32.of_int imm) 16); pc 4; op()
+  | MipsLB(rt,imm,rs) -> 
+      let (mem,i,_) = getmemptr state prog ((Int32.to_int (reg rs)) + imm) 1 in
+      wreg rt (Int32.of_int (Utils.sign_extension 
+                             (int_of_char (Bytes.get mem i)) 8));
+      pc 4; op() 
+  | MipsLBU(rt,imm,rs) -> 
+      let (mem,i,_) = getmemptr state prog ((Int32.to_int (reg rs)) + imm) 1 in
+      wreg rt (Int32.of_int (int_of_char (Bytes.get mem i)));
+      pc 4; op() 
   | MipsLW(rt,imm,rs) -> 
       let (mem,i,_) = getmemptr state prog ((Int32.to_int (reg rs)) + imm) 4 in
       wreg rt (MipsUtils.get_32_bits bigendian mem i);
@@ -126,6 +129,10 @@ let rec step bigendian prog state opfunc opval is_a_delay_slot =
   | MipsSLT(rd,rs,rt) ->
        wreg rd (Int32.shift_right_logical (Int32.sub (reg rs) (reg rt)) 31); 
        pc 4; op() 
+  | MipsSB(rt,imm,rs) ->
+      let (mem,i,_) = getmemptr state prog ((Int32.to_int (reg rs)) + imm) 1 in
+      Bytes.set mem i (char_of_int ((Int32.to_int (reg rt)) land 0xff));
+      pc 4; op()    
   | MipsSW(rt,imm,rs) ->
       let (mem,i,_) = getmemptr state prog ((Int32.to_int (reg rs)) + imm) 4 in
       MipsUtils.set_32_bits bigendian mem i (reg rt);
