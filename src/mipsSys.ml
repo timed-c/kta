@@ -122,10 +122,20 @@ let get_program filename =
              addr =  (match l_sbss  with Some(_,a) -> a | None -> 0);
              size =  (match l_sbss  with Some(s,_) -> s | None -> 0);
             };
+  stack_sec = {d = Bytes.empty;
+             addr = 0; 
+             size = 0;
+            };
   gp = (try List.assoc "_gp" l_symbols with _ -> 0);
+  sp = 0;
   code = Array.of_list (MipsUtils.decode l_textcode);
 }
 
+
+
+let assign_program_stack prog ptr size addr = 
+  {prog with stack_sec = {d = Bytes.empty; addr = addr; size = size};
+             sp = ptr}
 
 
 

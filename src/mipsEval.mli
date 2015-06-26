@@ -5,7 +5,6 @@ open MipsAst
 exception Function_not_found of string
 exception Out_of_bound of string
 
-
 type machinestate = 
 {
   registers  : int32 array;
@@ -13,10 +12,12 @@ type machinestate =
   sdata      : bytes;
   bss        : bytes;
   sbss       : bytes;
+  stack      : bytes;
   mutable pc : int;
   mutable hi : int32;
   mutable lo : int32;
 }
+
 
 val getmemptr : machinestate -> program -> int -> int -> (bytes * int * int)
 (** [getmemptr state prog addr size] takes address [addr] for the machinestate
@@ -47,11 +48,13 @@ val debug_print : MipsAst.inst -> int -> MipsAst.program ->  machinestate ->
 
 
 val init : MipsAst.program -> string -> int32 list -> machinestate
-(** [init prog function args] initializes a function that can then
-    later be executed. The function takes the name of the [function]
-    that should be executed is input.  [args] is the list 32-bit
-    integer argument values. Note that right now, only 4 arguments are
-    supported. This function returns the state of the machine before
+(** [init prog function args stackaddr stacksize] initializes a
+    function that can then later be executed. The function takes the
+    name of the [function] that should be executed is input.  [args]
+    is the list 32-bit integer argument values. Note that right now,
+    only 4 arguments are supported. Argument [stackaddr] is the
+    address the stack memory and [stacksize] the size of the
+    stack. This function returns the state of the machine before
     execution. *)
 
 

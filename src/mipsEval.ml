@@ -13,6 +13,7 @@ type machinestate =
   sdata      : bytes;
   bss        : bytes;
   sbss       : bytes;
+  stack      : bytes;
   mutable pc : int;
   mutable hi : int32;
   mutable lo : int32;
@@ -27,6 +28,7 @@ let getmemptr state prog addr size =
   if check prog.sdata_sec then res state.sdata prog.sdata_sec else
   if check prog.bss_sec then res state.bss prog.bss_sec else
   if check prog.sbss_sec then res state.sbss prog.sbss_sec else
+  if check prog.stack_sec then res state.stack prog.stack_sec else
     raise (Out_of_bound (sprintf 
     "%d bytes memory access at address 0x%x is outside memory." size addr))
   
@@ -261,6 +263,7 @@ let init prog func args =
     sdata = Bytes.copy (prog.sdata_sec.d);
     bss = Bytes.make prog.bss_sec.size (char_of_int 0);
     sbss = Bytes.make prog.sbss_sec.size (char_of_int 0);
+    stack = Bytes.make prog.stack_sec.size (char_of_int 0);
     pc = 0;
     hi = Int32.zero;
     lo = Int32.zero;
@@ -277,6 +280,9 @@ let init prog func args =
 
   (* Setup the global pointer *)
   state.registers.(reg_gp) <- Int32.of_int prog.gp;
+
+  (* Setup the stack pointer *)
+  state.registers.(reg_sp) <- Int32.of_int prog.sp;
   
   (* Set the arguments. For now, max 4 arguments. *)
   List.iteri (fun i x ->

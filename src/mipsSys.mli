@@ -40,3 +40,10 @@ val symbol_table : string -> (string * int) list
 val get_program : string -> MipsAst.program 
 (** [get_program filename] reads a MIPS ELF file and returns a MIPS
     program object. *)
+
+
+val assign_program_stack : MipsAst.program -> int -> int -> int -> MipsAst.program
+(** [assign_program_stack prog ptr size addr] assigns and returns a new
+    program object derived from [prog] with the initial stack pointer at [ptr],
+    the size buffer [size] and the start address [addr] of the buffer.
+*)

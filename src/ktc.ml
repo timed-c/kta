@@ -503,12 +503,17 @@ let mips_symbols filename opt =
 let print_res state =
   printf "Result v1 = %d\n" (Int32.to_int state.registers.(2))
 
+let stack_ptr = 0x80000000 - 4 
+let stack_size = 1024*32 
+let stack_addr = stack_ptr - stack_size + 4
+
 let mips_eval filename func args opt = 
   let tmpname = "__tmp__" in
   MipsSys.pic32_compile [filename] false opt tmpname;
-  let prog = MipsSys.get_program tmpname in
-  let initstate = MipsEval.init prog func args in
-  let (state,count) = MipsEval.eval prog initstate MipsEval.cycle_count 0 in
+  let prog = MipsSys.assign_program_stack (MipsSys.get_program tmpname) 
+             stack_ptr stack_size stack_addr in
+  let initstate = MipsEval.init prog func args  in
+  let (state,count) = MipsEval.eval prog initstate MipsEval.cycle_count 0  in
   let res = Int32.to_int state.registers.(2) in
   uprint_endline (MipsEval.pprint_state state);
   printf "Result v0 = %d (0x%x)\n" res res;
@@ -522,8 +527,9 @@ let mips_eval filename func args opt =
 let mips_debug filename func args opt = 
   let tmpname = "__tmp__" in
   MipsSys.pic32_compile [filename] false opt tmpname;
-  let prog = MipsUtils.add_branch_symbols (MipsSys.get_program tmpname) in
-  let initstate = MipsEval.init prog func args in
+  let prog = MipsSys.assign_program_stack (MipsUtils.add_branch_symbols (
+             MipsSys.get_program tmpname)) stack_ptr stack_size stack_addr in
+  let initstate = MipsEval.init prog func args  in
   uprint_endline (MipsEval.pprint_state initstate);  
   let (state,(str,_)) = MipsEval.eval prog initstate MipsEval.debug_print 
                       (us"", initstate.registers) in
