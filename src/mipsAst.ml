@@ -17,6 +17,7 @@ type inst =
   | MipsAND     of rd * rs  * rt
   | MipsANDI    of rt * rs  * imm
   | MipsBEQ     of rs * rt  * imm * string
+  | MipsBEQL    of rs * rt  * imm * string
   | MipsBLEZ    of rs * imm * string
   | MipsBNE     of rs * rt  * imm * string
   | MipsDIV     of rs * rt

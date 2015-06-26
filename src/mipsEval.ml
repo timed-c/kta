@@ -79,6 +79,9 @@ let rec step bigendian prog state opfunc opval is_a_delay_slot =
   | MipsBEQ(rs,rt,imm,s) ->
        if Int32.compare (reg rs) (reg rt) = 0 then branch (imm*4 + 4 + state.pc)
        else (pc 4; op())
+  | MipsBEQL(rs,rt,imm,s) ->
+       if Int32.compare (reg rs) (reg rt) = 0 then branch (imm*4 + 4 + state.pc)
+       else (pc 8; op())
   | MipsBLEZ(rs,imm,s) -> 
        if Int32.compare (reg rs) (Int32.zero) <= 0 then branch (imm*4 + 4 + state.pc)
        else (pc 4; op())
@@ -95,6 +98,8 @@ let rec step bigendian prog state opfunc opval is_a_delay_slot =
        pc 4; op()
   | MipsJR(rs) -> 
        branch (Int32.to_int state.registers.(rs))
+  | MipsJ(addr) ->
+       branch (((state.pc + 4) land 0xf0000000) lor (addr lsl 2))
   | MipsLUI(rt,imm) ->
       wreg rt (Int32.shift_left (Int32.of_int imm) 16); pc 4; op()
   | MipsLB(rt,imm,rs) -> 
@@ -170,6 +175,7 @@ let debug_print inst pc prog state is_a_delay_slot (acc,prev_regfile) =
     | MipsAND(rd,rs,rt) -> (rd,rs,rt)
     | MipsANDI(rt,rs,_) -> (rt,rs,0)
     | MipsBEQ(rs,rt,_,_) -> (0,rs,rt)
+    | MipsBEQL(rs,rt,_,_) -> (0,rs,rt)
     | MipsBLEZ(rs,_,_) -> (0,rs,0)
     | MipsBNE(rs,rt,_,_) -> (0,rs,rt)
     | MipsJALR(rs) -> (0,rs,0)

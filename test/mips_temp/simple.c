@@ -1,5 +1,5 @@
 
-#define PRINT_MAIN
+//#define PRINT_MAIN
 
 #ifdef PRINT_MAIN
 #include <stdio.h>
@@ -11,6 +11,57 @@ int v2 = 8000;
 int p[] = {3,4,5,6,7,8,9,10,2,9,3,4,5,6,7,8,9,10,2,9,3,4,5,6,7,8,9,10,2,9};
 
 char str[] = "\xf0Hello my name is David.";
+int res[20];
+
+
+//--------------------------------------------
+void sort(int *a, int len){
+  int i;                     
+  int swapped = 1;           
+  while(swapped){            
+    swapped = 0;             
+    for(i=0; i<len-1; i++){  
+      if(a[i+1] < a[i]){     
+        int tmp = a[i+1];    
+        a[i+1] = a[i];       
+        a[i] = tmp;
+        swapped = 1;        
+      }          
+    } 
+  }
+}
+int foo(int x){
+
+  int t1[] = {3,5,7,1,9,10,2};
+  int len = sizeof(t1)/sizeof(int);
+  sort(t1,len);
+
+  
+  #ifdef PRINT_MAIN
+  int i;
+  for(int i=0; i<len; i++){
+    printf("%d,", t1[i]);
+  }
+  printf("\n");
+  #endif
+
+  int i;
+  for(i=0; i<len;i++)
+    res[i] = t1[i];
+  return (int)&res;
+}
+//-----------------------------------------------
+
+
+/*
+int foo(int x){
+  int a[] = {1,3,6,7};
+  int i;
+  for(i=0; i<4;i++)
+    res[i] = a[i];
+  return (int)&res;
+}
+*/
 
 /*
 // Test init and use of stack pointer. --------
@@ -36,17 +87,7 @@ int foo(int x){
 */
 
 
-int foo(int x){
-  int d[30];
-  int i;
-  for(i=0; i<30; i++)
-    d[i] = v + x + i;
-  
-  for(i=0;i<10;i++)
-    p[i] = d[i+7] * x; 
-  return p[2];
-}
-//Result: 0x1816060  25256032
+
 
 
 
