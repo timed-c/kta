@@ -15,6 +15,7 @@ int res[20];
 
 
 //--------------------------------------------
+// Tests instructions j and beql
 void sort(int *a, int len){
   int i;                     
   int swapped = 1;           
