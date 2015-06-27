@@ -96,12 +96,12 @@ let rec step bigendian prog state opfunc opval is_a_delay_slot =
        state.lo <- Int64.to_int32 (Int64.div (to64unsig rs) (to64unsig rt));
        state.hi <- Int64.to_int32 (Int64.rem (to64unsig rs) (to64unsig rt));
        pc 4; op()
+  | MipsJALR(rs) -> failwith "JALR is not implemented"     
   | MipsJR(rs) -> 
        branch (Int32.to_int state.registers.(rs))
   | MipsJ(addr) ->
        branch (((state.pc + 4) land 0xf0000000) lor (addr lsl 2))
-  | MipsLUI(rt,imm) ->
-      wreg rt (Int32.shift_left (Int32.of_int imm) 16); pc 4; op()
+  | MipsJAL(addr) -> failwith "JAL is not implemented"     
   | MipsLB(rt,imm,rs) -> 
       let (mem,i,_) = getmemptr state prog ((Int32.to_int (reg rs)) + imm) 1 in
       wreg rt (Int32.of_int (Utils.sign_extension 
@@ -111,6 +111,8 @@ let rec step bigendian prog state opfunc opval is_a_delay_slot =
       let (mem,i,_) = getmemptr state prog ((Int32.to_int (reg rs)) + imm) 1 in
       wreg rt (Int32.of_int (int_of_char (Bytes.get mem i)));
       pc 4; op() 
+  | MipsLUI(rt,imm) ->
+      wreg rt (Int32.shift_left (Int32.of_int imm) 16); pc 4; op()
   | MipsLW(rt,imm,rs) -> 
       let (mem,i,_) = getmemptr state prog ((Int32.to_int (reg rs)) + imm) 4 in
       wreg rt (MipsUtils.get_32_bits bigendian mem i);
@@ -131,11 +133,21 @@ let rec step bigendian prog state opfunc opval is_a_delay_slot =
   | MipsMULTU(rs,rt) -> 
        sethi_lo (Int64.mul (to64unsig rs) (to64unsig rt));
        pc 4; op()
-  | MipsSLL(rd,rt,shamt) -> 
-       wreg rd (Int32.shift_left (reg rt) shamt); pc 4; op() 
+  | MipsNOR(rd,rs,rt) -> failwith "NOR not implemented"
+  | MipsOR(rd,rs,rt) -> failwith "OR not implemented"
+  | MipsORI(rt,rs,imm) -> failwith "ORI not implemented"  
   | MipsSLT(rd,rs,rt) ->
        wreg rd (Int32.shift_right_logical (Int32.sub (reg rs) (reg rt)) 31); 
        pc 4; op() 
+  | MipsSLTU(rd,rs,rt) -> failwith "SLTU not implemented"
+  | MipsSLTI(rt,rs,imm) -> failwith "SLTI not implemented"
+  | MipsSLTIU(rt,rs,imm) -> failwith "SLTIU not implemented"
+  | MipsSLL(rd,rt,shamt) -> 
+       wreg rd (Int32.shift_left (reg rt) shamt); pc 4; op() 
+  | MipsSLLV(rd,rt,rs) -> failwith "SLLV not implemented"
+  | MipsSRA(rd,rt,shamt) -> failwith "SRA not implemented"
+  | MipsSRL(rd,rt,shamt) -> failwith "SRL not implemented"
+  | MipsSRLV(rd,rt,rs) -> failwith "SRLV not implemented"
   | MipsSB(rt,imm,rs) ->
       let (mem,i,_) = getmemptr state prog ((Int32.to_int (reg rs)) + imm) 1 in
       Bytes.set mem i (char_of_int ((Int32.to_int (reg rt)) land 0xff));
@@ -152,8 +164,9 @@ let rec step bigendian prog state opfunc opval is_a_delay_slot =
        pc 4; op()
   | MipsXOR(rd,rs,rt) -> 
        wreg rd (Int32.logxor (reg rs) (reg rt)); pc 4; op()
-  | _ -> failwith ("Unknown instruction: " ^
-                    Ustring.to_utf8 (MipsUtils.pprint_inst inst))
+  | MipsXORI(rt,rs,imm) -> failwith "XORI not implemented"
+  | MipsUnknown(_) -> failwith ("Unknown instruction: " ^
+                      Ustring.to_utf8 (MipsUtils.pprint_inst inst))
    
 
 
