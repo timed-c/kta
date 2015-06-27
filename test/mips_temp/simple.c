@@ -13,7 +13,20 @@ int p[] = {3,4,5,6,7,8,9,10,2,9,3,4,5,6,7,8,9,10,2,9,3,4,5,6,7,8,9,10,2,9};
 char str[] = "\xf0Hello my name is David.";
 int res[20];
 
+// Tests: sll sllv sra srav srl
+int foo(int x, int y){
+  int a = x << 3;
+  int b = x << y;
+  int c = x >> 4;
+  int d = x >> y;
+  int e = (x >> 16) & 0xffff;
+  return a + b + c + d + e;
+}
+// foo(232542,3)
+// Result: 0x397033  3764275
 
+
+/*
 //--------------------------------------------
 // Tests instructions j and beql
 void sort(int *a, int len){
@@ -52,7 +65,7 @@ int foo(int x){
   return (int)&res;
 }
 //-----------------------------------------------
-
+*/
 
 /*
 int foo(int x){
@@ -169,7 +182,7 @@ int foo(int x, int y){
 int main()
 {
   #ifdef PRINT_MAIN
-  int x = foo(2);
+  int x = foo(232542,3);
   printf("Result: 0x%x  %d\n", x, x);
   #endif
   return 0;

@@ -145,10 +145,16 @@ let rec step bigendian prog state opfunc opval is_a_delay_slot =
   | MipsSLTIU(rt,rs,imm) -> failwith "SLTIU not implemented"
   | MipsSLL(rd,rt,shamt) -> 
        wreg rd (Int32.shift_left (reg rt) shamt); pc 4; op() 
-  | MipsSLLV(rd,rt,rs) -> failwith "SLLV not implemented"
-  | MipsSRA(rd,rt,shamt) -> failwith "SRA not implemented"
-  | MipsSRL(rd,rt,shamt) -> failwith "SRL not implemented"
-  | MipsSRLV(rd,rt,rs) -> failwith "SRLV not implemented"
+  | MipsSLLV(rd,rt,rs) ->
+       wreg rd (Int32.shift_left (reg rt) (Int32.to_int (reg rs))); pc 4; op() 
+  | MipsSRA(rd,rt,shamt) -> 
+       wreg rd (Int32.shift_right (reg rt) shamt); pc 4; op() 
+  | MipsSRAV(rd,rt,rs) -> 
+       wreg rd (Int32.shift_right (reg rt) (Int32.to_int (reg rs))); pc 4; op() 
+  | MipsSRL(rd,rt,shamt) -> 
+       wreg rd (Int32.shift_right_logical (reg rt) shamt); pc 4; op() 
+  | MipsSRLV(rd,rt,rs) -> 
+       wreg rd (Int32.shift_right_logical (reg rt) (Int32.to_int (reg rs))); pc 4; op() 
   | MipsSB(rt,imm,rs) ->
       let (mem,i,_) = getmemptr state prog ((Int32.to_int (reg rs)) + imm) 1 in
       Bytes.set mem i (char_of_int ((Int32.to_int (reg rt)) land 0xff));
@@ -219,6 +225,7 @@ let debug_print inst pc prog state is_a_delay_slot (acc,prev_regfile) =
     | MipsSLL(rd,rt,_) -> (rd,rt,0)
     | MipsSLLV(rd,rs,rt) -> (rd,rs,rt)
     | MipsSRA(rd,rt,_) -> (rd,rt,0)    
+    | MipsSRAV(rd,rs,rt) -> (rd,rs,rt)  
     | MipsSRL(rd,rt,_) -> (rd,rt,0)  
     | MipsSRLV(rd,rs,rt) -> (rd,rs,rt)  
     | MipsSB(rt,_,rs) -> (rt,rs,0) 

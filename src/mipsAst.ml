@@ -47,6 +47,7 @@ type inst =
   | MipsSLL     of rd * rt  * shamt
   | MipsSLLV    of rd * rt  * rs
   | MipsSRA     of rd * rt  * shamt
+  | MipsSRAV    of rd * rt  * rs
   | MipsSRL     of rd * rt  * shamt
   | MipsSRLV    of rd * rt  * rs
   | MipsSB      of rt * imm * rs
