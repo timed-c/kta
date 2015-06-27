@@ -134,9 +134,12 @@ let rec step bigendian prog state opfunc opval is_a_delay_slot =
   | MipsMULTU(rs,rt) -> 
        sethi_lo (Int64.mul (to64unsig rs) (to64unsig rt));
        pc 4; op()
-  | MipsNOR(rd,rs,rt) -> failwith "NOR not implemented"
-  | MipsOR(rd,rs,rt) -> failwith "OR not implemented"
-  | MipsORI(rt,rs,imm) -> failwith "ORI not implemented"  
+  | MipsNOR(rd,rs,rt) -> 
+       wreg rd (Int32.lognot (Int32.logor (reg rs) (reg rt))); pc 4; op()
+  | MipsOR(rd,rs,rt) -> 
+       wreg rd (Int32.logor (reg rs) (reg rt)); pc 4; op()
+  | MipsORI(rt,rs,imm) -> 
+       wreg rt (Int32.logor (reg rs) (Int32.of_int imm)); pc 4; op()
   | MipsSLT(rd,rs,rt) ->
        wreg rd (Int32.shift_right_logical (Int32.sub (reg rs) (reg rt)) 31); 
        pc 4; op() 
