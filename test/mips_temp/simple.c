@@ -13,6 +13,16 @@ int p[] = {3,4,5,6,7,8,9,10,2,9,3,4,5,6,7,8,9,10,2,9,3,4,5,6,7,8,9,10,2,9};
 char str[] = "\xf0Hello my name is David.";
 int res[20];
 
+//Test xor, xori
+int foo(int x, int y){
+  int a = x ^ y;
+  int b = x ^ 3;
+  return a + b;
+}
+//foo(2324,12515)
+//Result: 0x430e  17166
+
+/*
 // Tests: sll sllv sra srav srl
 int foo(int x, int y){
   int a = x << 3;
@@ -24,7 +34,7 @@ int foo(int x, int y){
 }
 // foo(232542,3)
 // Result: 0x397033  3764275
-
+*/
 
 /*
 //--------------------------------------------
@@ -182,7 +192,7 @@ int foo(int x, int y){
 int main()
 {
   #ifdef PRINT_MAIN
-  int x = foo(232542,3);
+  int x = foo(2324,12515);
   printf("Result: 0x%x  %d\n", x, x);
   #endif
   return 0;

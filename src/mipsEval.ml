@@ -171,7 +171,8 @@ let rec step bigendian prog state opfunc opval is_a_delay_slot =
        pc 4; op()
   | MipsXOR(rd,rs,rt) -> 
        wreg rd (Int32.logxor (reg rs) (reg rt)); pc 4; op()
-  | MipsXORI(rt,rs,imm) -> failwith "XORI not implemented"
+  | MipsXORI(rt,rs,imm) -> 
+       wreg rt (Int32.logxor (reg rs) (Int32.of_int imm)); pc 4; op()
   | MipsUnknown(_) -> failwith ("Unknown instruction: " ^
                       Ustring.to_utf8 (MipsUtils.pprint_inst inst))
    
