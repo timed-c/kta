@@ -39,6 +39,7 @@ let getmemptr state prog addr size =
    - 'add' and sub do not trigger integer overflow exceptions
    - 'addi' does not trigger a arithmetic overflow exception
    - Conditional trap 'teq' is implemented as NOP
+   - 'beql' might get wrong information for tick count. Should not jump over inst.
 *)
 (* ---------------------------------------------------------------------*)
 let rec step bigendian prog state opfunc opval is_a_delay_slot =
