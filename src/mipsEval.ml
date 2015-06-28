@@ -64,6 +64,7 @@ let rec step bigendian prog state opfunc opval is_a_delay_slot =
   let to64sig v =  Int64.of_int32 (reg v) in
   let to64unsig v =  Int64.shift_right_logical (Int64.shift_left 
                     (Int64.of_int32 (reg v)) 32) 32 in
+  let fint x = (Int32.to_int (reg x)) land 0xffffffff in
   match inst  with 
   | MipsADD(rd,rs,rt) -> 
        wreg rd (Int32.add (reg rs) (reg rt)); pc 4; op()
@@ -143,9 +144,15 @@ let rec step bigendian prog state opfunc opval is_a_delay_slot =
   | MipsSLT(rd,rs,rt) ->
        wreg rd (Int32.shift_right_logical (Int32.sub (reg rs) (reg rt)) 31); 
        pc 4; op() 
-  | MipsSLTU(rd,rs,rt) -> failwith "SLTU not implemented"
-  | MipsSLTI(rt,rs,imm) -> failwith "SLTI not implemented"
-  | MipsSLTIU(rt,rs,imm) -> failwith "SLTIU not implemented"
+  | MipsSLTU(rd,rs,rt) -> 
+       wreg rd (Int32.of_int ((((fint rs) - (fint rt)) lsr 32) land 1));
+       pc 4; op() 
+  | MipsSLTI(rt,rs,imm) -> 
+       wreg rt (Int32.shift_right_logical (Int32.sub (reg rs) (Int32.of_int imm)) 31); 
+       pc 4; op() 
+  | MipsSLTIU(rt,rs,imm) -> 
+       wreg rt (Int32.of_int ((((fint rs) - (imm land 0xffffffff)) lsr 32) land 1));
+       pc 4; op() 
   | MipsSLL(rd,rt,shamt) -> 
        wreg rd (Int32.shift_left (reg rt) shamt); pc 4; op() 
   | MipsSLLV(rd,rt,rs) ->
