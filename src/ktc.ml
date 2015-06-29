@@ -503,9 +503,9 @@ let mips_symbols filename opt =
 let print_res state =
   printf "Result v1 = %d\n" (Int32.to_int state.registers.(2))
 
-let stack_ptr = 0x80000000 - 4 
+let stack_ptr = 0x80000000 - 8 
 let stack_size = 1024*32 
-let stack_addr = stack_ptr - stack_size + 4
+let stack_addr = stack_ptr - stack_size + 8
 
 let mips_eval filename func args opt = 
   let tmpname = "__tmp__" in

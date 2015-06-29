@@ -39,7 +39,8 @@ let getmemptr state prog addr size =
    - 'add' and sub do not trigger integer overflow exceptions
    - 'addi' does not trigger a arithmetic overflow exception
    - Conditional trap 'teq' is implemented as NOP
-   - 'beql' might get wrong information for tick count. Should not jump over inst.
+   - 'beql' and 'bnel' might get wrong information for tick count. Should not jump over inst.
+   - 'swl' is implemented but not tested.
 *)
 (* ---------------------------------------------------------------------*)
 let rec step bigendian prog state opfunc opval is_a_delay_slot =
@@ -65,6 +66,7 @@ let rec step bigendian prog state opfunc opval is_a_delay_slot =
   let to64unsig v =  Int64.shift_right_logical (Int64.shift_left 
                     (Int64.of_int32 (reg v)) 32) 32 in
   let fint x = (Int32.to_int (reg x)) land 0xffffffff in
+  let jta addr = ((state.pc + 4) land 0xf0000000) lor (addr lsl 2) in
   match inst  with 
   | MipsADD(rd,rs,rt) -> 
        wreg rd (Int32.add (reg rs) (reg rt)); pc 4; op()
@@ -84,12 +86,24 @@ let rec step bigendian prog state opfunc opval is_a_delay_slot =
   | MipsBEQL(rs,rt,imm,s) ->
        if Int32.compare (reg rs) (reg rt) = 0 then branch (imm*4 + 4 + state.pc)
        else (pc 8; op())
+  | MipsBGEZ(rs,imm,s) -> 
+       if Int32.compare (reg rs) (Int32.zero) >= 0 then branch (imm*4 + 4 + state.pc)
+       else (pc 8; op())
+  | MipsBGTZ(rs,imm,s) -> 
+       if Int32.compare (reg rs) (Int32.zero) > 0 then branch (imm*4 + 4 + state.pc)
+       else (pc 8; op())
   | MipsBLEZ(rs,imm,s) -> 
        if Int32.compare (reg rs) (Int32.zero) <= 0 then branch (imm*4 + 4 + state.pc)
        else (pc 4; op())
+  | MipsBLTZ(rs,imm,s) -> 
+       if Int32.compare (reg rs) (Int32.zero) < 0 then branch (imm*4 + 4 + state.pc)
+       else (pc 8; op())
   | MipsBNE(rs,rt,imm,s) ->
        if Int32.compare (reg rs) (reg rt) <> 0 then branch (imm*4 + 4 + state.pc)
        else (pc 4; op())
+  | MipsBNEL(rs,rt,imm,s) ->
+       if Int32.compare (reg rs) (reg rt) <> 0 then branch (imm*4 + 4 + state.pc)
+       else (pc 8; op())
   | MipsDIV(rs,rt) -> 
        state.lo <- Int64.to_int32 (Int64.div (to64sig rs) (to64sig rt));
        state.hi <- Int64.to_int32 (Int64.rem (to64sig rs) (to64sig rt));
@@ -102,23 +116,25 @@ let rec step bigendian prog state opfunc opval is_a_delay_slot =
   | MipsJR(rs) -> 
        branch (Int32.to_int state.registers.(rs))
   | MipsJ(addr) ->
-       branch (((state.pc + 4) land 0xf0000000) lor (addr lsl 2))
-  | MipsJAL(addr) -> failwith "JAL is not implemented"     
+       branch (jta addr)
+  | MipsJAL(addr) -> 
+       wreg (reg_ra) (Int32.of_int (state.pc + 4)); 
+       branch (jta addr)
   | MipsLB(rt,imm,rs) -> 
-      let (mem,i,_) = getmemptr state prog ((Int32.to_int (reg rs)) + imm) 1 in
-      wreg rt (Int32.of_int (Utils.sign_extension 
+       let (mem,i,_) = getmemptr state prog ((Int32.to_int (reg rs)) + imm) 1 in
+       wreg rt (Int32.of_int (Utils.sign_extension 
                              (int_of_char (Bytes.get mem i)) 8));
-      pc 4; op() 
+       pc 4; op() 
   | MipsLBU(rt,imm,rs) -> 
-      let (mem,i,_) = getmemptr state prog ((Int32.to_int (reg rs)) + imm) 1 in
-      wreg rt (Int32.of_int (int_of_char (Bytes.get mem i)));
-      pc 4; op() 
+       let (mem,i,_) = getmemptr state prog ((Int32.to_int (reg rs)) + imm) 1 in
+       wreg rt (Int32.of_int (int_of_char (Bytes.get mem i)));
+       pc 4; op() 
   | MipsLUI(rt,imm) ->
-      wreg rt (Int32.shift_left (Int32.of_int imm) 16); pc 4; op()
+       wreg rt (Int32.shift_left (Int32.of_int imm) 16); pc 4; op()
   | MipsLW(rt,imm,rs) -> 
-      let (mem,i,_) = getmemptr state prog ((Int32.to_int (reg rs)) + imm) 4 in
-      wreg rt (MipsUtils.get_32_bits bigendian mem i);
-      pc 4; op()
+       let (mem,i,_) = getmemptr state prog ((Int32.to_int (reg rs)) + imm) 4 in
+       wreg rt (MipsUtils.get_32_bits bigendian mem i);
+       pc 4; op()
   | MipsMFHI(rd) -> 
        wreg rd (state.hi); pc 4; op()
   | MipsMFLO(rd) -> 
@@ -173,6 +189,16 @@ let rec step bigendian prog state opfunc opval is_a_delay_slot =
       let (mem,i,_) = getmemptr state prog ((Int32.to_int (reg rs)) + imm) 4 in
       MipsUtils.set_32_bits bigendian mem i (reg rt);
       pc 4; op()    
+  | MipsSWL(rt,imm,rs) -> 
+      let addr = (Int32.to_int (reg rs)) + imm in
+      let i4 = if bigendian then addr mod 4 else 3-(addr mod 4) in
+      let (mem,i,_) = getmemptr state prog ((addr / 4)*4) 4 in
+      let vm = MipsUtils.get_32_bits bigendian mem i in
+      let msk = Int32.lognot (Int32.shift_right_logical (Int32.minus_one) (i4*8)) in
+      let v = Int32.logor (Int32.logand vm msk) 
+                          (Int32.shift_right_logical (reg rt) (i4*8)) in
+      MipsUtils.set_32_bits bigendian mem i v;
+      pc 4; op()    
   | MipsSUB(rd,rs,rt) -> 
        wreg rd (Int32.sub (reg rs) (reg rt)); pc 4; op()
   | MipsSUBU(rd,rs,rt) -> 
@@ -207,8 +233,12 @@ let debug_print inst pc prog state is_a_delay_slot (acc,prev_regfile) =
     | MipsANDI(rt,rs,_) -> (rt,rs,0)
     | MipsBEQ(rs,rt,_,_) -> (0,rs,rt)
     | MipsBEQL(rs,rt,_,_) -> (0,rs,rt)
+    | MipsBGEZ(rs,_,_) -> (0,rs,0)
+    | MipsBGTZ(rs,_,_) -> (0,rs,0)
     | MipsBLEZ(rs,_,_) -> (0,rs,0)
+    | MipsBLTZ(rs,_,_) -> (0,rs,0)
     | MipsBNE(rs,rt,_,_) -> (0,rs,rt)
+    | MipsBNEL(rs,rt,_,_) -> (0,rs,rt)
     | MipsJALR(rs) -> (0,rs,0)
     | MipsJR(rs) -> (0,rs,0)
     | MipsJ(_) -> (0,0,0)
@@ -241,6 +271,7 @@ let debug_print inst pc prog state is_a_delay_slot (acc,prev_regfile) =
     | MipsSRLV(rd,rs,rt) -> (rd,rs,rt)  
     | MipsSB(rt,_,rs) -> (rt,rs,0) 
     | MipsSW(rt,_,rs) -> (rt,rs,0)    
+    | MipsSWL(rt,_,rs) -> (rt,rs,0)    
     | MipsSUB(rd,rs,rt) -> (rd,rs,rt) 
     | MipsSUBU(rd,rs,rt) -> (rd,rs,rt)  
     | MipsTEQ(rs,rt,code) -> (0,rs,rt)
@@ -339,7 +370,8 @@ let eval ?(bigendian=false) prog state opfunc opinit =
   
   (* Call the step function *)
   let rec multistep opval =
-     let (opval',terminate) = step bigendian prog state opfunc opval false in
+     let (opval',terminate) = 
+       step bigendian prog state opfunc opval false in
      if state.pc = 0 || terminate then opval'
      else multistep opval'
   in

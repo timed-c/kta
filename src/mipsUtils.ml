@@ -47,11 +47,16 @@ let decode_inst bininst =
            | 43 -> MipsSLTU(rd(),rs(),rt())
            | 52 -> MipsTEQ(rs(),rt(),code())
            | _  -> MipsUnknown(bininst))
+  | 1  -> (match rt() with
+           | 0  -> MipsBLTZ(rs(),imm(),"")
+           | 1  -> MipsBGEZ(rs(),imm(),"")
+           | _  -> MipsUnknown(bininst)) 
   | 2  -> MipsJ(address())
   | 3  -> MipsJAL(address())
   | 4  -> MipsBEQ(rs(),rt(),imm(),"")
   | 5  -> MipsBNE(rs(),rt(),imm(),"")
   | 6  -> MipsBLEZ(rs(),imm(),"")
+  | 7  -> MipsBGTZ(rs(),imm(),"")
   | 8  -> MipsADDI(rt(),rs(),imm())
   | 9  -> MipsADDIU(rt(),rs(),imm())
   | 10 -> MipsSLTI(rt(),rs(),imm())
@@ -61,6 +66,7 @@ let decode_inst bininst =
   | 14 -> MipsXORI(rt(),rs(),imm())
   | 15 -> MipsLUI(rt(),imm())
   | 20 -> MipsBEQL(rs(),rt(),imm(),"")
+  | 21 -> MipsBNEL(rs(),rt(),imm(),"")
   | 28 -> (match funct() with
            | 2  -> MipsMUL(rd(),rs(),rt())
            | _  -> MipsUnknown(bininst))
@@ -68,6 +74,7 @@ let decode_inst bininst =
   | 35 -> MipsLW(rt(),imm(),rs())
   | 36 -> MipsLBU(rt(),imm(),rs())
   | 40 -> MipsSB(rt(),imm(),rs())
+  | 42 -> MipsSWL(rt(),imm(),rs())
   | 43 -> MipsSW(rt(),imm(),rs())
   | _ -> MipsUnknown(bininst)      
     
@@ -176,8 +183,12 @@ let pprint_inst inst =
   | MipsANDI(rt,rs,imm)   -> (istr "andi") ^. (rtsi rt rs imm)
   | MipsBEQ(rs,rt,imm,s)  -> (istr "beq") ^. (rtsis rs rt imm s)
   | MipsBEQL(rs,rt,imm,s) -> (istr "beql") ^. (rtsis rs rt imm s)
+  | MipsBGEZ(rs,imm,s)    -> (istr "bgez") ^. (rsis rs imm s)    
+  | MipsBGTZ(rs,imm,s)    -> (istr "bgtz") ^. (rsis rs imm s)    
   | MipsBLEZ(rs,imm,s)    -> (istr "blez") ^. (rsis rs imm s)    
+  | MipsBLTZ(rs,imm,s)    -> (istr "bltz") ^. (rsis rs imm s)    
   | MipsBNE(rs,rt,imm,s)  -> (istr "bne") ^. (rtsis rs rt imm s)    
+  | MipsBNEL(rs,rt,imm,s) -> (istr "bnel") ^. (rtsis rs rt imm s)
   | MipsJALR(rs)          -> (istr "jalr") ^. (reg rs)
   | MipsJR(rs)            -> (istr "jr") ^. (reg rs)
   | MipsJ(addr)           -> (istr "j") ^. (address addr)
@@ -210,6 +221,7 @@ let pprint_inst inst =
   | MipsSRLV(rd,rt,rs)    -> (istr "srlv") ^. (rdts rd rt rs)
   | MipsSB(rt,imm,rs)     -> (istr "sb") ^. (rtis rt imm rs)
   | MipsSW(rt,imm,rs)     -> (istr "sw") ^. (rtis rt imm rs)
+  | MipsSWL(rt,imm,rs)    -> (istr "swl") ^. (rtis rt imm rs)
   | MipsSUB(rd,rs,rt)     -> (istr "sub") ^. (rdst rd rs rt)
   | MipsSUBU(rd,rs,rt)    -> (istr "subu") ^. (rdst rd rs rt)
   | MipsTEQ(rs,rt,code)   -> (istr "teq") ^. (rtsi rs rt code)
@@ -275,13 +287,18 @@ let add_branch_symbols prog =
 
     match inst with
     | MipsBEQ(_,_,imm,_) | MipsBEQL(_,_,imm,_) | 
-      MipsBLEZ(_,imm,_) | MipsBNE(_,_,imm,_)  ->
+      MipsBLEZ(_,imm,_)  | MipsBNE(_,_,imm,_)  | MipsBNEL(_,_,imm,_)  |
+      MipsBLTZ(_,imm,_)  | MipsBGEZ(_,imm,_)   | MipsBGTZ(_,imm,_) ->
         let (newlabel,s2a',a2s') = makenew imm in
         let i2 = (match inst with
           | MipsBEQ(rs,rt,_,_)  -> MipsBEQ(rs,rt,imm,newlabel)
           | MipsBEQL(rs,rt,_,_)  -> MipsBEQL(rs,rt,imm,newlabel)
+          | MipsBGEZ(rs,_,_) -> MipsBGEZ(rs,imm,newlabel)
+          | MipsBGTZ(rs,_,_) -> MipsBGTZ(rs,imm,newlabel)
           | MipsBLEZ(rs,_,_) -> MipsBLEZ(rs,imm,newlabel)
+          | MipsBLTZ(rs,_,_) -> MipsBLTZ(rs,imm,newlabel)
           | MipsBNE(rs,rt,_,_)  -> MipsBNE(rs,rt,imm,newlabel)
+          | MipsBNEL(rs,rt,_,_)  -> MipsBNEL(rs,rt,imm,newlabel)
           | _ -> failwith "Should not happen"
         )in
         codearray.(i) <- i2;

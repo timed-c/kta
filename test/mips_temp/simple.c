@@ -13,13 +13,27 @@ int p[] = {3,4,5,6,7,8,9,10,2,9,3,4,5,6,7,8,9,10,2,9,3,4,5,6,7,8,9,10,2,9};
 char str[] = "\xf0Hello my name is David.";
 int res[20];
 
+// test: jal. Need to compile with -o0
+int fact(int n){
+  if(n==1)
+    return 1;
+  else
+    return fact(n-1) * n;  
+}
+
+int foo(int x, int y){
+  return fact(x);
+}
+
+
+/*
 // Test: slt slti
 int foo(int x, int y){
   int a = x < y;
   int b = x < 3;
   return a + b;
 }
-
+*/
 
 /*
 // Test: or nor ori

@@ -18,8 +18,12 @@ type inst =
   | MipsANDI    of rt * rs  * imm
   | MipsBEQ     of rs * rt  * imm * string
   | MipsBEQL    of rs * rt  * imm * string
+  | MipsBGEZ    of rs * imm * string
+  | MipsBGTZ    of rs * imm * string
   | MipsBLEZ    of rs * imm * string
+  | MipsBLTZ    of rs * imm * string
   | MipsBNE     of rs * rt  * imm * string
+  | MipsBNEL    of rs * rt  * imm * string
   | MipsDIV     of rs * rt
   | MipsDIVU    of rs * rt
   | MipsJALR    of rs
@@ -52,6 +56,7 @@ type inst =
   | MipsSRLV    of rd * rt  * rs
   | MipsSB      of rt * imm * rs
   | MipsSW      of rt * imm * rs
+  | MipsSWL     of rt * imm * rs
   | MipsSUB     of rd * rs  * rt
   | MipsSUBU    of rd * rs  * rt
   | MipsTEQ     of rs * rt  * code
