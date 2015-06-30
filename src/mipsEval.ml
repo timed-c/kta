@@ -4,7 +4,7 @@ open Ustring.Op
 open Printf
 
 exception Function_not_found of string
-exception Out_of_bound of string
+exception Out_of_Bound of string
 
 type machinestate = 
 {
@@ -29,7 +29,7 @@ let getmemptr state prog addr size =
   if check prog.bss_sec then res state.bss prog.bss_sec else
   if check prog.sbss_sec then res state.sbss prog.sbss_sec else
   if check prog.stack_sec then res state.stack prog.stack_sec else
-    raise (Out_of_bound (sprintf 
+    raise (Out_of_Bound (sprintf 
     "%d bytes memory access at address 0x%x is outside memory." size addr))
   
   
@@ -43,20 +43,20 @@ let getmemptr state prog addr size =
    - 'swl' is implemented but not tested.
 *)
 (* ---------------------------------------------------------------------*)
-let rec step bigendian prog state opfunc opval is_a_delay_slot =
+let rec step bigendian prog state hookfunc hookval is_a_delay_slot =
   let reg r = if r = 0 then Int32.zero else state.registers.(r) in
   let wreg r v = if r = 0 then () else state.registers.(r) <- v in
   let pc pc = state.pc <- state.pc + pc in
   let inst = prog.code.((state.pc - prog.text_sec.addr)/4) in
   let thispc = state.pc in
-  let op() = opfunc inst thispc prog state is_a_delay_slot opval in
+  let hook() = hookfunc inst thispc prog state is_a_delay_slot None hookval in
   let branch dst = 
-    let (opval1,term1) = opfunc inst thispc prog state false opval in 
+    let (hookval1,term1) = hookfunc inst thispc prog state false None hookval in 
     pc 4;
-    if term1 then (opval1,term1) else
-    let (opval2, term2) = step bigendian prog state opfunc opval1 true in
+    if term1 then (hookval1,term1) else
+    let (hookval2, term2) = step bigendian prog state hookfunc hookval1 true in
     state.pc <- dst;
-    (opval2, term2)
+    (hookval2, term2)
   in
   let sethi_lo v =
     state.lo <- Int64.to_int32 (Int64.shift_right_logical (Int64.shift_left v 32) 32);
@@ -69,49 +69,49 @@ let rec step bigendian prog state opfunc opval is_a_delay_slot =
   let jta addr = ((state.pc + 4) land 0xf0000000) lor (addr lsl 2) in
   match inst  with 
   | MipsADD(rd,rs,rt) -> 
-       wreg rd (Int32.add (reg rs) (reg rt)); pc 4; op()
+       wreg rd (Int32.add (reg rs) (reg rt)); pc 4; hook()
   | MipsADDI(rt,rs,imm) -> 
-       wreg rt (Int32.add (reg rs) (Int32.of_int imm)); pc 4; op()
+       wreg rt (Int32.add (reg rs) (Int32.of_int imm)); pc 4; hook()
   | MipsADDIU(rt,rs,imm) -> 
-       wreg rt (Int32.add (reg rs) (Int32.of_int imm)); pc 4; op()
+       wreg rt (Int32.add (reg rs) (Int32.of_int imm)); pc 4; hook()
   | MipsADDU(rd,rs,rt) -> 
-       wreg rd (Int32.add (reg rs) (reg rt)); pc 4; op()
+       wreg rd (Int32.add (reg rs) (reg rt)); pc 4; hook()
   | MipsAND(rd,rs,rt) -> 
-       wreg rd (Int32.logand (reg rs) (reg rt)); pc 4; op()
+       wreg rd (Int32.logand (reg rs) (reg rt)); pc 4; hook()
   | MipsANDI(rt,rs,imm) -> 
-       wreg rt (Int32.logand (reg rs) (Int32.of_int imm)); pc 4; op()
+       wreg rt (Int32.logand (reg rs) (Int32.of_int imm)); pc 4; hook()
   | MipsBEQ(rs,rt,imm,s) ->
        if Int32.compare (reg rs) (reg rt) = 0 then branch (imm*4 + 4 + state.pc)
-       else (pc 4; op())
+       else (pc 4; hook())
   | MipsBEQL(rs,rt,imm,s) ->
        if Int32.compare (reg rs) (reg rt) = 0 then branch (imm*4 + 4 + state.pc)
-       else (pc 8; op())
+       else (pc 8; hook())
   | MipsBGEZ(rs,imm,s) -> 
        if Int32.compare (reg rs) (Int32.zero) >= 0 then branch (imm*4 + 4 + state.pc)
-       else (pc 8; op())
+       else (pc 8; hook())
   | MipsBGTZ(rs,imm,s) -> 
        if Int32.compare (reg rs) (Int32.zero) > 0 then branch (imm*4 + 4 + state.pc)
-       else (pc 8; op())
+       else (pc 8; hook())
   | MipsBLEZ(rs,imm,s) -> 
        if Int32.compare (reg rs) (Int32.zero) <= 0 then branch (imm*4 + 4 + state.pc)
-       else (pc 4; op())
+       else (pc 4; hook())
   | MipsBLTZ(rs,imm,s) -> 
        if Int32.compare (reg rs) (Int32.zero) < 0 then branch (imm*4 + 4 + state.pc)
-       else (pc 8; op())
+       else (pc 8; hook())
   | MipsBNE(rs,rt,imm,s) ->
        if Int32.compare (reg rs) (reg rt) <> 0 then branch (imm*4 + 4 + state.pc)
-       else (pc 4; op())
+       else (pc 4; hook())
   | MipsBNEL(rs,rt,imm,s) ->
        if Int32.compare (reg rs) (reg rt) <> 0 then branch (imm*4 + 4 + state.pc)
-       else (pc 8; op())
+       else (pc 8; hook())
   | MipsDIV(rs,rt) -> 
        state.lo <- Int64.to_int32 (Int64.div (to64sig rs) (to64sig rt));
        state.hi <- Int64.to_int32 (Int64.rem (to64sig rs) (to64sig rt));
-       pc 4; op()
+       pc 4; hook()
   | MipsDIVU(rs,rt) -> 
        state.lo <- Int64.to_int32 (Int64.div (to64unsig rs) (to64unsig rt));
        state.hi <- Int64.to_int32 (Int64.rem (to64unsig rs) (to64unsig rt));
-       pc 4; op()
+       pc 4; hook()
   | MipsJALR(rs) -> failwith "JALR is not implemented"     
   | MipsJR(rs) -> 
        branch (Int32.to_int state.registers.(rs))
@@ -124,71 +124,71 @@ let rec step bigendian prog state opfunc opval is_a_delay_slot =
        let (mem,i,_) = getmemptr state prog ((Int32.to_int (reg rs)) + imm) 1 in
        wreg rt (Int32.of_int (Utils.sign_extension 
                              (int_of_char (Bytes.get mem i)) 8));
-       pc 4; op() 
+       pc 4; hook() 
   | MipsLBU(rt,imm,rs) -> 
        let (mem,i,_) = getmemptr state prog ((Int32.to_int (reg rs)) + imm) 1 in
        wreg rt (Int32.of_int (int_of_char (Bytes.get mem i)));
-       pc 4; op() 
+       pc 4; hook() 
   | MipsLUI(rt,imm) ->
-       wreg rt (Int32.shift_left (Int32.of_int imm) 16); pc 4; op()
+       wreg rt (Int32.shift_left (Int32.of_int imm) 16); pc 4; hook()
   | MipsLW(rt,imm,rs) -> 
        let (mem,i,_) = getmemptr state prog ((Int32.to_int (reg rs)) + imm) 4 in
        wreg rt (MipsUtils.get_32_bits bigendian mem i);
-       pc 4; op()
+       pc 4; hook()
   | MipsMFHI(rd) -> 
-       wreg rd (state.hi); pc 4; op()
+       wreg rd (state.hi); pc 4; hook()
   | MipsMFLO(rd) -> 
-       wreg rd (state.lo); pc 4; op()
+       wreg rd (state.lo); pc 4; hook()
   | MipsMTHI(rs) -> 
-       state.hi <- reg rs; pc 4; op()
+       state.hi <- reg rs; pc 4; hook()
   | MipsMTLO(rs) -> 
-       state.lo <- reg rs; pc 4; op()
+       state.lo <- reg rs; pc 4; hook()
   | MipsMUL(rd,rs,rt) -> 
-       wreg rd (Int32.mul (reg rs) (reg rt)); pc 4; op()
+       wreg rd (Int32.mul (reg rs) (reg rt)); pc 4; hook()
   | MipsMULT(rs,rt) -> 
        sethi_lo (Int64.mul (Int64.of_int32 (reg rs)) (Int64.of_int32 (reg rt)));
-       pc 4; op()
+       pc 4; hook()
   | MipsMULTU(rs,rt) -> 
        sethi_lo (Int64.mul (to64unsig rs) (to64unsig rt));
-       pc 4; op()
+       pc 4; hook()
   | MipsNOR(rd,rs,rt) -> 
-       wreg rd (Int32.lognot (Int32.logor (reg rs) (reg rt))); pc 4; op()
+       wreg rd (Int32.lognot (Int32.logor (reg rs) (reg rt))); pc 4; hook()
   | MipsOR(rd,rs,rt) -> 
-       wreg rd (Int32.logor (reg rs) (reg rt)); pc 4; op()
+       wreg rd (Int32.logor (reg rs) (reg rt)); pc 4; hook()
   | MipsORI(rt,rs,imm) -> 
-       wreg rt (Int32.logor (reg rs) (Int32.of_int imm)); pc 4; op()
+       wreg rt (Int32.logor (reg rs) (Int32.of_int imm)); pc 4; hook()
   | MipsSLT(rd,rs,rt) ->
        wreg rd (Int32.shift_right_logical (Int32.sub (reg rs) (reg rt)) 31); 
-       pc 4; op() 
+       pc 4; hook() 
   | MipsSLTU(rd,rs,rt) -> 
        wreg rd (Int32.of_int ((((fint rs) - (fint rt)) lsr 32) land 1));
-       pc 4; op() 
+       pc 4; hook() 
   | MipsSLTI(rt,rs,imm) -> 
        wreg rt (Int32.shift_right_logical (Int32.sub (reg rs) (Int32.of_int imm)) 31); 
-       pc 4; op() 
+       pc 4; hook() 
   | MipsSLTIU(rt,rs,imm) -> 
        wreg rt (Int32.of_int ((((fint rs) - (imm land 0xffffffff)) lsr 32) land 1));
-       pc 4; op() 
+       pc 4; hook() 
   | MipsSLL(rd,rt,shamt) -> 
-       wreg rd (Int32.shift_left (reg rt) shamt); pc 4; op() 
+       wreg rd (Int32.shift_left (reg rt) shamt); pc 4; hook() 
   | MipsSLLV(rd,rt,rs) ->
-       wreg rd (Int32.shift_left (reg rt) (Int32.to_int (reg rs))); pc 4; op() 
+       wreg rd (Int32.shift_left (reg rt) (Int32.to_int (reg rs))); pc 4; hook() 
   | MipsSRA(rd,rt,shamt) -> 
-       wreg rd (Int32.shift_right (reg rt) shamt); pc 4; op() 
+       wreg rd (Int32.shift_right (reg rt) shamt); pc 4; hook() 
   | MipsSRAV(rd,rt,rs) -> 
-       wreg rd (Int32.shift_right (reg rt) (Int32.to_int (reg rs))); pc 4; op() 
+       wreg rd (Int32.shift_right (reg rt) (Int32.to_int (reg rs))); pc 4; hook() 
   | MipsSRL(rd,rt,shamt) -> 
-       wreg rd (Int32.shift_right_logical (reg rt) shamt); pc 4; op() 
+       wreg rd (Int32.shift_right_logical (reg rt) shamt); pc 4; hook() 
   | MipsSRLV(rd,rt,rs) -> 
-       wreg rd (Int32.shift_right_logical (reg rt) (Int32.to_int (reg rs))); pc 4; op() 
+       wreg rd (Int32.shift_right_logical (reg rt) (Int32.to_int (reg rs))); pc 4; hook() 
   | MipsSB(rt,imm,rs) ->
       let (mem,i,_) = getmemptr state prog ((Int32.to_int (reg rs)) + imm) 1 in
       Bytes.set mem i (char_of_int ((Int32.to_int (reg rt)) land 0xff));
-      pc 4; op()    
+      pc 4; hook()    
   | MipsSW(rt,imm,rs) ->
       let (mem,i,_) = getmemptr state prog ((Int32.to_int (reg rs)) + imm) 4 in
       MipsUtils.set_32_bits bigendian mem i (reg rt);
-      pc 4; op()    
+      pc 4; hook()    
   | MipsSWL(rt,imm,rs) -> 
       let addr = (Int32.to_int (reg rs)) + imm in
       let i4 = if bigendian then addr mod 4 else 3-(addr mod 4) in
@@ -198,17 +198,17 @@ let rec step bigendian prog state opfunc opval is_a_delay_slot =
       let v = Int32.logor (Int32.logand vm msk) 
                           (Int32.shift_right_logical (reg rt) (i4*8)) in
       MipsUtils.set_32_bits bigendian mem i v;
-      pc 4; op()    
+      pc 4; hook()    
   | MipsSUB(rd,rs,rt) -> 
-       wreg rd (Int32.sub (reg rs) (reg rt)); pc 4; op()
+       wreg rd (Int32.sub (reg rs) (reg rt)); pc 4; hook()
   | MipsSUBU(rd,rs,rt) -> 
-       wreg rd (Int32.sub (reg rs) (reg rt)); pc 4; op()
+       wreg rd (Int32.sub (reg rs) (reg rt)); pc 4; hook()
   | MipsTEQ(rs,rt,code) -> 
-       pc 4; op()
+       pc 4; hook()
   | MipsXOR(rd,rs,rt) -> 
-       wreg rd (Int32.logxor (reg rs) (reg rt)); pc 4; op()
+       wreg rd (Int32.logxor (reg rs) (reg rt)); pc 4; hook()
   | MipsXORI(rt,rs,imm) -> 
-       wreg rt (Int32.logxor (reg rs) (Int32.of_int imm)); pc 4; op()
+       wreg rt (Int32.logxor (reg rs) (Int32.of_int imm)); pc 4; hook()
   | MipsUnknown(_) -> failwith ("Unknown instruction: " ^
                       Ustring.to_utf8 (MipsUtils.pprint_inst inst))
    
@@ -217,12 +217,12 @@ let rec step bigendian prog state opfunc opval is_a_delay_slot =
 
 (* ---------------------------------------------------------------------*)
 (* TODO: Update with correct handling for a 5 stage pipeline *)
-let cycle_count inst pc prog state is_a_delay_slot count =
-  (count + 1, false )
+let cycle_count inst pc prog state is_a_delay_slot terminate (count,_) =
+  ((count + 1,terminate), false )
 
 
 (* ---------------------------------------------------------------------*)
-let debug_print inst pc prog state is_a_delay_slot (acc,prev_regfile) =
+let debug_print inst pc prog state is_a_delay_slot terminate (acc,prev_regfile) =
   let (dreg,sreg1,sreg2) = 
     match inst with
     | MipsADD(rd,rs,rt) -> (rd,rs,rt)
@@ -297,11 +297,37 @@ let debug_print inst pc prog state is_a_delay_slot (acc,prev_regfile) =
     preg sreg1 " = " prev_regfile ^.
     preg sreg2 " = " prev_regfile ^.
     us"\n" ^.    
-    if pc + 4 <> state.pc then us"\n" else us""    
+    (if pc + 4 <> state.pc then us"\n" else us"") ^.
+      (match terminate with
+       | None -> us""
+       | Some(s) -> us s)
     
   in
    ((str,Array.copy state.registers),false)        
 
+
+     (*
+
+0040071c l14:
+             bltz    $t5,l16
+0x00400720   sll     $a0,$a0,2
+0x00400724   lui     $a1,64
+0x00400728   addiu   $a1,$a1,14424
+0x0040072c   addu    $a0,$a0,$a1
+0x00400730   lw      $a2,0($a0)
+0x00400734   sra     $a0,$a2,2
+0x00400738   lui     $a1,64
+0x0040073c   sll     $a0,$a0,2
+0x00400740   addiu   $a1,$a1,15276
+0x00400744   addu    $a1,$a0,$a1
+0x00400748   lw      $a1,0($a1)
+
+0x00400744   addu    $a1,$a0,$a1       $a1 := 7682988  $a0 = 3473408   $a1 = 4209580   
+0x00000000   [0x0]                     
+
+4 bytes memory access at address 0x753bac is outside memory.
+Result v0 = 4210396
+     *)
 
 
 
@@ -366,17 +392,21 @@ let init prog func args =
 
 (* ---------------------------------------------------------------------*)
 (* Evaluate a program *)
-let eval ?(bigendian=false) prog state opfunc opinit = 
+let eval ?(bigendian=false) prog state hookfunc hookinit = 
   
   (* Call the step function *)
-  let rec multistep opval =
-     let (opval',terminate) = 
-       step bigendian prog state opfunc opval false in
-     if state.pc = 0 || terminate then opval'
-     else multistep opval'
+  let rec multistep hookval =
+     try 
+     let (hookval',terminate) = 
+       step bigendian prog state hookfunc hookval false in
+     if state.pc = 0 || terminate then hookval'
+     else multistep hookval'
+     with
+      Out_of_Bound(s) ->
+      let (v,_) = hookfunc (MipsUnknown(0)) 0 prog state false (Some(s)) hookval in v 
   in
-     let opval = multistep opinit in
-     (state,opval)
+     let hookval = multistep hookinit in
+     (state,hookval)
 
 
 

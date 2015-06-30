@@ -504,7 +504,7 @@ let print_res state =
   printf "Result v1 = %d\n" (Int32.to_int state.registers.(2))
 
 let stack_ptr = 0x80000000 - 8 
-let stack_size = 1024*32 
+let stack_size = 1024*256 
 let stack_addr = stack_ptr - stack_size + 8
 
 let mips_eval filename func args opt = 
@@ -513,15 +513,18 @@ let mips_eval filename func args opt =
   let prog = MipsSys.assign_program_stack (MipsSys.get_program tmpname) 
              stack_ptr stack_size stack_addr in
   let initstate = MipsEval.init prog func args  in
-  let (state,count) = MipsEval.eval prog initstate MipsEval.cycle_count 0  in
+  let (state,(count,terminate)) = MipsEval.eval prog initstate MipsEval.cycle_count (0,None)  in
   let res = Int32.to_int state.registers.(2) in
   uprint_endline (MipsEval.pprint_state state);
   printf "Result v0 = %d (0x%x)\n" res res;
   printf "Cycle count = %d\n\n"  count;
-  try 
+  (try
     let (b,ptr,maxval) = MipsEval.getmemptr state prog res 1 in
     uprint_endline (MipsUtils.pprint_bytes b ptr (min maxval 32) res false)
-  with Out_of_bound _ -> ();    
+  with _ -> ()); 
+  (match terminate with
+  | None -> ()
+  | Some(s) -> printf "Error: %s\n" s);
   Sys.remove tmpname
 
 let mips_debug filename func args opt = 

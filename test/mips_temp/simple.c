@@ -13,6 +13,34 @@ int p[] = {3,4,5,6,7,8,9,10,2,9,3,4,5,6,7,8,9,10,2,9,3,4,5,6,7,8,9,10,2,9};
 char str[] = "\xf0Hello my name is David.";
 int res[20];
 
+int foo(int x, int y){
+  int r;
+  switch(x) {
+  case 4:
+    r = y *2;
+    break;
+  case 23:
+    r = x;
+    break;
+  case 72:
+    r = y + x;
+    break;
+  case 99:
+    r = y *8;
+    break;
+  case 12:
+    r = y *y;
+    break;
+
+  default:
+    r = 100;
+  }
+  return r;
+}
+
+
+/*
+//-----------------
 // test: jal. Need to compile with -o0
 int fact(int n){
   if(n==1)
@@ -24,7 +52,8 @@ int fact(int n){
 int foo(int x, int y){
   return fact(x);
 }
-
+//-----------------
+*/
 
 /*
 // Test: slt slti
