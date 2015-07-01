@@ -93,6 +93,7 @@ let get_program filename =
   let l_sdata = try Some(List.assoc ".sdata" l_sections) with _ -> None in
   let l_bss = try Some(List.assoc ".bss" l_sections) with _ -> None in
   let l_sbss = try Some(List.assoc ".sbss" l_sections) with _ -> None in
+  let l_rodata = try Some(List.assoc ".rodata" l_sections) with _ -> None in
   let l_textcode = get_section filename ".text" in 
 { 
   filename = filename;
@@ -122,6 +123,10 @@ let get_program filename =
              addr =  (match l_sbss  with Some(_,a) -> a | None -> 0);
              size =  (match l_sbss  with Some(s,_) -> s | None -> 0);
             };
+  rodata_sec = {d = get_section filename ".rodata";
+              addr = (match l_rodata with Some(_,a) -> a | None -> 0);
+              size = (match l_rodata with Some(s,_) -> s | None -> 0);
+             };
   stack_sec = {d = Bytes.empty;
              addr = 0; 
              size = 0;

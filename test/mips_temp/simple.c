@@ -13,22 +13,23 @@ int p[] = {3,4,5,6,7,8,9,10,2,9,3,4,5,6,7,8,9,10,2,9,3,4,5,6,7,8,9,10,2,9};
 char str[] = "\xf0Hello my name is David.";
 int res[20];
 
+// Switch table that generates a table in the .rodata section
 int foo(int x, int y){
   int r;
   switch(x) {
-  case 4:
+  case 0:
     r = y *2;
     break;
-  case 23:
+  case 1:
     r = x;
     break;
-  case 72:
+  case 2:
     r = y + x;
     break;
-  case 99:
+  case 3:
     r = y *8;
     break;
-  case 12:
+  case 4:
     r = y *y;
     break;
 

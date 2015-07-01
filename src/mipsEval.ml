@@ -13,6 +13,7 @@ type machinestate =
   sdata      : bytes;
   bss        : bytes;
   sbss       : bytes;
+  rodata     : bytes;
   stack      : bytes;
   mutable pc : int;
   mutable hi : int32;
@@ -29,6 +30,7 @@ let getmemptr state prog addr size =
   if check prog.bss_sec then res state.bss prog.bss_sec else
   if check prog.sbss_sec then res state.sbss prog.sbss_sec else
   if check prog.stack_sec then res state.stack prog.stack_sec else
+  if check prog.rodata_sec then res state.rodata prog.rodata_sec else
     raise (Out_of_Bound (sprintf 
     "%d bytes memory access at address 0x%x is outside memory." size addr))
   
@@ -358,6 +360,7 @@ let init prog func args =
     sdata = Bytes.copy (prog.sdata_sec.d);
     bss = Bytes.make prog.bss_sec.size (char_of_int 0);
     sbss = Bytes.make prog.sbss_sec.size (char_of_int 0);
+    rodata = Bytes.copy (prog.rodata_sec.d);
     stack = Bytes.make prog.stack_sec.size (char_of_int 0);
     pc = 0;
     hi = Int32.zero;

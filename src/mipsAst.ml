@@ -90,6 +90,7 @@ type program =
   sdata_sec  : section;                     (* .sdata (small data) section *)
   bss_sec    : section;                     (* .bss section. No data is allocated. *)
   sbss_sec   : section;                     (* .sbss (small bss) section *)
+  rodata_sec : section;                     (* .rodata section *)
   stack_sec  : section;                     (* stack section (not part of ELF) *)
   gp         : int;                         (* Initial value for the global pointer, gp *)
   sp         : int;                         (* Initial value for the stack pointer, sp *)

@@ -13,11 +13,13 @@ type machinestate =
   sdata      : bytes;
   bss        : bytes;
   sbss       : bytes;
+  rodata     : bytes;
   stack      : bytes;
   mutable pc : int;
   mutable hi : int32;
   mutable lo : int32;
 }
+
 
 
 val getmemptr : machinestate -> program -> int -> int -> (bytes * int * int)
