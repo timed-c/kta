@@ -5,6 +5,140 @@ open Ustring.Op
 open TaFileTypes
 
 
+
+(* ---------------------------------------------------------------------*)
+(** Pretty print a timing program point *)
+let pprint_tpp tpp =
+  match tpp with 
+  |TppEntry -> us"entry"
+  |TppExit -> us"exit"
+  |TppNode(i) -> ustring_of_int i
+
+
+
+(* ---------------------------------------------------------------------*)
+(** Pretty print a path between timing program points *)
+let pprint_path path =
+  match path with  
+  | TppPath(tpps) -> Ustring.concat (us",") (List.map pprint_tpp tpps)
+  | TppPathInfinity -> us"infinity"  
+  | TppPathUnknown -> us"unknown"
+
+   
+
+
+(* ---------------------------------------------------------------------*)
+(** Pretty print a time value *)
+let pprint_time_value v = 
+  match v with
+  | TimeCycles(i) -> ustring_of_int i
+  | TimeInfinity -> us"infinity"
+  | TimeUnknown -> us"unknown"
+
+
+
+(* ---------------------------------------------------------------------*)
+(** Pretty print an abstract value *)
+let pprint_abstract_value v =
+  match v with
+  | VInt(i1,i2) when i1 = i2 -> ustring_of_int i1
+  | VInt(i1,i2) -> ustring_of_int i1 ^. us".." ^. ustring_of_int i2
+
+
+(* ---------------------------------------------------------------------*)
+let pprint_req_name req = 
+  match req with 
+  | ReqWCP(_,_) -> us"WCP"
+  | ReqBCP(_,_) -> us"BCP"
+  | ReqLWCET(_,_) -> us"LWCET"
+  | ReqLBCET(_,_) -> us"LBCET"
+  | ReqFWCET(_,_) -> us"FWCET"
+  | ReqFBCET(_,_) -> us"FBCET"
+
+
+(* ---------------------------------------------------------------------*)
+(* Returns the pair of timing program points from a timing request *)
+let get_req_tpp req = 
+  match req with ReqWCP(t1,t2)  | ReqBCP(t1,t2) | ReqLWCET(t1,t2) | ReqLBCET(t1,t2) |
+                 ReqFWCET(t1,t2) | ReqFBCET(t1,t2) -> (t1,t2)
+
+
+
+(* ---------------------------------------------------------------------*)
+(** Pretty print the timing request of a function *)
+let pprint_func_ta_req func_ta_req =
+  (* Function *)
+  us"function " ^. func_ta_req.funcname  ^. us"\n" ^.
+
+  (* Arguments *)
+  (if List.length func_ta_req.args = 0 then us"" else 
+    Ustring.concat (us"\n") 
+      (List.map (fun (argno,v) -> us"arg " ^. ustring_of_int argno ^. us" " ^.
+                 pprint_abstract_value v) func_ta_req.args) ^. us"\n") ^.
+
+  (* Global variables *)
+  (if List.length func_ta_req.gvars = 0 then us"" else 
+    Ustring.concat (us"\n") 
+      (List.map (fun (x,v) -> us"globalvar " ^. ustring_of_sid x ^. us" " ^.
+                 pprint_abstract_value v) func_ta_req.gvars) ^. us"\n") ^. 
+
+  (* Function WCET assumptions *)
+  (if List.length func_ta_req.fwcet = 0 then us"" else 
+    Ustring.concat (us"\n") 
+      (List.map (fun (x,v) -> us"funcWCET " ^. ustring_of_sid x ^. us" " ^.
+                 pprint_time_value v) func_ta_req.fwcet) ^. us"\n")  ^.
+
+  (* Function BCET assumptions *)
+  (if List.length func_ta_req.fbcet = 0 then us"" else 
+    Ustring.concat (us"\n") 
+      (List.map (fun (x,v) -> us"funcBCET " ^. ustring_of_sid x ^. us" " ^.
+                 pprint_time_value v) func_ta_req.fbcet) ^. us"\n") ^.
+  
+  (* Timing requests *)
+  (if List.length func_ta_req.ta_req = 0 then us"" else 
+    Ustring.concat (us"\n") 
+      (List.map (fun (_,req) -> 
+                 let (tpp1,tpp2) = get_req_tpp req in
+                 pprint_req_name req ^. us" " ^.
+                 pprint_tpp tpp1 ^. us" " ^. pprint_tpp tpp2) 
+                 func_ta_req.ta_req) ^. us"\n") 
+
+
+
+
+(* ---------------------------------------------------------------------*)
+(* see .mli *)
+let pprint_simple_ta_res ta_res =
+  List.fold_left (fun acc res ->
+    (match res with 
+     | ResWCP(path) -> acc ^. pprint_path path  
+     | ResBCP(path) -> acc ^. pprint_path path
+     | ResLWCET(t) | ResLBCET(t) | ResFWCET(t) | ResFBCET(t) 
+       -> acc ^. pprint_time_value t) ^. us"\n"
+  ) (us"") ta_res
+
+
+
+  
+(* ---------------------------------------------------------------------*)
+(* see .mli *)
+let pprint_full_ta_res func_ta_req ta_res = us"Full!"
+
+
+
+  
+(* ---------------------------------------------------------------------*)
+(** Pretty print the content of a timing analysis file *)
+let pprint_file_ta_req file_ta_req = 
+  us"Filename: " ^. us(file_ta_req.ta_filename) ^. us"\n" ^.
+  us"Number of function requests: " ^. 
+     ustring_of_int (List.length (file_ta_req.func_ta_reqs)) ^. us"\n" ^.
+  Ustring.concat (us"----\n") (List.map pprint_func_ta_req (file_ta_req.func_ta_reqs)) ^.
+  us"\n"
+
+
+
+
   
 (* ---------------------------------------------------------------------*)
 (* Parses a positive integer and raises TA_file_syntax_erro if something is wrong. *)
