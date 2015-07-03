@@ -541,15 +541,27 @@ let mips_debug filename func args opt =
   uprint_endline (MipsEval.pprint_state state);
   Sys.remove tmpname
 
-  
+
+let mips_abseval filename func args opt = 
+  let tmpname = "__tmp__" in
+  MipsSys.pic32_compile [filename] false opt tmpname;
+  let prog = MipsSys.assign_program_stack (MipsSys.get_program tmpname) 
+             stack_ptr stack_size stack_addr in
+  let initstate = MipsAbstract.init prog func args in
+  let _ = MipsAbstract.eval prog initstate  in
+  Sys.remove tmpname
+
     
 
 
 let main =
+  
   (* Do mips pretty printing test *)
   let len = Array.length Sys.argv in
   if Sys.argv.(1) = "-mips" then 
-      mips_print (Sys.argv.(2)) 
+    mips_print (Sys.argv.(2))
+  else if Sys.argv.(1) = "-hello" then 
+    MipsAbstract.main Sys.argv 
   else if Sys.argv.(1) = "-compile" then 
       mips_compile (Sys.argv.(2)) true
   else if Sys.argv.(1) = "-compile-no-opt" then 
@@ -573,6 +585,18 @@ let main =
     | "-eval" ->  mips_eval filename funcname args true
     | "-debug" ->  mips_debug filename funcname args true
     | _ -> failwith "Cannot happen"
+  else if Sys.argv.(1) = "-abseval" then 
+    let filename = if len >= 3 then (Sys.argv.(2)) else failwith "No filename" in
+    let funcname = if len >= 4 then (Sys.argv.(3)) else "main" in
+    let args = 
+      if len <= 4 then [] 
+      else
+        let int32arg x = Int32.of_int (int_of_string x) in
+        let lst = Array.to_list (Array.sub Sys.argv 4 
+                                   ((Array.length Sys.argv)-4)) in        
+        List.map int32arg lst   
+    in
+      mips_abseval filename funcname args true
   else
     (* Test and parse the timing analysis file *)
     if true then (

@@ -13,6 +13,8 @@ int p[] = {3,4,5,6,7,8,9,10,2,9,3,4,5,6,7,8,9,10,2,9,3,4,5,6,7,8,9,10,2,9};
 char str[] = "\xf0Hello my name is David.";
 int res[20];
 
+
+/*
 // Switch table that generates a table in the .rodata section
 int foo(int x, int y){
   int r;
@@ -38,7 +40,7 @@ int foo(int x, int y){
   }
   return r;
 }
-
+*/
 
 /*
 //-----------------
@@ -238,6 +240,16 @@ int foo(int x){
 }
 */
 
+int foo(int x){
+  int i;
+  int r = 0;
+  for(i=0; i < x; i++){
+    r += x + i;
+  }  
+  return r;
+}
+
+
 
 /*
 // mult mflo
@@ -258,7 +270,7 @@ int foo(int x, int y){
 int main()
 {
   #ifdef PRINT_MAIN
-  int x = foo(2324,12515);
+  int x = foo(73);
   printf("Result: 0x%x  %d\n", x, x);
   #endif
   return 0;
