@@ -1,5 +1,6 @@
 
-
+open TaFile
+open TaFileTypes
 open Printf
 open Ustring.Op
 open MipsAst
@@ -9,83 +10,16 @@ type  arg_error_type =
 
 exception Argument_error
 
-(* Exception for syntax errors in timing analysis files. The arguments are
-   filename and line number for the error. *)
-exception TA_file_syntax_error of string * int
-
-(* Returns exception if a file cannot be open or read *)
-exception File_read_error of string
 
 (* Structure representing the sorted list of different file arguments 
    that were supplied when executing ptc. *)
-type filename_args = {
+(*type filename_args = {
   c : ustring list;
   ll: ustring list;
 }
+g*)
 
-
-type filename = ustring
-type lineno = int            (* Line number *)
-type argno = int             (* Argument number. Used for assumptions of arguments. *)
-
-(* Representing execution time *)
-type time = 
-| TimeCycles of int     (* Time in clock cycles *)
-| TimeInfinity    (* The time is proven to be infinite *)
-| TimeUnknown     (* A safe bound can not be computed. This does not, however,
-                     mean that such a bound does not exist *)
- 
-(* Timing Program Point *)
-type tpp = 
-|TppEntry   
-|TppExit 
-|TppNode of int
-
-(* Abstract value *)
-type value = 
-| VInt of int * int (* Upper and lower bounds on integers *)
-
-(* Different forms of timing requests *)
-type ta_req = 
-| ReqWCP of tpp * tpp   (* Worst-case path request *)
-| ReqBCP of tpp * tpp   (* Best-case path request *)
-| ReqLWCET of tpp * tpp (* Local worst-case execution time request *)
-| ReqLBCET of tpp * tpp (* Local best-case execution time request *)
-| ReqFWCET of tpp * tpp (* Fractional worst-case execution time request *)
-| ReqFBCET of tpp * tpp (* Fractional best-case execution time request *)
-
-(* Different possible responses to a path request *)
-type tpp_path =
-| TppPath of tpp list   (* Path represented as a list of timing program points *)
-| TppPathInfinity       (* The path is proven to be infinite *)
-| TppPathUnknown        (* The path is unknown. Could not be computed *)
-
-(* Different form of timing analysis responses *)
-type ta_res = 
-| ResWCP of tpp_path  
-| ResBCP of tpp_path
-| ResLWCET of time
-| ResLBCET of time
-| ResFWCET of time
-| ResFBCET of time
-
-(* Structure to represent a timing analysis request for a specific function *)
-type func_ta_req = {
-  funcname : ustring;               (* Name of the function that should be analyzed *)
-  args : (argno * value) list;      (* Argument assumptions. argno = 0 is first argument *)
-  gvars : (sid * value) list;       (* Global variable assumptions *)
-  fwcet : (sid * time) list;        (* Assumed WCET in clock cycles for functions *)
-  fbcet : (sid * time) list;        (* Assumed BCET in clock cycles for functions *)  
-  ta_req : (lineno * ta_req) list;  (* Requested timing analysis values *)
-}
-
-
-(* Timing analysis requests within a file *)
-type file_ta_req = {
-  filename : string;                 (* Name of the file *)
-  lines : ustring list;              (* The text of the files represented as a list of lines *)
-  func_ta_reqs : func_ta_req list;    (* List of ta requests *)
-}
+    
 
 
 (** Pretty print a timing program point *)
@@ -104,6 +38,7 @@ let pprint_path path =
   | TppPathInfinity -> us"infinity"  
   | TppPathUnknown -> us"unknown"
 
+   
 
 
 (** Pretty print a time value *)
@@ -201,7 +136,7 @@ let pprint_full_ta_res func_ta_req ta_res = us"Full!"
 
 (** Pretty print the content of a timing analysis file *)
 let pprint_file_ta_req file_ta_req = 
-  us"Filename: " ^. us(file_ta_req.filename) ^. us"\n" ^.
+  us"Filename: " ^. us(file_ta_req.ta_filename) ^. us"\n" ^.
   us"Number of function requests: " ^. 
      ustring_of_int (List.length (file_ta_req.func_ta_reqs)) ^. us"\n" ^.
   Ustring.concat (us"----\n") (List.map pprint_func_ta_req (file_ta_req.func_ta_reqs)) ^.
@@ -288,39 +223,6 @@ let dummy_timing_analysis func_ta_req =
 
 
 
-(* Parses a positive integer and raises TA_file_syntax_erro if something is wrong. *)
-let parse_positive_int filename line_no value  = 
-  let v = try int_of_string value 
-     with _ -> raise (TA_file_syntax_error(filename,line_no)) in
-  if v < 0 then raise (TA_file_syntax_error(filename,line_no))
-  else v
-
-
-
-(** Parse a timing program point *)
-let parse_tpp filename line_no str =
-  match str with 
-  | "entry" -> TppEntry
-  | "exit" -> TppExit
-  | _ -> TppNode(parse_positive_int filename line_no str)
-
-
-(* Parse an literal to to a time value *)
-let parse_time_literal filename line_no str =
-  if str = "infinity" then TimeInfinity else
-  let v = try int_of_string str
-    with _ -> raise (TA_file_syntax_error(filename,line_no)) in
-  TimeCycles(v)
-
-
-
-                      
-(* Parse a value. Raise exception TA_file_syntax_error if the kind of value is
-   unknown. Right now, we only supports integer values (no intervals) *)
-let parse_abstract_value filename line_no value = 
-  let v = try int_of_string value 
-    with _ -> raise (TA_file_syntax_error(filename,line_no)) in
-  VInt(v,v)
     
 
   
@@ -328,105 +230,7 @@ let parse_abstract_value filename line_no value =
 
 
 
-(* Parse text lines. Raises TA_file_syntax_error if there are any 
-   errors in the ta file *)
-let parse_ta_strings filename lines = 
-  (* Removes empty lines and lines with comments. Adds line numbers *)
-  let nolines = List.rev (snd (List.fold_left (fun (no,acc) line ->
-    let tline = Ustring.trim line in
-    if Ustring.length tline = 0 || Ustring.sub tline 0 1 = us"#"
-    then (no+1, acc) 
-    else (no+1,((no,tline)::acc))) (1,[]) lines)) in
-  
-  (* Split lines into token lists *)
-  let tokenlst = List.map (fun (no,line) ->
-    let tokens = Ustring.split line (us" \t") in
-    let ftokens = List.filter (fun t -> Ustring.length t <> 0) tokens in
-    (no,ftokens)) nolines in
-  
-  (* Translate all strings to utf8 strings, which we can do pattern matching on *)
-  let utf8tokens = List.map (fun (n,ls) -> (n,List.map Ustring.to_utf8 ls)) tokenlst in 
 
-  (* Extract timing analysis request data *)
-  let rec extract tokens fname args gvars fwcet fbcet ta_req acc =
-    match tokens with
-    | (_,["function";name])::ts -> (
-        match fname with
-        | Some(prename) ->
-        (* We are done with this function. Process next *)
-          let func =  {funcname = us prename; args = List.rev args; 
-                       gvars = List.rev gvars; fwcet = List.rev fwcet; 
-                       fbcet = List.rev fbcet; ta_req = List.rev ta_req} in
-          extract ts (Some(name)) [] [] [] [] [] (func::acc)
-        | None -> 
-             (* We have detected a new function (the first one) *)
-          extract ts (Some(name)) [] [] [] [] [] acc)
-    | (lineno,["arg";pos;value])::ts -> (
-        let pos' = parse_positive_int filename lineno pos in
-        let value' = parse_abstract_value filename lineno value in 
-        extract ts fname ((pos',value')::args) gvars fwcet fbcet ta_req acc)
-    | (lineno,["globalvar";var;value])::ts -> (
-        let value' = parse_abstract_value filename lineno value in 
-        extract ts fname args (((usid var),value')::gvars) fwcet fbcet ta_req acc)
-    | (lineno,["funcWCET";var;time])::ts -> (
-        let tval = parse_time_literal filename lineno time in 
-        extract ts fname args gvars (((usid var),tval)::fwcet) fbcet ta_req acc)        
-    | (lineno,["funcBCET";var;time])::ts -> (
-        let tval = parse_time_literal filename lineno time in 
-        extract ts fname args gvars fwcet (((usid var),tval)::fbcet) ta_req acc)        
-    | (lineno,["WCP";tpp1;tpp2])::ts -> (
-        let mktpp = parse_tpp filename lineno in
-        let newreq = (lineno,ReqWCP(mktpp tpp1,mktpp tpp2)) in
-        extract ts fname args gvars fwcet fbcet (newreq::ta_req) acc)
-    | (lineno,["BCP";tpp1;tpp2])::ts -> (
-        let mktpp = parse_tpp filename lineno in
-        let newreq = (lineno,ReqBCP(mktpp tpp1,mktpp tpp2)) in
-        extract ts fname args gvars fwcet fbcet (newreq::ta_req) acc)
-    | (lineno,["LWCET";tpp1;tpp2])::ts -> (
-        let mktpp = parse_tpp filename lineno in
-        let newreq = (lineno,ReqLWCET(mktpp tpp1,mktpp tpp2)) in
-        extract ts fname args gvars fwcet fbcet (newreq::ta_req) acc)
-    | (lineno,["LBCET";tpp1;tpp2])::ts -> (
-        let mktpp = parse_tpp filename lineno in
-        let newreq = (lineno,ReqLBCET(mktpp tpp1,mktpp tpp2)) in
-        extract ts fname args gvars fwcet fbcet (newreq::ta_req) acc)
-    | (lineno,["FWCET";tpp1;tpp2])::ts -> (
-        let mktpp = parse_tpp filename lineno in
-        let newreq = (lineno,ReqFWCET(mktpp tpp1,mktpp tpp2)) in
-        extract ts fname args gvars fwcet fbcet (newreq::ta_req) acc)
-    | (lineno,["FBCET";tpp1;tpp2])::ts -> (
-        let mktpp = parse_tpp filename lineno in
-        let newreq = (lineno,ReqFBCET(mktpp tpp1,mktpp tpp2)) in
-        extract ts fname args gvars fwcet fbcet (newreq::ta_req) acc)
-    | (lineno,_)::ts -> raise (TA_file_syntax_error(filename,lineno))
-    | [] -> (
-        match fname with
-        | Some(prename) -> 
-          let func = {funcname = us prename; args = List.rev args; 
-                       gvars = List.rev gvars; fwcet = List.rev fwcet; 
-                       fbcet = List.rev fbcet; ta_req = List.rev ta_req} in
-          func::acc
-        | None -> acc)
-  in 
-  List.rev (extract utf8tokens None [] [] [] [] [] [])
-
-
-
-
-
-(** Raises exception Sys_error if the file cannot be found. *)
-let parse_ta_file filename =
-  (* Read file and split into list of lines *)
-  let lines = 
-    try 
-      Ustring.split (Ustring.read_file filename) (us"\n") 
-    with
-    | Sys_error(_) -> (raise (File_read_error filename))
-  in
-    
-  (* Parse requested string and return the request structure for a file *)
-  let func_ta_reqs = parse_ta_strings filename lines in
-  {filename; lines; func_ta_reqs} 
 
 
 (** Error levels *)
@@ -464,7 +268,7 @@ let run_timing_analysis filenames write_files simple_output func_timing_analysis
       (if simple_output then pprint_simple_ta_res else pprint_full_ta_res req) res)
       (ta_reps)) in
     (* If chosen, write to file *)
-    if write_files then Ustring.write_file (file_ta_req.filename ^ ".out") output;
+    if write_files then Ustring.write_file (file_ta_req.ta_filename ^ ".out") output;
     (* Accumulate all output *)
     acc ^. output 
   ) (us"") file_ta_requests 
@@ -606,7 +410,7 @@ let main =
     | TA_file_syntax_error(filename,line) -> 
       (print_error filename line 0 Error "Syntax error in timing analysis file.";
       exit 1)
-    | File_read_error(filename) ->
+    | Sys_error(filename) ->
       (print_error filename 0 0 Error ("Error reading file '" ^ filename ^ "'");
       exit 1))
    
