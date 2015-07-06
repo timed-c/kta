@@ -212,13 +212,16 @@ let mips_abseval filename func args opt =
   let _ = MipsAbstract.eval prog initstate  in
   Sys.remove tmpname
 
-    
+
+let print_help() =     
+    printf "KTC - KTH Timed Compiler. Copyright (C) 2015 David Broman.\n"
 
 
 let main =
-  
   (* Do mips pretty printing test *)
   let len = Array.length Sys.argv in
+  if len <= 1 then (print_help(); exit(0))
+    else
   if Sys.argv.(1) = "-mips" then 
     mips_print (Sys.argv.(2))
   else if Sys.argv.(1) = "-hello" then 
@@ -258,10 +261,10 @@ let main =
         List.map int32arg lst   
     in
       mips_abseval filename funcname args true
-  else
+  else if len >= 3 && Sys.argv.(1) = "-test_tafile" then (
     (* Test and parse the timing analysis file *)
     if true then (
-    let filenames =  (List.tl (Array.to_list (Sys.argv))) in
+      let filenames =  Array.to_list (Sys.argv) |> List.tl |> List.tl  in
     try let _ = run_timing_analysis filenames true true dummy_timing_analysis in ()
     with 
     | TA_file_syntax_error(filename,line) -> 
@@ -269,105 +272,8 @@ let main =
       exit 1)
     | Sys_error(filename) ->
       (print_error filename 0 0 Error ("Error reading file '" ^ filename ^ "'");
-      exit 1))
+       exit 1)))
+  else
+    print_help()
+      
    
-
-(*  let file_ta_req = 
-    try List.map parse_ta_file filenames
-    with 
-    | TA_file_syntax_error(filename,line) -> 
-        print_error filename line 0 Error "Syntax error in timing analysis file.";
-        exit 1
-  in
-  uprint_endline (Ustring.concat (us"") 
-    (List.map (fun x -> us"=============\n" ^. pprint_file_ta_req x) file_ta_req))
-*)
-  
-
-
-
-
-
-
-
-  
-(** The [files_record] type contains all files that are given on the command line
-    to ptc. Note that all file names are given without their extension. *)
-  
-
-(*let compile_with_clang files =
-  Sys.command ("clang -S -O1 -m32 -emit-llvm " ^ List.hd files ^ ".c -o " ^ List.hd files ^ ".ll")
-*)
-
-                         
-
-
-(*
-  let funcs = List.fold_left (fun (facc,lineno) line ->
-    
-  ) ([], 
-*)
-  
-(*
-  let rec plines linelst line_no acc = 
-      match linelst with
-      | l::ls when Ustring.length l = 0 -> work ls (line_no+1) acc
-      | l::ls when Ustring.
-  in List.rev (plines lines 1 [])
-*)
-(*
-  { name = filename;
-    linelist = lines;
-    funclist = funcs;}
-*)  
-  
-
-(** [make_ta_file fconf res] returns the content of the file as a
-    ustring.  The inputs are the file config record [fconf] and the
-    [res], the result of the timing analysis. *)
-(*
-let make_ta_file fileconf ta_res = 
-  (* Create a list of requested timing analysis numbers (from different functions). *)
-  let req_ta_list = List.fold_left (fun acc func ->
-    List.rev_append func.req_ta acc
-  ) [] fileconf.funclist in
-  (* Concatenate all text lines. If there is an analysis value, append the result to 
-     the end of the text line. *)
-  List.fold_left (fun (accstr,lineno) linestr ->
-    let valstr = (
-      try 
-        match List.assoc lineno req_ta_list with
-        (*| ReqPath -> us" = " ^. Ustring.concat (us" ") (List.map ustring_of_int ta_res.path) *)
-        | ta -> us" = " ^. ustring_of_int (List.assoc ta ta_res.ta_vals)
-      with 
-        Not_found -> us"")
-    in 
-       (accstr ^. (Ustring.trim_right linestr) ^.valstr ^. us"\n",lineno+1)
-  ) (us"",1) fileconf.linelist
-*) 
-   
-   
-
-
-
-
-(*
-  type ta_conf =
-  | TaFile of ustring * ta_conf
-  | TaFunc of ustring * ta_def list * ta_req list
-*)
-
-(* Generate a list of valid lines (tuples with line no and string), i.e.,
-   empty lines and lines with comments are removed. *)
-(*let gen_lines parse_str =
-  let rec work linelst line_no acc = 
-      match linelst with
-      | l::ls when Ustring.length l = 0 -> work ls (line_no+1) acc
-      | l::ls when Ustring.
-  in List.rev (work (Map.list (Ustring.trim) (Ustring.split str "\n")) 1 [])
-*)
-
-
-
-
-
