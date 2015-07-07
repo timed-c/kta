@@ -2,7 +2,48 @@
 open Ustring.Op
 open Printf
 open MipsAst
+open AbstractInt32
 
+
+(* ---------------------------------------------------------------------*)
+type astate = {
+  register_at : aint32;
+  register_v0 : aint32;
+  register_v1 : aint32;
+  register_a0 : aint32;
+  register_a1 : aint32;
+  register_a2 : aint32;
+  register_a3 : aint32;
+  register_t0 : aint32;
+  register_t1 : aint32;
+  register_t2 : aint32;
+  register_t3 : aint32;
+  register_t4 : aint32;
+  register_t5 : aint32;
+  register_t6 : aint32;
+  register_t7 : aint32;
+  register_s0 : aint32;
+  register_s1 : aint32;
+  register_s2 : aint32;
+  register_s3 : aint32;
+  register_s4 : aint32;
+  register_s5 : aint32;
+  register_s6 : aint32;
+  register_s7 : aint32;
+  register_t8 : aint32;
+  register_t9 : aint32;
+  register_k0 : aint32;
+  register_k1 : aint32;
+  register_gp : aint32;
+  register_sp : aint32;
+  register_fp : aint32;
+  register_ra : aint32;
+
+  pc : int;
+  distance : int;
+}
+
+type distance = int array
 
 (* ---------------------------------------------------------------------*)
 
@@ -12,23 +53,20 @@ let debug = true
 let sll_max_vals = 64
   
 (* ---------------------------------------------------------------------*)
-type lower = int
-type upper = int
-type ai32 = (lower * upper) list
 
   
 let int32max = 0x7fffffff
 let int32min = (0x7fffffff + 1) * -1
 
-let pprint_ai32 lst =
+let pprint_aint32 lst =
   let elems = List.map (fun (l,u) -> us(if l=u then sprintf "%d" l else sprintf "[%d,%d]" l u)) lst
   in us"{" ^. Ustring.concat (us",") elems ^. us"}"
 
-let make_ai32 v = ([v,v])
+let make_aint32 v = ([v,v])
 
-let make_ai32_intervals ival = ival
+let make_aint32_intervals ival = ival
 
-let ai32_addu xlst ylst =
+let aint32_addu xlst ylst =
    List.fold_left
     (fun xacc (xl,xu) ->
       List.fold_left
@@ -42,7 +80,7 @@ let ai32_addu xlst ylst =
 
     
 (* Returns a tuple (true_list,false_list) *)
-let ai32_blez xlst =
+let aint32_blez xlst =
   List.fold_left
       (fun (tacc,facc) (xl,xu) ->
         if xu <= 0 then ((xl,xu)::tacc,facc)
@@ -51,7 +89,7 @@ let ai32_blez xlst =
 
     
 (* Shift into unique values if fewer than sll_max_vals. Used for jump tables *)
-let ai32_sll xlst shift =
+let aint32_sll xlst shift =
   let sleft x b = (x lsl b) land 0xffffffff in
   match xlst with
   | [(l,u)] when u - l <= sll_max_vals ->
@@ -67,46 +105,9 @@ let ai32_sll xlst shift =
   
  
   
-(* ---------------------------------------------------------------------*)
-type astate = {
-  register_at : ai32;
-  register_v0 : ai32;
-  register_v1 : ai32;
-  register_a0 : ai32;
-  register_a1 : ai32;
-  register_a2 : ai32;
-  register_a3 : ai32;
-  register_t0 : ai32;
-  register_t1 : ai32;
-  register_t2 : ai32;
-  register_t3 : ai32;
-  register_t4 : ai32;
-  register_t5 : ai32;
-  register_t6 : ai32;
-  register_t7 : ai32;
-  register_s0 : ai32;
-  register_s1 : ai32;
-  register_s2 : ai32;
-  register_s3 : ai32;
-  register_s4 : ai32;
-  register_s5 : ai32;
-  register_s6 : ai32;
-  register_s7 : ai32;
-  register_t8 : ai32;
-  register_t9 : ai32;
-  register_k0 : ai32;
-  register_k1 : ai32;
-  register_gp : ai32;
-  register_sp : ai32;
-  register_fp : ai32;
-  register_ra : ai32;
-
-  pc : int;
-  distance : int;
-}
 
 let init_state =
-  let reg_init = make_ai32 0 in
+  let reg_init = make_aint32 0 in
   {
   register_at = reg_init;
   register_v0 = reg_init;
@@ -146,7 +147,7 @@ let init_state =
 
 
 (* ---------------------------------------------------------------------*)
-let reg0 = make_ai32 0 
+let reg0 = make_aint32 0 
 let reg state reg = 
   match reg with
   | 0 -> reg0
@@ -229,17 +230,17 @@ let rec step prog s =
   let branch addr s = {s with pc = addr} in
   match inst  with 
   | MipsADDU(rd,rs,rt) ->
-      [wreg s rd (ai32_addu (reg s rs) (reg s rt)) |> pc 4]
+      [wreg s rd (aint32_addu (reg s rs) (reg s rt)) |> pc 4]
   | MipsBLEZ(rs,imm,_) ->
     (match step prog (pc 4 s) with
      | [s'] -> (  
-       let (tval,fval) = ai32_blez (reg s rs) in
+       let (tval,fval) = aint32_blez (reg s rs) in
        let s2 = if List.length tval = 0 then []
                 else [wreg s' rs tval |> branch (imm*4 + 4 + s.pc)] in
        if List.length fval = 0 then s2 else (wreg s' rs fval |> pc 4)::s2 )
      | _ -> failwith "MipsBLEZ failure")
   | MipsSLL(rd,rt,shamt) ->
-     [wreg s rd (ai32_sll (reg s rt) shamt) |> pc 4]      
+     [wreg s rd (aint32_sll (reg s rt) shamt) |> pc 4]      
   | _ -> failwith ("Unknown instruction: " ^
                     Ustring.to_utf8 (MipsUtils.pprint_inst inst))
 
@@ -270,11 +271,6 @@ let rec multistep prog statelst dist =
     
 
 
-(* ---------------------------------------------------------------------*)
-let make_dummy_distance prog  =
-  let len = Array.length prog.code in
-  Array.mapi (fun i _ -> len - i) (Array.make len 0)
-
     
 (* ---------------------------------------------------------------------*)
 let init prog func args =
@@ -283,29 +279,37 @@ let init prog func args =
   in    
     {init_state with pc = pc_addr}      
  
+
+(* ---------------------------------------------------------------------*)
+let distance prog func args =
+  let len = Array.length prog.code in
+  Array.mapi (fun i _ -> len - i) (Array.make len 0)
   
+
     
 (* ---------------------------------------------------------------------*)
-let eval prog state =
-  let state' = multistep prog [state] (make_dummy_distance prog) in
-  printf "Final pc = 0x%x\n" state'.pc;
-  state'
+let eval  ?(bigendian=false)  prog state dist timeout =
+  let state' = multistep prog [state] dist in
+  let measurement = 0 in
+  let ok = true in
+  (ok, measurement, state')
 
+    
     
 (* ---------------------------------------------------------------------*)
 let main argv =
   let s = init_state in
-  let s2 = wreg s reg_t4 (make_ai32 7) in
+  let s2 = wreg s reg_t4 (make_aint32 7) in
   printf "hello:";
-  uprint_endline (pprint_ai32 (reg s2 reg_t4));
-  let v1 = make_ai32 7 in
-  let v2 = make_ai32_intervals [(2,8);(10,20)] in
-  let v3 = make_ai32_intervals [(-2,100)] in
-  uprint_endline (pprint_ai32 v1);
-  uprint_endline (pprint_ai32 v2);
-  uprint_endline (pprint_ai32 (ai32_addu v1 v2));
-  uprint_endline (pprint_ai32 (ai32_addu v2 v3));
-  uprint_endline (pprint_ai32 (ai32_addu v2 v2))
+  uprint_endline (pprint_aint32 (reg s2 reg_t4));
+  let v1 = make_aint32 7 in
+  let v2 = make_aint32_intervals [(2,8);(10,20)] in
+  let v3 = make_aint32_intervals [(-2,100)] in
+  uprint_endline (pprint_aint32 v1);
+  uprint_endline (pprint_aint32 v2);
+  uprint_endline (pprint_aint32 (aint32_addu v1 v2));
+  uprint_endline (pprint_aint32 (aint32_addu v2 v3));
+  uprint_endline (pprint_aint32 (aint32_addu v2 v2))
   
   
 

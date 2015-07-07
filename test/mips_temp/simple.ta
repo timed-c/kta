@@ -1,0 +1,9 @@
+
+# Function name
+function foo 
+  
+# Optional assumptions
+arg        0    20
+arg        1    100
+
+

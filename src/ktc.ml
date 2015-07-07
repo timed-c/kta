@@ -203,16 +203,30 @@ let mips_debug filename func args opt =
   Sys.remove tmpname
 
 
-let mips_abseval filename func args opt = 
+
+let mips_verify filename file_ta_req = 
   let tmpname = "__tmp__" in
-  MipsSys.pic32_compile [filename] false opt tmpname;
+  MipsSys.pic32_compile [filename] false true tmpname;
   let prog = MipsSys.assign_program_stack (MipsSys.get_program tmpname) 
-             stack_ptr stack_size stack_addr in
-  let initstate = MipsAbstract.init prog func args in
-  let _ = MipsAbstract.eval prog initstate  in
+    stack_ptr stack_size stack_addr in
+
+  let ta_req = List.hd (file_ta_req.func_ta_reqs) in
+  let fname = (Ustring.to_utf8 ta_req.funcname) in
+  let args = [] in
+  let initstate = MipsAbstract.init prog fname args in
+  let dist = MipsAbstract.distance prog fname args in
+  let timeout = 1000 in
+  let (ok,wcet,state) = MipsAbstract.eval prog initstate dist timeout in
+  
+  (if ok then
+    if wcet <= timeout then printf "Verification OK. WCET = %d\n" wcet
+    else printf "Verification could not terminated within the specified timeout.\n" 
+  else printf "Verification failed due to timeout.\n");  
+      
   Sys.remove tmpname
 
 
+    
 let print_help() =     
     printf "KTC - KTH Timed Compiler. Copyright (C) 2015 David Broman.\n"
 
@@ -224,8 +238,6 @@ let main =
     else
   if Sys.argv.(1) = "-mips" then 
     mips_print (Sys.argv.(2))
-  else if Sys.argv.(1) = "-hello" then 
-    MipsAbstract.main Sys.argv 
   else if Sys.argv.(1) = "-compile" then 
       mips_compile (Sys.argv.(2)) true
   else if Sys.argv.(1) = "-compile-no-opt" then 
@@ -249,18 +261,13 @@ let main =
     | "-eval" ->  mips_eval filename funcname args true
     | "-debug" ->  mips_debug filename funcname args true
     | _ -> failwith "Cannot happen"
-  else if Sys.argv.(1) = "-abseval" then 
-    let filename = if len >= 3 then (Sys.argv.(2)) else failwith "No filename" in
-    let funcname = if len >= 4 then (Sys.argv.(3)) else "main" in
-    let args = 
-      if len <= 4 then [] 
-      else
-        let int32arg x = Int32.of_int (int_of_string x) in
-        let lst = Array.to_list (Array.sub Sys.argv 4 
-                                   ((Array.length Sys.argv)-4)) in        
-        List.map int32arg lst   
-    in
-      mips_abseval filename funcname args true
+
+  else if len = 4 && Sys.argv.(1) = "-verify" then
+    let filename = Sys.argv.(2) in
+    let tafile = Sys.argv.(3) in
+    let tareq = TaFile.parse_ta_file tafile in
+    mips_verify filename tareq
+      
   else if len >= 3 && Sys.argv.(1) = "-test_tafile" then (
     (* Test and parse the timing analysis file *)
     if true then (

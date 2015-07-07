@@ -45,6 +45,7 @@ type ta_res =
 | ResFWCET of time
 | ResFBCET of time
 
+    
 (* Structure to represent a timing analysis request for a specific function *)
 type func_ta_req = {
   funcname : ustring;               (* Name of the function that should be analyzed *)
@@ -67,3 +68,10 @@ type file_ta_req = {
 (* Exception for syntax errors in timing analysis files. The arguments are
    filename and line number for the error. *)
 exception TA_file_syntax_error of string * int
+
+
+
+
+
+
+    

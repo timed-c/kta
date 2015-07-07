@@ -51,7 +51,7 @@ val debug_print : MipsAst.inst -> int -> MipsAst.program ->  machinestate ->
 
 
 val init : MipsAst.program -> string -> int32 list -> machinestate
-(** [init prog function args stackaddr stacksize] initializes a
+(** [init prog function args] initializes a
     function that can then later be executed. The function takes the
     name of the [function] that should be executed is input.  [args]
     is the list 32-bit integer argument values. Note that right now,
