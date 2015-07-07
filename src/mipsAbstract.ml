@@ -40,13 +40,20 @@ type astate = {
   register_ra : aint32;
 
   pc : int;
-  distance : int;
 }
 
 type distance = int array
 
 (* ---------------------------------------------------------------------*)
 
+type step_failure =
+| StepFail_JumpOverflow
+  
+exception Exception_in_step of step_failure
+  
+             
+
+  
 (* Enable this flag to pretty print debug info *)
 let debug = true
 
@@ -142,7 +149,6 @@ let init_state =
   register_ra = reg_init;
 
   pc = 0;
-  distance = max_int;
   }
 
 
@@ -225,20 +231,37 @@ let wreg state reg v =
     
 (* ---------------------------------------------------------------------*)
 let rec step prog s =
+  (* Compute the new instruction *)
   let inst = prog.code.((s.pc - prog.text_sec.addr)/4) in
+  
+  (* Increment the program counter and return the new state *)
   let pc inc s = {s with pc = s.pc + inc} in
+
+  (* Compute the new PC for a specific address and return the new state *)
   let branch addr s = {s with pc = addr} in
+  
+  (* Evaluate the delay slot and return the new state. *)
+  let eval_delayslot s =
+    (match step prog (pc 4 s) with
+     | [s'] -> s'
+     | _ -> failwith (sprintf "Failed to execute delay slot at address 0x%x" s.pc))
+  in  
+
+  (* Match and execute each instruction *)
   match inst  with 
   | MipsADDU(rd,rs,rt) ->
       [wreg s rd (aint32_addu (reg s rs) (reg s rt)) |> pc 4]
   | MipsBLEZ(rs,imm,_) ->
-    (match step prog (pc 4 s) with
-     | [s'] -> (  
-       let (tval,fval) = aint32_blez (reg s rs) in
-       let s2 = if List.length tval = 0 then []
+      let s' = eval_delayslot s in
+      let (tval,fval) = aint32_blez (reg s rs) in
+      let s2 = if List.length tval = 0 then []
                 else [wreg s' rs tval |> branch (imm*4 + 4 + s.pc)] in
-       if List.length fval = 0 then s2 else (wreg s' rs fval |> pc 4)::s2 )
-     | _ -> failwith "MipsBLEZ failure")
+      if List.length fval = 0 then s2 else (wreg s' rs fval |> pc 4)::s2
+  | MipsJR(rs) ->
+      let s' = eval_delayslot s in
+      List.map (fun (l,u) ->
+        if l=u then s' |> branch l 
+               else raise (Exception_in_step StepFail_JumpOverflow))  (reg s rs) 
   | MipsSLL(rd,rt,shamt) ->
      [wreg s rd (aint32_sll (reg s rt) shamt) |> pc 4]      
   | _ -> failwith ("Unknown instruction: " ^
@@ -247,25 +270,38 @@ let rec step prog s =
     
 (* ---------------------------------------------------------------------*)
 let rec multistep prog statelst dist =
-  match statelst with
-  | s::ls ->
-    let newstates = step prog s in
-    let statelst' =
-      List.fold_left (fun acc s ->
-        let rec insert st lst =
+
+  (* Map distances to states, that is, create an associative list *)
+  let map_dist states =
+    List.map (fun s ->
+      if s.pc = 0 then (max_int,s)
+      else (dist.((s.pc - prog.text_sec.addr)/4), s)) states
+  in
+
+  (* Sorts new states into previous states, using the sort order of distances *)
+  let rec insert_dist_states prev_states new_states =
+      List.fold_left (fun acc dist_s ->
+        let rec insert (dist,state) lst =
           match lst with
-          | o::ol ->
-              if st.distance >= o.distance
-              then st::lst
-              else o::(insert st ol)
-          | [] -> [st]              
+          | (d,s)::next ->
+              if dist >= d
+              then (dist,state)::lst
+              else (d,s)::(insert (dist,state) next)
+          | [] -> [(dist,state)]              
         in
-          insert {s with distance = dist.((s.pc - prog.text_sec.addr)/4)} acc
-      ) ls newstates
-    in
-      if List.length statelst' = 1 && (List.hd statelst').pc = 0
-      then List.hd statelst'
-      else multistep prog statelst' dist
+          insert dist_s acc
+      ) prev_states new_states
+  in
+
+  (* Process the next state on the working list *)  
+  match statelst with
+  | (d,s)::next ->
+    (* make a step *)
+    let newstates = step prog s in
+    let statelst' = insert_dist_states next (map_dist newstates) in
+    if List.length statelst' = 1 && (snd (List.hd statelst')).pc = 0
+    then snd (List.hd statelst')
+    else multistep prog statelst' dist
   | [] -> failwith "multistep fail. This should not happen."
 
     
@@ -289,10 +325,10 @@ let distance prog func args =
     
 (* ---------------------------------------------------------------------*)
 let eval  ?(bigendian=false)  prog state dist timeout =
-  let state' = multistep prog [state] dist in
-  let measurement = 0 in
-  let ok = true in
-  (ok, measurement, state')
+  let state' = multistep prog [(max_int,state)] dist in
+  let wcet = 0 in
+  let result = true in
+  (result, wcet, state')
 
     
     

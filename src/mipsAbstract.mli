@@ -38,7 +38,6 @@ type astate = {
   register_ra : aint32;
 
   pc : int;
-  distance : int;
 }
 
 
