@@ -11,13 +11,13 @@ all:    native
 
 # Compile native version
 native: 
-	@ocamlbuild -Is $(DIRS) ktc.native 
+	@ocamlbuild -tag use_str -Is $(DIRS) ktc.native 
 	@rm -f ktc.native
 	@rm -rf bin; mkdir bin; cd bin; cp ../_build/src/ktc.native ktc 
 
 # Compile byte code version
 byte: 	
-	@ocamlbuild -Is $(DIRS) ktc.byte	
+	@ocamlbuild -tag use_str -Is $(DIRS) ktc.byte	
 	@rm -f ktc.byte
 	@rm -rf bin; mkdir bin; cd bin; cp ../_build/src/ktc.byte ktc 
 

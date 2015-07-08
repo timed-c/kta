@@ -64,16 +64,10 @@ let sll_max_vals = 64
 (* ---------------------------------------------------------------------*)
 
   
-let int32max = 0x7fffffff
-let int32min = (0x7fffffff + 1) * -1
 
 let pprint_aint32 lst =
-  let elems = List.map (fun (l,u) -> us(if l=u then sprintf "%d" l else sprintf "[%d,%d]" l u)) lst
-  in us"{" ^. Ustring.concat (us",") elems ^. us"}"
-
-let make_aint32 v = ([v,v])
-
-let make_aint32_intervals ival = ival
+  let elems = List.map (fun (l,u) -> us(if l=u then sprintf "%d" l else sprintf "%d..%d" l u)) lst
+  in Ustring.concat (us", ") elems 
 
 let aint32_addu xlst ylst =
    List.fold_left
@@ -116,7 +110,7 @@ let aint32_sll xlst shift =
   
 
 let init_state =
-  let reg_init = make_aint32 0 in
+  let reg_init = AbstractInt32.make 0 in
   {
   register_at = reg_init;
   register_v0 = reg_init;
@@ -155,7 +149,7 @@ let init_state =
 
 
 (* ---------------------------------------------------------------------*)
-let reg0 = make_aint32 0 
+let reg0 = AbstractInt32.make 0 
 let reg state reg = 
   match reg with
   | 0 -> reg0
@@ -193,7 +187,7 @@ let reg state reg =
   | _ -> failwith "Illegal register."
 
 (* ---------------------------------------------------------------------*)
-let wreg state reg v =
+let wreg reg v state =
   match reg with
   | 0 -> state
   | 1 -> {state with register_at=v}
@@ -234,7 +228,7 @@ let wreg state reg v =
 let pprint_astate astate =
   let p_no no = let x = MipsUtils.pprint_reg no in 
                 if (Ustring.length x) < 3 then x ^. us" " else x in
-  let p_reg r = Ustring.spaces_after (pprint_aint32 (reg astate r) ^. us"  ") 17 in
+  let p_reg r = us" = " ^. Ustring.spaces_after (pprint_aint32 (reg astate r) ^. us"  ") 17 in
   let rec regs no str =
     if no >= 8 then str else
       regs (no+1) (str ^.
@@ -269,20 +263,20 @@ let rec step prog s =
   (* Match and execute each instruction *)
   match inst  with 
   | MipsADDU(rd,rs,rt) ->
-      [wreg s rd (aint32_addu (reg s rs) (reg s rt)) |> pc 4]
+      [wreg rd (aint32_addu (reg s rs) (reg s rt)) s |> pc 4]
   | MipsBLEZ(rs,imm,_) ->
       let s' = eval_delayslot s in
       let (tval,fval) = aint32_blez (reg s rs) in
       let s2 = if List.length tval = 0 then []
-                else [wreg s' rs tval |> branch (imm*4 + 4 + s.pc)] in
-      if List.length fval = 0 then s2 else (wreg s' rs fval |> pc 4)::s2
+                else [wreg  rs tval s' |> branch (imm*4 + 4 + s.pc)] in
+      if List.length fval = 0 then s2 else (wreg  rs fval s'|> pc 4)::s2
   | MipsJR(rs) ->
       let s' = eval_delayslot s in
       List.map (fun (l,u) ->
         if l=u then s' |> branch l 
                else raise (Exception_in_step StepFail_JumpOverflow))  (reg s rs) 
   | MipsSLL(rd,rt,shamt) ->
-     [wreg s rd (aint32_sll (reg s rt) shamt) |> pc 4]      
+     [wreg rd (aint32_sll (reg s rt) shamt) s  |> pc 4]      
   | _ -> failwith ("Unknown instruction: " ^
                     Ustring.to_utf8 (MipsUtils.pprint_inst inst))
 
@@ -372,10 +366,27 @@ let rec multistep prog statelst dist accfinished  =
 let init prog func args =
   (* Set the PC address to the address given by the func parameter *)
   let pc_addr = List.assoc func prog.symbols
-  in    
-    {init_state with pc = pc_addr}      
- 
+  in
+   (* Set program counter *)
+   {init_state with pc = pc_addr}
 
+   (* Set the global pointer *)
+   |> wreg reg_gp (AbstractInt32.make prog.gp)
+
+   (* Set the stack pointer *)     
+   |> wreg reg_sp (AbstractInt32.make prog.sp)
+
+   (* Set the arguments. For now, max 4 arguments. *)
+   |> (fun state ->
+     List.fold_left (fun (i,acc) argv ->
+       if i < 4 then (i+1, wreg (reg_a0 + i) argv acc)
+       else (i,acc)
+     ) (0,state) args |> snd
+   )
+
+  
+
+      
 (* ---------------------------------------------------------------------*)
 let distance prog func args =
   let len = Array.length prog.code in
@@ -395,12 +406,12 @@ let eval  ?(bigendian=false)  prog state dist timeout =
 (* ---------------------------------------------------------------------*)
 let main argv =
   let s = init_state in
-  let s2 = wreg s reg_t4 (make_aint32 7) in
+  let s2 = wreg reg_t4 (AbstractInt32.make 7) s  in
   printf "hello:";
   uprint_endline (pprint_aint32 (reg s2 reg_t4));
-  let v1 = make_aint32 7 in
-  let v2 = make_aint32_intervals [(2,8);(10,20)] in
-  let v3 = make_aint32_intervals [(-2,100)] in
+  let v1 = AbstractInt32.make 7 in
+  let v2 = AbstractInt32.make_intervals [(2,8);(10,20)] in
+  let v3 = AbstractInt32.make_intervals [(-2,100)] in
   uprint_endline (pprint_aint32 v1);
   uprint_endline (pprint_aint32 v2);
   uprint_endline (pprint_aint32 (aint32_addu v1 v2));

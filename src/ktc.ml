@@ -210,10 +210,11 @@ let mips_verify filename file_ta_req =
   let prog = MipsSys.assign_program_stack (MipsSys.get_program tmpname) 
     stack_ptr stack_size stack_addr in
 
-  let ta_req = List.hd (file_ta_req.func_ta_reqs) in
-  let fname = (Ustring.to_utf8 ta_req.funcname) in
-  let args = [] in
+  let func_ta_req = List.hd (file_ta_req.func_ta_reqs) in
+  let fname = (Ustring.to_utf8 func_ta_req.funcname) in
+  let args = TaFile.to_args_list func_ta_req.args in
   let initstate = MipsAbstract.init prog fname args in
+  uprint_endline (MipsAbstract.pprint_astate initstate);  
   let dist = MipsAbstract.distance prog fname args in
   let timeout = 1000 in
   let (ok,wcet,state) = MipsAbstract.eval prog initstate dist timeout in

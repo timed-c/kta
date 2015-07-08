@@ -3,7 +3,7 @@
 function foo 
   
 # Optional assumptions
-arg        0    20
+arg        0    -44...500
 arg        1    100
 
 

@@ -17,9 +17,10 @@ type tpp =
 |TppExit 
 |TppNode of int
 
+    
 (* Abstract value *)
 type value = 
-| VInt of int * int                (* Upper and lower bounds on integers *)
+| VInt of int * int                (* Lower and upper bounds of integers *)
 
 (* Different forms of timing requests *)
 type ta_req = 

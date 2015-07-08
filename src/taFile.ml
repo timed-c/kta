@@ -1,9 +1,9 @@
 
 
-
+open Printf
 open Ustring.Op
 open TaFileTypes
-
+open AbstractInt32
 
 
 (* ---------------------------------------------------------------------*)
@@ -174,12 +174,22 @@ let parse_time_literal filename line_no str =
 (* ---------------------------------------------------------------------*)
 (* Parse a value. Raise exception TA_file_syntax_error if the kind of value is
    unknown. Right now, we only supports integer values (no intervals) *)
-let parse_abstract_value filename line_no value = 
-  let v = try int_of_string value 
-    with _ -> raise (TA_file_syntax_error(filename,line_no)) in
-  VInt(v,v)
+let parse_abstract_value filename line_no value =
+  (* Is concrete integer *)
+  try let v = int_of_string value in VInt(v,v)
 
+  (* Is integer interval? *)
+  with _ -> 
+  (try
+     match Str.split (Str.regexp "\\.\\.") value with
+     | [l;u] ->
+         VInt(int_of_string l, int_of_string u)
+   | _ -> raise (TA_file_syntax_error(filename,line_no))
+  with _ ->
+    raise (TA_file_syntax_error(filename,line_no)))
+  
 
+   
 
 (* ---------------------------------------------------------------------*)
 (* Parse text lines. Raises TA_file_syntax_error if there are any 
@@ -265,11 +275,22 @@ let parse_ta_strings filename lines =
   List.rev (extract utf8tokens None [] [] [] [] [] [])
 
 
+(* ---------------------------------------------------------------------*)
+let val_to_aint32 value =
+  match value with
+  | VInt(l,u) -> AbstractInt32.make_intervals [(l,u)]
 
 
+(* ---------------------------------------------------------------------*)
+let to_args_list lst =
+  let rec insert lst k no arg =
+    match lst with
+    | a::al -> if k = no then arg::al else a::(insert al (k+1) no arg)
+    | [] -> if k = no then [arg] else abstractval::(insert [] (k+1) no arg)        
+  in
+  List.fold_left (fun a (no,v) -> insert a 0 no (val_to_aint32 v)) [] lst
 
-
-
+  
 
 (* ---------------------------------------------------------------------*)
 let parse_ta_file ta_filename =

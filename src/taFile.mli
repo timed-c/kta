@@ -1,9 +1,14 @@
 
 open Ustring.Op
 open TaFileTypes
-  
-  
+open AbstractInt32  
 
+
+val to_args_list : (argno * value) list -> aint32 list
+(** Converts a list with argument numbers to list of arguments where
+    the index indicates the argument number *)
+
+  
 val pprint_simple_ta_res : ta_res list -> ustring
 (** [pprint_simple_ta_res reslst] takes a list of timing analysis
     responses [reslst] and pretty prints it using a comma separation. *)
