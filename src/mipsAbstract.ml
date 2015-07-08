@@ -269,9 +269,17 @@ let rec step prog s =
   | _ -> failwith ("Unknown instruction: " ^
                     Ustring.to_utf8 (MipsUtils.pprint_inst inst))
 
+
+(* ---------------------------------------------------------------------*)
+let merge_states states =
+  (* TODO: Implement merge *)
+  List.hd states
+
     
 (* ---------------------------------------------------------------------*)
-let rec multistep prog statelst dist =
+(* Performs multiple steps and accumulates all finished states into
+   [accfinished]. *)
+let rec multistep prog statelst dist accfinished  =
   (* Map distances to states, that is, create an associative list *)
   let map_dist states =
     List.map (fun s ->
@@ -302,28 +310,42 @@ let rec multistep prog statelst dist =
     | [s] -> (s,[])
     | s::ls -> 
         let (lspc,lsrest) = List.partition (fun s2 -> s2.pc = s.pc) ls in
-        let ls' = if (List.length lspc + 1) > merge_when_more_than_states 
-                  then ls (* TODO: merge *) else ls in
-        (s,ls')
+        if (List.length lspc + 1) > merge_when_more_than_states 
+        then (merge_states (s::lspc), lsrest)
+        else (s,ls)          
     | [] -> failwith "Should not happen. No states."
   in
 
+  (* Check if the new states has finished (pc = 0). If so, add then
+     to finished states. Returns a tuple with finished states and the
+     remaining states. *)
+  let rec check_finished accf accr newstates =
+    match newstates with
+    | s::ls -> if s.pc = 0 then check_finished (s::accf) accr ls
+                           else check_finished accf (s::accr) ls
+    | [] -> (accf,accr)
+  in  
+
   (* Process the next state on the working list *)  
   match statelst with
-  | (d,[])::next -> multistep prog next dist
+  | (d,[])::next -> multistep prog next dist accfinished
   | (d,states)::next ->
-    printf "** before\n";
-    let (s,ls) = select_and_merge_states states in
-    printf "** after  %x\n" s.pc;
-    (* make a step *)
-    let newstates = step prog s in
-    printf "** after 2\n";
-    let statelst' = insert_dist_states ((d,ls)::next) (map_dist newstates) in
-    printf "** length %d\n" (List.length statelst');
-    if List.length statelst' = 1 && (List.hd (snd (List.hd statelst'))).pc = 0
-    then List.hd (snd (List.hd statelst'))
-    else multistep prog statelst' dist
-  | [] -> failwith "multistep fail. This should not happen."
+       (* Select which state to process next. Merge states if necessary *)
+       let (s,ls) = select_and_merge_states states in
+
+       (* Perform a single step. Potentially get back multiple states *)
+       let newstates = step prog s in
+
+       (* Check if a state has terminated. If so, add to [accfinished] *)
+       let (accfinished', newstates') = check_finished accfinished [] newstates in
+       
+       (* Insert and sort the new states into the working list *)
+       let statelst' = insert_dist_states ((d,ls)::next) (map_dist newstates') in
+
+       (* Repeat and process next states *)
+       multistep prog statelst' dist accfinished'
+         
+  | [] -> merge_states accfinished
 
     
 
@@ -346,7 +368,7 @@ let distance prog func args =
     
 (* ---------------------------------------------------------------------*)
 let eval  ?(bigendian=false)  prog state dist timeout =
-  let state' = multistep prog [(max_int,[state])] dist in
+  let state' = multistep prog [(max_int,[state])] dist [] in
   let wcet = 0 in
   let result = true in
   (result, wcet, state')
