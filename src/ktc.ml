@@ -217,6 +217,7 @@ let mips_verify filename file_ta_req =
   let dist = MipsAbstract.distance prog fname args in
   let timeout = 1000 in
   let (ok,wcet,state) = MipsAbstract.eval prog initstate dist timeout in
+  uprint_endline (MipsAbstract.pprint_astate state);
   
   (if ok then
     if wcet <= timeout then printf "Verification OK. WCET = %d\n" wcet

@@ -230,6 +230,23 @@ let wreg state reg v =
   | _ -> failwith "Illegal register."
   
 
+(* ---------------------------------------------------------------------*)
+let pprint_astate astate =
+  let p_no no = let x = MipsUtils.pprint_reg no in 
+                if (Ustring.length x) < 3 then x ^. us" " else x in
+  let p_reg r = Ustring.spaces_after (pprint_aint32 (reg astate r) ^. us"  ") 17 in
+  let rec regs no str =
+    if no >= 8 then str else
+      regs (no+1) (str ^.
+      p_no no      ^. p_reg (no) ^.
+      p_no (no+8)  ^. p_reg (no+8) ^.
+      p_no (no+16) ^. p_reg (no+16) ^.
+      p_no (no+24) ^. p_reg (no+24) ^. us"\n")
+  in
+    us (sprintf "PC  0x%08x \n" astate.pc) ^.
+    regs 0 (us"")
+  
+    
     
 (* ---------------------------------------------------------------------*)
 let rec step prog s =

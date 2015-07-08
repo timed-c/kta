@@ -1,5 +1,5 @@
 
-
+open Ustring.Op
 open AbstractInt32
 
 
@@ -43,7 +43,10 @@ type astate = {
 
 type distance = int array
 
+val pprint_astate : astate -> ustring
+(** [pprint_astate astate] pretty prints an abstract state [astate]. *)
 
+  
 val init : MipsAst.program -> string -> aint32 list -> astate
 (** [init prog function] initializes a
     function that can then later be executed. The function takes the
