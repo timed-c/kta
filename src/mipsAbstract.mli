@@ -1,6 +1,6 @@
 
 open Ustring.Op
-open AbstractInt32
+open AInt32
 
 
   

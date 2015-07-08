@@ -3,7 +3,7 @@
 open Printf
 open Ustring.Op
 open TaFileTypes
-open AbstractInt32
+open AInt32
 
 
 (* ---------------------------------------------------------------------*)
@@ -278,7 +278,7 @@ let parse_ta_strings filename lines =
 (* ---------------------------------------------------------------------*)
 let val_to_aint32 value =
   match value with
-  | VInt(l,u) -> AbstractInt32.make_intervals [(l,u)]
+  | VInt(l,u) -> AInt32.make_intervals [(l,u)]
 
 
 (* ---------------------------------------------------------------------*)

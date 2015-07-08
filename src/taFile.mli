@@ -1,7 +1,7 @@
 
 open Ustring.Op
 open TaFileTypes
-open AbstractInt32  
+open AInt32  
 
 
 val to_args_list : (argno * value) list -> aint32 list
