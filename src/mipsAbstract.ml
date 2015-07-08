@@ -46,6 +46,8 @@ type distance = int array
 
 (* ---------------------------------------------------------------------*)
 
+let merge_when_more_than_states = 2
+
 type step_failure =
 | StepFail_JumpOverflow
   
@@ -270,7 +272,6 @@ let rec step prog s =
     
 (* ---------------------------------------------------------------------*)
 let rec multistep prog statelst dist =
-
   (* Map distances to states, that is, create an associative list *)
   let map_dist states =
     List.map (fun s ->
@@ -283,24 +284,44 @@ let rec multistep prog statelst dist =
       List.fold_left (fun acc dist_s ->
         let rec insert (dist,state) lst =
           match lst with
-          | (d,s)::next ->
-              if dist >= d
-              then (dist,state)::lst
-              else (d,s)::(insert (dist,state) next)
-          | [] -> [(dist,state)]              
+          | (d,sl)::next ->
+              if dist = d then (d,state::sl)::next
+              else if dist > d
+              then (dist,[state])::lst
+              else (d,sl)::(insert (dist,state) next)
+          | [] -> [(dist,[state])]              
         in
           insert dist_s acc
       ) prev_states new_states
   in
+  
+  (* Selects which state to process next and merge states if they
+     are at the same program point and are more than merge_when_more_than_states *)
+  let select_and_merge_states states =
+    match states with
+    | [s] -> (s,[])
+    | s::ls -> 
+        let (lspc,lsrest) = List.partition (fun s2 -> s2.pc = s.pc) ls in
+        let ls' = if (List.length lspc + 1) > merge_when_more_than_states 
+                  then ls (* TODO: merge *) else ls in
+        (s,ls')
+    | [] -> failwith "Should not happen. No states."
+  in
 
   (* Process the next state on the working list *)  
   match statelst with
-  | (d,s)::next ->
+  | (d,[])::next -> multistep prog next dist
+  | (d,states)::next ->
+    printf "** before\n";
+    let (s,ls) = select_and_merge_states states in
+    printf "** after  %x\n" s.pc;
     (* make a step *)
     let newstates = step prog s in
-    let statelst' = insert_dist_states next (map_dist newstates) in
-    if List.length statelst' = 1 && (snd (List.hd statelst')).pc = 0
-    then snd (List.hd statelst')
+    printf "** after 2\n";
+    let statelst' = insert_dist_states ((d,ls)::next) (map_dist newstates) in
+    printf "** length %d\n" (List.length statelst');
+    if List.length statelst' = 1 && (List.hd (snd (List.hd statelst'))).pc = 0
+    then List.hd (snd (List.hd statelst'))
     else multistep prog statelst' dist
   | [] -> failwith "multistep fail. This should not happen."
 
@@ -325,7 +346,7 @@ let distance prog func args =
     
 (* ---------------------------------------------------------------------*)
 let eval  ?(bigendian=false)  prog state dist timeout =
-  let state' = multistep prog [(max_int,state)] dist in
+  let state' = multistep prog [(max_int,[state])] dist in
   let wcet = 0 in
   let result = true in
   (result, wcet, state')
