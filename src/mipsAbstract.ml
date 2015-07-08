@@ -249,12 +249,17 @@ let rec step prog s =
   match inst  with 
   | MipsADDU(rd,rs,rt) ->
       [wreg rd (AInt32.add (reg s rs) (reg s rt)) s |> pc 4]
+  | MipsADDIU(rt,rs,imm) ->
+      [wreg rt (AInt32.add (reg s rs) (AInt32.make imm)) s |> pc 4]      
   | MipsBLEZ(rs,imm,_) ->
       let s' = eval_delayslot s in
       let (tval,fval) = aint32_blez (reg s rs) in
       let s2 = if List.length tval = 0 then []
                 else [wreg  rs tval s' |> branch (imm*4 + 4 + s.pc)] in
       if List.length fval = 0 then s2 else (wreg  rs fval s'|> pc 4)::s2
+(*  | MipsBNEL(rs,rt,imm,s) ->
+       if Int32.compare (reg rs) (reg rt) <> 0 then branch (imm*4 + 4 + state.pc)
+    else (pc 8; hook()) *)
   | MipsJR(rs) ->
       let s' = eval_delayslot s in
       List.map (fun (l,u) ->
