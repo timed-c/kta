@@ -10,16 +10,14 @@ all:    native
 
 
 # Compile native version
-native: 
+native:
+	@rm -rf bin; mkdir bin 
 	@ocamlbuild -tag use_str -Is $(DIRS) ktc.native 
 	@rm -f ktc.native
-	@rm -rf bin; mkdir bin; cd bin; cp ../_build/src/ktc.native ktc 
-
-# Compile byte code version
-byte: 	
-	@ocamlbuild -tag use_str -Is $(DIRS) ktc.byte	
-	@rm -f ktc.byte
-	@rm -rf bin; mkdir bin; cd bin; cp ../_build/src/ktc.byte ktc 
+	@cd bin; cp ../_build/src/ktc.native ktc 
+	@ocamlbuild -tag use_str -Is $(DIRS) kta.native 
+	@rm -f kta.native
+	@cd bin; cp ../_build/src/kta.native kta 
 
 # Generate all documentation
 gendoc: doc/user/manual.html

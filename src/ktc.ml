@@ -230,7 +230,7 @@ let mips_verify filename file_ta_req =
 
     
 let print_help() =     
-    printf "KTC - KTH Timed Compiler. Copyright (C) 2015 David Broman.\n"
+    printf "KTC - KTH's Time-aware Compiler. Copyright (C) 2015 David Broman.\n"
 
 
 let main =
