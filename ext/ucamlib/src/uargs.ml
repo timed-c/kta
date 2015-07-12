@@ -1,6 +1,7 @@
 
 
 open Ustring.Op
+open Printf
 
 type argtype =
 | No      (* No arguments *)
@@ -23,19 +24,25 @@ let parse argv options =
 
   (* Work function that iterates through all arguments *)
   let rec work args last_op exp_argtype acc_ops acc_args =
+(*    printf "-----\n";
+    printf "args: "; Ustring.concat (us",") args |> uprint_endline;
+    printf "exp_argtype: %s\n" (match exp_argtype with | No -> "No" | Str -> "Str" | 
+        Int -> "Int" | StrList -> "StrList"); *)
     match args with
-    | a::al ->
-      try
+    | a::al -> (
+      try 
         let (k,opargty,_,_,_) = List.find (fun (_,_,x,_,_) -> x =. a) options  in       
+        
         (* We have found an option *)
         (match exp_argtype with
         | No | StrList -> work al k opargty (insert acc_ops k []) acc_args
         | Str | Int -> 
-           let (_,_,x,_,_) = List.find (fun (k,_,_,_,_) -> k =. last_op) options  in 
-           (None, us"Option " ^. a ^. us" needs an option argument."))
-      with
+           let (_,_,x,_,_) = List.find (fun (k,_,_,_,_) -> k = last_op) options  in 
+           (None, us"Option " ^. x ^. us" needs an option argument."))
+    
       (* Not a known option *)
-      | Not_found ->
+      with Not_found -> 
+
         (* Check if starts with dash. If so, error *)
         if Ustring.starts_with (us"-") a then
           (None, us"Incorrect or unknown argument '" ^. a ^. us"'") 
@@ -54,16 +61,22 @@ let parse argv options =
               with _ -> (None, us"Option argument '" ^. a ^. us"' is not an integer."))
           | StrList ->
               (* We have string argument of list. *)
-              work al last_op exp_argtype (insert acc_ops last_op [a]) acc_args)
+              work al last_op exp_argtype (insert acc_ops last_op [a]) acc_args))
+
+
+    
+      | [] -> (Some (acc_ops,List.rev acc_args), us"")
+            
 
   in
-    if List.length options = 0 then ([], Array.to_list argv)
+    if List.length options = 0 
+    then (Some([],List.map us argv),us"")
     else            
       let (dummyop,_,_,_,_) = List.hd options in
-      work (Array.to_list argv) dummyop No [] []
+      work (List.map us argv) dummyop No [] []
 
   
 (* ---------------------------------------------------------------------*)
-let optionstext options = us"-myval"
+let optionstext options = us"Options..."
   
 

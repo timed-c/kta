@@ -11,8 +11,8 @@ type argtype =
 | StrList (* The argument can be a list of strings. The list can be empty. *)
 
     
-val parse : string array -> ('a * argtype * ustring * ustring * ustring) list 
-  -> (('a * ustring list) list * ustring list) option * ustring
+val parse : string list -> ('a * argtype * ustring * ustring * ustring) list 
+  -> (((('a * ustring list) list * ustring list) option) * ustring)
 (** [parse argv options] parses the argument options [argv] using the
     information described in the [options] parameter. See example code
     for more information *)
