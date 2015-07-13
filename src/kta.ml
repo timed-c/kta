@@ -54,7 +54,7 @@ let print_main_help() =
  top_text ^. us"\n" ^.
  us"usage: kta <command> [<args>] [<options>] \n\n" ^.
  us"commands:\n" ^.
-(* us"  asm      Outputs the disassembled ASM code of the .text section.\n" ^. *)
+ us"  disasm   Outputs the disassembled ASM code of the .text section.\n" ^. 
 (* us"  exec     Concrete execution of a function.\n" ^. *)
  us"  help     Prints out help about commands.\n" ^.
 (* us"  sections Prints out information about sections.\n" ^. *)
@@ -71,25 +71,13 @@ let print_main_help() =
 let main =
   try 
     match Array.to_list Sys.argv with
-    (* Execute *) 
-    | _::"exec"::args -> 
-      printf "Execute\n"
-
-    (* Sections *) 
-    | _::"sections"::args -> 
-      printf "Sections\n"
-
-    (* Symbols *) 
-    | _::"sym"::args -> 
-      Commands.sym_command args |> uprint_endline
-
-    (* Timing Analysis *) 
-    | _::"ta"::args -> 
-      printf "Timing Analysis\n"
-
-    (* Trace *) 
-    | _::"trace"::args -> 
-      printf "Trace\n"
+    (* Commands *)
+    | _::"disasm"::args   -> Commands.disasm_command args |> uprint_endline
+    | _::"exec"::args     -> printf "Execute\n"
+    | _::"sections"::args -> printf "Sections\n"
+    | _::"sym"::args      -> Commands.sym_command args |> uprint_endline
+    | _::"ta"::args       -> printf "Timing Analysis\n"
+    | _::"trace"::args    -> printf "Trace\n"
 
     (* Help *) 
     | _::"help"::args -> 

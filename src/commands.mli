@@ -49,6 +49,11 @@ val sym_command : string list -> ustring
 (** [sym_command args] executes the [sym] command with the arguments [args].
   Raises exception Uargs.Error if there is an error *)
 
+  
+val disasm_command : string list -> ustring
+(** [disasm_command args] executes the [disasm] command with the arguments [args].
+  Raises exception Uargs.Error if there is an error *)
+  
 
 
 

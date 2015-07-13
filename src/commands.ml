@@ -74,7 +74,7 @@ let help command toptext =
         sym_options
   | "disasm" -> 
        pstr "disasm" 
-         ("  Disassembles the .text section and pretty prints it to the screen.\n")
+         ("  Disassembles the .text section and pretty prints it to stdio.\n")
         disasm_options         
   | _ -> None
 
