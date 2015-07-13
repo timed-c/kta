@@ -9,6 +9,7 @@ type argtype =
 | Int     (* The argument is an integer that can be both postive and negative *)
 | StrList (* The argument can be a list of strings. The list can be empty. *)
 
+exception Parse_error of ustring
 
 (* ---------------------------------------------------------------------*)
 let parse argv options =
@@ -24,10 +25,6 @@ let parse argv options =
 
   (* Work function that iterates through all arguments *)
   let rec work args last_op exp_argtype acc_ops acc_args =
-(*    printf "-----\n";
-    printf "args: "; Ustring.concat (us",") args |> uprint_endline;
-    printf "exp_argtype: %s\n" (match exp_argtype with | No -> "No" | Str -> "Str" | 
-        Int -> "Int" | StrList -> "StrList"); *)
     match args with
     | a::al -> (
       try 
@@ -38,14 +35,14 @@ let parse argv options =
         | No | StrList -> work al k opargty (insert acc_ops k []) acc_args
         | Str | Int -> 
            let (_,_,x,_,_) = List.find (fun (k,_,_,_,_) -> k = last_op) options  in 
-           (None, us"Option " ^. x ^. us" needs an option argument."))
+           raise (Parse_error (us"Option " ^. x ^. us" needs an option argument.")))
     
       (* Not a known option *)
       with Not_found -> 
 
         (* Check if starts with dash. If so, error *)
         if Ustring.starts_with (us"-") a then
-          (None, us"Incorrect or unknown argument '" ^. a ^. us"'") 
+          raise (Parse_error (us"Incorrect or unknown argument '" ^. a ^. us"'"))
         else
           (match exp_argtype with
           | No ->
@@ -58,19 +55,18 @@ let parse argv options =
               (* We have one int argument. Next will not be option argument *)
              (try let _ = int_of_string (Ustring.to_utf8 a) in
                  work al last_op No (insert acc_ops last_op [a]) acc_args
-              with _ -> (None, us"Option argument '" ^. a ^. us"' is not an integer."))
+              with _ -> raise (Parse_error (us"Option argument '" ^. 
+                                            a ^. us"' is not an integer.")))
           | StrList ->
               (* We have string argument of list. *)
               work al last_op exp_argtype (insert acc_ops last_op [a]) acc_args))
-
-
     
-      | [] -> (Some (acc_ops,List.rev acc_args), us"")
+      | [] -> (acc_ops,List.rev acc_args)
             
 
   in
     if List.length options = 0 
-    then (Some([],List.map us argv),us"")
+    then ([],List.map us argv)
     else            
       let (dummyop,_,_,_,_) = List.hd options in
       work (List.map us argv) dummyop No [] []
@@ -114,6 +110,21 @@ let optionstext ?(indent=2) ?(max_op_len=25) ?(line_length=80) options =
 
 
 
+(* ---------------------------------------------------------------------*)
+let has_op op oplst = 
+  List.mem_assoc op oplst
+
+
+(* ---------------------------------------------------------------------*)
+let str_op op oplst = 
+  try List.assoc op oplst |> List.hd
+  with _ -> raise Not_found
+
+
+(* ---------------------------------------------------------------------*)
+let strlst_op op oplst = 
+  List.assoc op oplst
+        
 
 
 

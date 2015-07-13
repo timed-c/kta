@@ -42,45 +42,39 @@ let options =
 
 (* ---------------------------------------------------------------------*)
 let main =
-  match Uargs.parse (Sys.argv |> Array.to_list |> List.tl) options with
-    (* Print error message if the options were incorrect *)
-  | None,msg -> uprint_endline msg
-  | Some(ops,args),_ ->
-    (
-      (* Check if -help *)
-      if List.mem_assoc Op_help ops then(
-        uprint_endline (help ^. Uargs.optionstext options ^. us"\n");
-        printf "0123456789";
-        printf "0123456789";
-        printf "0123456789";
-        printf "0123456789";
-        printf "0123456789";
-        printf "0123456789";
-        printf "0123456789";
-        printf "0123456789\n")
+  try 
+    (* Parse the arguments *)
+    let (ops,args) = Uargs.parse (Sys.argv |> Array.to_list |> List.tl) options in
 
-      (* Check if there is no ELF-file given *)
-      else if List.length args < 1 then
-        uprint_endline nothing_msg 
+    (* Check if -help *)
+    if Uargs.has_op Op_help ops then
+      uprint_endline (help ^. Uargs.optionstext options ^. us"\n")
 
-      (* Check if we should use a tafile *)   
-      else if List.mem_assoc Op_tafile ops then(
-        uprint_endline (us"Use ta-file: " ^. (List.assoc Op_tafile ops |> List.hd));
-        List.iter uprint_endline args        
-      )
+    (* Check if there is no ELF-file given *)
+    else if List.length args < 1 then
+      uprint_endline nothing_msg 
 
-      (* Check if direct function analysis *)
-      else if List.mem_assoc Op_func ops then (
-        uprint_endline (us"Use func: " ^. (List.assoc Op_func ops |> List.hd));
-        (if List.mem_assoc Op_args ops then (
-          uprint_endline (us"Args: ");
-          List.iter uprint_endline (List.assoc Op_args ops)) else ()))
-          
-      (* Print help *)
-      else 
-        List.iter uprint_endline args
+    (* Check if we should use a tafile *)   
+    else if List.mem_assoc Op_tafile ops then(
+      uprint_endline (us"Use ta-file: " ^. (Uargs.str_op Op_tafile ops));
+      List.iter uprint_endline args        
     )
+
+    (* Check if direct function analysis *)
+    else if List.mem_assoc Op_func ops then (
+      uprint_endline (us"Use func: " ^. (List.assoc Op_func ops |> List.hd));
+      (if List.mem_assoc Op_args ops then (
+        uprint_endline (us"Args: ");
+        List.iter uprint_endline (List.assoc Op_args ops)) else ()))
+          
+    (* Print help *)
+    else 
+      List.iter uprint_endline args
     
+  with 
+    (* Print error message if the options were incorrect *)
+    Uargs.Parse_error s ->
+      uprint_endline s
 
 
       
