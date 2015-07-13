@@ -35,7 +35,8 @@ open MipsAst
 type compOpTypes =
   (* General compiler options used by all commands *)
 | OpCompile
-| OpSym_CommaSep 
+| OpSym_CommaSep
+| OpDisasm_Addr
 
 (* List of compiler options *)
 let compile_options = 
@@ -50,7 +51,10 @@ let sym_options =
   @ compile_options
 
 (* List of disasm command options *)
-let disasm_options = compile_options
+let disasm_options = 
+  [(OpDisasm_Addr, Uargs.No,  us"-addr",  us"",
+       us"Output the address of each instruction.")]
+  @ compile_options
   
 
 (* Temp file name that is used if the program needs to be compiled *)
@@ -136,7 +140,8 @@ let disasm_command args =
     remove_tempfile();
 
     (* Pretty print the disassembled code *)
-    MipsUtils.pprint_asm prog prog.text_sec.addr prog.text_sec.size true
+    let print_addr = Uargs.has_op OpDisasm_Addr ops in
+    MipsUtils.pprint_asm prog prog.text_sec.addr prog.text_sec.size print_addr
    
   with Sys_error m -> (remove_tempfile(); 
                        raise (Uargs.Error (us"System error: " ^. us m)))
