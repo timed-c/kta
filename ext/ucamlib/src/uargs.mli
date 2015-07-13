@@ -10,7 +10,7 @@ type argtype =
 | Int     (* The argument is an integer that can be both postive and negative *)
 | StrList (* The argument can be a list of strings. The list can be empty. *)
 
-exception Parse_error of ustring
+exception Error of ustring
 
 
 val parse : string list -> ('a * argtype * ustring * ustring * ustring) list 
@@ -18,7 +18,7 @@ val parse : string list -> ('a * argtype * ustring * ustring * ustring) list
 (** [parse argv options] parses the argument options [argv] using the
     information described in the [options] parameter. The function
     returns an associative list, where the keys are options and the
-    values are lists of option arguments. Exception [Parse_error] is
+    values are lists of option arguments. Exception [Error] is
     raised if there is a parse error. See example code for more
     information *)
 

@@ -9,7 +9,7 @@ type argtype =
 | Int     (* The argument is an integer that can be both postive and negative *)
 | StrList (* The argument can be a list of strings. The list can be empty. *)
 
-exception Parse_error of ustring
+exception Error of ustring
 
 (* ---------------------------------------------------------------------*)
 let parse argv options =
@@ -35,14 +35,14 @@ let parse argv options =
         | No | StrList -> work al k opargty (insert acc_ops k []) acc_args
         | Str | Int -> 
            let (_,_,x,_,_) = List.find (fun (k,_,_,_,_) -> k = last_op) options  in 
-           raise (Parse_error (us"Option " ^. x ^. us" needs an option argument.")))
+           raise (Error (us"Option " ^. x ^. us" needs an option argument.")))
     
       (* Not a known option *)
       with Not_found -> 
 
         (* Check if starts with dash. If so, error *)
         if Ustring.starts_with (us"-") a then
-          raise (Parse_error (us"Incorrect or unknown argument '" ^. a ^. us"'"))
+          raise (Error (us"Incorrect or unknown argument '" ^. a ^. us"'"))
         else
           (match exp_argtype with
           | No ->
@@ -55,7 +55,7 @@ let parse argv options =
               (* We have one int argument. Next will not be option argument *)
              (try let _ = int_of_string (Ustring.to_utf8 a) in
                  work al last_op No (insert acc_ops last_op [a]) acc_args
-              with _ -> raise (Parse_error (us"Option argument '" ^. 
+              with _ -> raise (Error (us"Option argument '" ^. 
                                             a ^. us"' is not an integer.")))
           | StrList ->
               (* We have string argument of list. *)
