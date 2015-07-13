@@ -22,7 +22,7 @@ val pic32_compile : string list -> bool -> bool -> string -> unit
 
 
 val section_info: string -> (string * (int * int)) list
-(** [section_info filename] returns an association list with the keys
+(** [section_info filename] returns an association list, where the keys
     are text strings representing sections and the values are tuples,
     where the first element is the size of the section and the second
     element is the virtual memory address to the section. For
