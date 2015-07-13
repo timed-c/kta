@@ -145,7 +145,7 @@ int foo(int x){
 //-----------------------------------------------
 */
 
-/*
+
 int foo(int x){
   int a[] = {1,3,6,7};
   int i;
@@ -153,7 +153,7 @@ int foo(int x){
     res[i] = a[i];
   return (int)&res;
 }
-*/
+
 
 /*
 // Test init and use of stack pointer. --------
@@ -240,6 +240,7 @@ int foo(int x){
 }
 */
 
+/*
 int foo(int x){
   int i;
   int r = 0;
@@ -248,7 +249,7 @@ int foo(int x){
   }  
   return r;
 }
-
+*/
 
 
 /*

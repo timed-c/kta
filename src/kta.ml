@@ -47,7 +47,6 @@ let top_text =
   us"KTA - KTH's Time-aware Analyzer. Copyright (C) 2015 David Broman.\n" 
 
   
-
 (* ---------------------------------------------------------------------*)
 (* The main help menu that displays all available commands. *)
 let print_main_help() =
@@ -55,7 +54,7 @@ let print_main_help() =
  us"usage: kta <command> [<args>] [<options>] \n\n" ^.
  us"commands:\n" ^.
  us"  disasm   Outputs the disassembled ASM code of the .text section.\n" ^. 
-(* us"  exec     Concrete execution of a function.\n" ^. *)
+ us"  exec     Concrete execution of a function.\n" ^. 
  us"  help     Prints out help about commands.\n" ^.
 (* us"  sections Prints out information about sections.\n" ^. *)
  us"  sym      Prints out the symbol table of the executable.\n" ^.
@@ -73,7 +72,7 @@ let main =
     match Array.to_list Sys.argv with
     (* Commands *)
     | _::"disasm"::args   -> Commands.disasm_command args |> uprint_endline
-    | _::"exec"::args     -> printf "Execute\n"
+    | _::"exec"::args     -> Commands.exec_command args |> uprint_endline
     | _::"sections"::args -> printf "Sections\n"
     | _::"sym"::args      -> Commands.sym_command args |> uprint_endline
     | _::"ta"::args       -> printf "Timing Analysis\n"
