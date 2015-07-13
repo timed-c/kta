@@ -28,6 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 open Ustring.Op
 open Printf
+open MipsAst
 
 (* ---------------------------------------------------------------------*)
 (* Types of options. *)
@@ -48,6 +49,11 @@ let sym_options =
        us"Returns all symbols without addresses as a comma separated list.")]
   @ compile_options
 
+(* List of disasm command options *)
+let disasm_options = compile_options
+  
+
+(* Temp file name that is used if the program needs to be compiled *)
 let tmpfile = "temp-file-090916-070704.tmp"
 
 (* ---------------------------------------------------------------------*)
@@ -65,12 +71,16 @@ let help command toptext =
        pstr "sym" 
        ("  Prints all symbols and corresponding addresses from a a binary ELF \n" ^
         "  file, or a compiled file if option -compile is used.\n")
-       sym_options
+        sym_options
+  | "disasm" -> 
+       pstr "disasm" 
+         ("  Disassembles the .text section and pretty prints it to the screen.\n")
+        disasm_options         
   | _ -> None
 
 
 (* ---------------------------------------------------------------------*)
-let getBinFile ops args =
+let getBinFileName ops args =
   let sargs = List.map Ustring.to_utf8 args in
  if Uargs.has_op OpCompile ops then   
     try   
@@ -85,16 +95,22 @@ let getBinFile ops args =
 let remove_tempfile() =
   Sys.remove tmpfile
   
-  
 
+
+   
 (* ---------------------------------------------------------------------*)
 let sym_command args =
   (* Parse options and get the binary file name *)
   let (ops,args) = Uargs.parse args sym_options in
-  let binfile = getBinFile ops args in
+  let binfile_name = getBinFileName ops args in
 
   (* Read the symbol table *)
-  let symtbl = MipsSys.symbol_table binfile in
+  let symtbl =
+    try 
+      MipsSys.symbol_table binfile_name
+    with Sys_error m -> (remove_tempfile();
+                         raise (Uargs.Error (us"System error: " ^. us m)))
+  in
   remove_tempfile();
 
   if Uargs.has_op OpSym_CommaSep ops then
@@ -106,7 +122,28 @@ let sym_command args =
       |> List.fold_left (^.) (us"") 
 
 
+(* ---------------------------------------------------------------------*)
+let disasm_command args =
+  (* Parse options and get the binary file name *)
+  let (ops,args) = Uargs.parse args disasm_options in
+  let binfile_name = getBinFileName ops args in
+  
+  try
+    (* Read program *)
+    let prog =  MipsUtils.add_branch_symbols (MipsSys.get_program binfile_name) in
+
+    (* Clean up *)
+    remove_tempfile();
+
+    (* Pretty print the disassembled code *)
+    MipsUtils.pprint_asm prog prog.text_sec.addr prog.text_sec.size true
    
+  with Sys_error m -> (remove_tempfile(); 
+                       raise (Uargs.Error (us"System error: " ^. us m)))
+
+
+
+    
 
 
 
