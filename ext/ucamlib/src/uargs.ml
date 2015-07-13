@@ -77,6 +77,47 @@ let parse argv options =
 
   
 (* ---------------------------------------------------------------------*)
-let optionstext options = us"Options..."
+let optionstext ?(indent=2) ?(max_op_len=25) ?(line_length=80) options = 
+  let extra_space = 2 in
+
+  (* Compute the column length for the options *)
+  let oplen = List.fold_left (fun len (_,_,op,ex,_) ->
+    max (Ustring.length op + Ustring.length ex) len
+  ) 0 options in
   
+  (* Start of the description column *)
+  let desccol = min (indent + oplen + extra_space) max_op_len  in
+
+  (* Print all options *)
+  List.fold_left (fun acc (_,opargty,op,ex,txt) ->
+    acc ^.
+    Ustring.spaces_before (us"") indent ^.
+    Ustring.spaces_after (op ^. ex) (desccol - indent) ^.
+    (if Ustring.length (op ^. ex) + indent + extra_space > max_op_len 
+     then us"\n" ^. Ustring.spaces_after (us"") desccol else us"") ^. 
+  
+    (* Format description text. Split new line if space *)
+    (snd (List.fold_left (fun (col,acc) s ->
+      let len_s = Ustring.length s + 1in
+      if col + len_s < line_length then
+        (col + len_s, acc ^. s ^. us" ")
+      else
+        (desccol + len_s, acc ^. us"\n" ^. 
+          Ustring.spaces_after (us"") desccol ^. s ^. us" ")
+    ) (desccol,us"")  
+      (List.map Ustring.trim (Ustring.split txt (us" "))
+         |> List.filter (fun x -> x <>. us""))))
+    ^. us"\n"
+    
+  ) (us"") options 
+    ^. us"\n"
+
+
+
+
+
+
+
+
+
 

@@ -24,13 +24,13 @@ type optypes =
 (* List of options. Defines behavior and help text. *)
 let options =
   [(Op_tafile,     Uargs.Str, us"-tafile",     us" <file>",
-       us"Specify the timing analysis (.ta) file");
+       us"Specify the timing analysis (.ta) file.");
    (Op_exhaustive, Uargs.No, us"-exhaustive", us"",
        us"Perform exhaustive search of all program paths.");
    (Op_func,       Uargs.Str, us"-func",       us" <name>",
        us"Perform analysis on a specific named function. This option is ignored " ^.
        us"if the -tafile is used.");
-   (Op_args,       Uargs.StrList, us"-args",  us" <values>",
+   (Op_args,       Uargs.StrList, us"-args",  us" <values_one_more_this_can>",
        us"Specify argument to the function to be analyzed. " ^.
        us"The argument can be a concrete integer, e.g., '1', or an interval, e.g., " ^.
        us"'3..100'. Several arguments can be specified by repeating the -arg option. ");
@@ -48,8 +48,16 @@ let main =
   | Some(ops,args),_ ->
     (
       (* Check if -help *)
-      if List.mem_assoc Op_help ops then
-        uprint_endline (help ^. Uargs.optionstext options ^. us"\n")
+      if List.mem_assoc Op_help ops then(
+        uprint_endline (help ^. Uargs.optionstext options ^. us"\n");
+        printf "0123456789";
+        printf "0123456789";
+        printf "0123456789";
+        printf "0123456789";
+        printf "0123456789";
+        printf "0123456789";
+        printf "0123456789";
+        printf "0123456789\n")
 
       (* Check if there is no ELF-file given *)
       else if List.length args < 1 then

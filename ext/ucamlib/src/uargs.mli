@@ -14,14 +14,25 @@ type argtype =
 val parse : string list -> ('a * argtype * ustring * ustring * ustring) list 
   -> (((('a * ustring list) list * ustring list) option) * ustring)
 (** [parse argv options] parses the argument options [argv] using the
-    information described in the [options] parameter. See example code
-    for more information *)
+    information described in the [options] parameter. The function
+    returns a tuple [(op,str)]. The first element [op] is None if
+    there is an error parsing the argument. In such a case [str]
+    contains the error message that can be printed. If [op] is [Some
+    a], then [a] is an associative list, where the keys are options
+    and the values are lists of option arguments. See example code for
+    more information *)
 
-val optionstext : ('a * argtype * ustring * ustring * ustring) list -> ustring
-(** [optionstext options] takes the list of [options] and create a 
-    readable text that can be used as part of a help text *)
+val optionstext : ?indent:int -> ?max_op_len:int -> ?line_length:int 
+    -> ('a * argtype * ustring * ustring * ustring) list -> ustring
+(** [optionstext options] takes the list of [options] and create a
+    readable text that can be used as part of a help text. There are
+    also three optional arguments: [intent] states how many spaces
+    that each option line should start with. Default is
+    2. [max_op_length] is the longest option text that should be able
+    to be on the first column, without creating a new line. Default
+    value is 25. Finally, the optional argument [line_length] is the
+    maximal length in characters of a line.  The default value is
+    80. *)
         
    
-
-
   

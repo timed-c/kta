@@ -308,29 +308,6 @@ let debug_print inst pc prog state is_a_delay_slot terminate (acc,prev_regfile) 
    ((str,Array.copy state.registers),false)        
 
 
-     (*
-
-0040071c l14:
-             bltz    $t5,l16
-0x00400720   sll     $a0,$a0,2
-0x00400724   lui     $a1,64
-0x00400728   addiu   $a1,$a1,14424
-0x0040072c   addu    $a0,$a0,$a1
-0x00400730   lw      $a2,0($a0)
-0x00400734   sra     $a0,$a2,2
-0x00400738   lui     $a1,64
-0x0040073c   sll     $a0,$a0,2
-0x00400740   addiu   $a1,$a1,15276
-0x00400744   addu    $a1,$a0,$a1
-0x00400748   lw      $a1,0($a1)
-
-0x00400744   addu    $a1,$a0,$a1       $a1 := 7682988  $a0 = 3473408   $a1 = 4209580   
-0x00000000   [0x0]                     
-
-4 bytes memory access at address 0x753bac is outside memory.
-Result v0 = 4210396
-     *)
-
 
 
 
