@@ -115,9 +115,9 @@ let help command toptext =
   (* Function that takes care of the string generation *)
   let pstr command desc options =     
     Some (toptext ^. us"\n" ^.
-    us"usage: kta " ^. us command ^. us" [<files>] [<options>]\n\n" ^.
-    us"description:\n" ^. us desc ^. us"\n" ^.
-    us"options: \n" ^.
+    us"Usage: kta " ^. us command ^. us" [<files>] [<options>]\n\n" ^.
+    us"Description:\n" ^. us desc ^. us"\n" ^.
+    us"Options: \n" ^.
     Uargs.optionstext options)
   in
   match command with

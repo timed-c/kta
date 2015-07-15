@@ -15,13 +15,14 @@ type time =
 type tpp = 
 |TppEntry   
 |TppExit 
-|TppNode of int
+|TppNode of sid
 
     
 (* Abstract value *)
 type value = 
 | VInt of int * int                (* Lower and upper bounds of integers *)
 
+    
 (* Different forms of timing requests *)
 type ta_req = 
 | ReqWCP of tpp * tpp              (* Worst-case path request *)
@@ -31,12 +32,14 @@ type ta_req =
 | ReqFWCET of tpp * tpp            (* Fractional worst-case execution time request *)
 | ReqFBCET of tpp * tpp            (* Fractional best-case execution time request *)
 
+    
 (* Different possible responses to a path request *)
 type tpp_path =
 | TppPath of tpp list              (* Path represented as a list of timing program points *)
 | TppPathInfinity                  (* The path is proven to be infinite *)
 | TppPathUnknown                   (* The path is unknown. Could not be computed *)
 
+    
 (* Different form of timing analysis responses *)
 type ta_res = 
 | ResWCP of tpp_path  

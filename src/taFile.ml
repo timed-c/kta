@@ -12,7 +12,7 @@ let pprint_tpp tpp =
   match tpp with 
   |TppEntry -> us"entry"
   |TppExit -> us"exit"
-  |TppNode(i) -> ustring_of_int i
+  |TppNode(i) -> ustring_of_sid i
 
 
 
@@ -157,7 +157,7 @@ let parse_tpp filename line_no str =
   match str with 
   | "entry" -> TppEntry
   | "exit" -> TppExit
-  | _ -> TppNode(parse_positive_int filename line_no str)
+  | _ -> TppNode(usid str)
 
 
     

@@ -67,12 +67,12 @@ let dummy_timing_analysis func_ta_req =
       let cv = tpp_compare t1 t2 in
       if cv = 0 then TppPath([t1]) else if cv > 0 then TppPathInfinity else 
           TppPath(List.filter (fun x -> 
-            (match x with | TppNode(13) -> false | _ -> ( 
+            (match x with | TppNode(k) when k = usid "13" -> false | _ -> ( 
             tpp_compare x t1 >= 0 && tpp_compare x t2 <= 0))) tpps_distinct))
     in
     let get_ta_time t1 t2 wrong_order =
       match t1,t2 with 
-      | TppNode(13),_ | _,TppNode(13) -> TimeUnknown 
+      | TppNode(k),_ | _,TppNode(k) when k = usid "13" -> TimeUnknown 
       | _ ->  (
       let cv = tpp_compare t1 t2 in
       if cv = 0 then TimeCycles(0) else if cv > 0 then wrong_order else 
