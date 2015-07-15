@@ -58,7 +58,7 @@ let print_main_help() =
  us"  help     Prints out help about commands.\n" ^.
 (* us"  sections Prints out information about sections.\n" ^. *)
  us"  sym      Prints out the symbol table of the executable.\n" ^.
-(* us"  ta       Performs timing analysis.\n" ^. *)
+ us"  ta       Performs timing analysis.\n" ^. 
 (* us"  trace    Prints out a debug trace of a concrete execution.\n" ^. *)
  us"\n" ^.
  us"Run 'kta help <command>' to get help for a specific command.\n"
@@ -75,7 +75,7 @@ let main =
     | _::"exec"::args     -> Commands.exec_command args |> uprint_endline
     | _::"sections"::args -> printf "Sections\n"
     | _::"sym"::args      -> Commands.sym_command args |> uprint_endline
-    | _::"ta"::args       -> printf "Timing Analysis\n"
+    | _::"ta"::args       -> Commands.ta_command args |> uprint_endline
     | _::"trace"::args    -> printf "Trace\n"
 
     (* Help *) 

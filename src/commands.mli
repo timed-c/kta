@@ -58,6 +58,10 @@ val sym_command : string list -> ustring
 (** [sym_command args] executes the [sym] command with the arguments [args].
   Raises exception Uargs.Error if there is an error *)
 
+val ta_command : string list -> ustring
+(** [ta_command args] executes the [ta] command with the arguments [args].
+  Raises exception Uargs.Error if there is an error *)
+
 
 
 
