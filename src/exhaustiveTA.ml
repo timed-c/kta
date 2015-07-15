@@ -28,10 +28,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 
+(* ---------------------------------------------------------------------*)
 let timed_eval_func funcname args mem_init_map func_wcet func_bcet =
   TppTimedPathUnknown
 
     
+(* ---------------------------------------------------------------------*)
 let analyze evalfunc func_ta_req = []
 
 
