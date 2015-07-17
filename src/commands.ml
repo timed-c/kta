@@ -30,6 +30,7 @@ open Ustring.Op
 open Printf
 open MipsAst
 open MipsEval
+open TaFileTypes
 
 (* ---------------------------------------------------------------------*)
 (* Types of options. *)
@@ -157,7 +158,7 @@ let getBinFileName ops args =
 
 (* ---------------------------------------------------------------------*)
 let remove_tempfile() =
-  Sys.remove tmpfile
+  if Sys.file_exists tmpfile then Sys.remove tmpfile else ()
   
 
 
@@ -294,13 +295,28 @@ let ta_command args =
   let (ops,args) = Uargs.parse args ta_options in
   let binfile_name = getBinFileName ops args in
 
+  try (
+    (* The request comes from ta-files? *)
+    if Uargs.has_op OpTa_Tafile ops then
 
-  (* The request comes from ta-files? *)
-  if Uargs.has_op OpTa_Tafile ops then
-     raise (Uargs.Error (us"TA-files not yet implemented."))
+      (* Get the file requests *)
+      let f_reqs = List.map 
+        (fun f -> f |> Ustring.to_utf8 |> TaFile.parse_ta_file) 
+        (Uargs.strlist_op OpTa_Tafile ops) in
 
-  (* Error. There is no request *)
-  else
-    raise (Uargs.Error (us"Error: Option -tafile needs " ^.
+      (* Iterate through the file requests *)
+      List.iter (fun file_ta_req -> 
+        print_endline (file_ta_req.ta_filename)
+      ) f_reqs;
+
+      us"Done!\n"        
+
+    (* Error. There is no request *)
+    else
+      raise (Uargs.Error (us"Error: Option -tafile needs " ^.
                          us"to be used with the 'ta' command."))
+
+  )with
+  | Sys_error m -> (remove_tempfile(); raise (Uargs.Error (us"System error: " ^. us m)))
+
 
