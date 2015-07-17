@@ -45,8 +45,8 @@ type compOpTypes =
 | OpExec_All
 | OpSym_CommaSep
 | OpTa_Tafiles 
-| OpTa_Func
-| OpTa_Args
+(*| OpTa_Func *)
+(*| OpTa_Args *)
 | OpTa_Exhaustive
 
 (* List of compiler options *)
@@ -92,7 +92,7 @@ let sym_options =
 let ta_options =
   [(OpTa_Tafiles, Uargs.StrList,  us"-tafiles",  us" <files>",
        us"One or more timing analysis files (.ta)");
-   (OpTa_Func, Uargs.Str,  us"-func",  us" <name>",
+ (*  (OpTa_Func, Uargs.Str,  us"-func",  us" <name>",
        us"Function name that is used in the timing analysis. " ^.
        us"Note that this parameter cannot be used together with a " ^.
        us"timing analysis file.");
@@ -100,7 +100,7 @@ let ta_options =
        us"Arguments to the function supplied by the -func option. " ^.
        us"One or more arguments can be listed after option " ^.
        us"'-args'. The argument values need to be integers or integer intervals " ^.
-       us"using the syntax l..u, where l is the lower bound and u the upper bound.");
+       us"using the syntax l..u, where l is the lower bound and u the upper bound."); *)
    (OpTa_Exhaustive, Uargs.No,  us"-exhaustive",  us"",
        us"Performs exhaustive search of all possible program paths.")]
   @ compile_options
@@ -294,73 +294,13 @@ let ta_command args =
   let (ops,args) = Uargs.parse args exec_options in
   let binfile_name = getBinFileName ops args in
 
-  (* Get the function name *)
-  let func =
-    if Uargs.has_op OpExec_Func ops
-    then Uargs.str_op OpExec_Func ops |> Ustring.to_utf8
-    else "main" in
 
-  (* Function arguments *)
-  let args = List.map Int32.of_int (Uargs.intlist_op OpExec_Args ops) in
-  
-  try
-    (* Load the program *)
-    let prog = MipsSys.assign_program_stack (MipsSys.get_program binfile_name) 
-               stack_ptr stack_size stack_addr in
+  (* The request comes from ta-files? *)
+  if Uargs.has_op OpTa_Tafiles ops then
+     raise (Uargs.Error (us"TA-files not yet implemented."))
 
-    (* Initialize the state *)
-    let initstate = MipsEval.init prog func args in
-
-    (* Pretty print the start register state, before execution *)
-    let str =
-      if Uargs.has_op OpExec_RegStart ops || Uargs.has_op OpExec_All ops then
-        MipsEval.pprint_state initstate ^. us"\n\n"
-      else us"" in
-
-    (* Evaluate/execute the function *)
-    let (state,(count,terminate)) =
-      MipsEval.eval prog initstate MipsEval.cycle_count (0,None)  in
-
-    
-    (* Pretty print the start register state, after execution *)
-    let str = str ^.
-      if Uargs.has_op OpExec_RegEnd ops || Uargs.has_op OpExec_All ops then
-        MipsEval.pprint_state state ^. us"\n\n"
-      else us"" in
-
-    (* Pretty print results *)
-    let str = str ^. 
-      if Uargs.has_op OpExec_Res ops || Uargs.has_op OpExec_All ops then 
-        let res = Int32.to_int state.registers.(reg_v0) in
-        us(sprintf"Register $v0 = %d (0x%x)\n" res res) ^.
-        (try
-           let (b,ptr,maxval) = MipsEval.getmemptr state prog res 1 in
-           us"\nData memory:\n" ^.
-           (MipsUtils.pprint_bytes b ptr (min maxval 32) res false)
-         with _ -> us"") ^. us"\n"
-      else us""
-    in
-        
-    (* Output finished time *)
-    let str = str ^.
-      us(sprintf "Execution of function '%s' successfully " func) ^.
-      us(sprintf "terminated after executing %d clock cycles.\n" count)
-    in        
-
-    (* Clean up *)
-    remove_tempfile(); str
-
-  with
-  | Sys_error m -> (remove_tempfile(); raise (Uargs.Error (us"System error: " ^. us m)))
-  | Function_not_found m -> (remove_tempfile(); raise (Uargs.Error
-                         (us"Execution error: Function '" ^. us m ^. us"' cannot be found.")))
-    
-
-
-
-
-
-
-
-
+  (* Error. There is no request *)
+  else
+    raise (Uargs.Error (us"Error: Option -tafiles needs " ^.
+                         us"to be used\nwith the 'ta' command."))
 
