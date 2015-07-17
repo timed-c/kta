@@ -44,9 +44,9 @@ type compOpTypes =
 | OpExec_Res
 | OpExec_All
 | OpSym_CommaSep
-| OpTa_Tafiles 
-(*| OpTa_Func *)
-(*| OpTa_Args *)
+| OpTa_Tafile 
+(*| OpTa_Func  *)
+(*| OpTa_Args  *)
 | OpTa_Exhaustive
 
 (* List of compiler options *)
@@ -90,7 +90,7 @@ let sym_options =
     
 (* List of timing analysis command options *)
 let ta_options =
-  [(OpTa_Tafiles, Uargs.StrList,  us"-tafiles",  us" <files>",
+  [(OpTa_Tafile, Uargs.StrList,  us"-tafile",  us" <files>",
        us"One or more timing analysis files (.ta)");
  (*  (OpTa_Func, Uargs.Str,  us"-func",  us" <name>",
        us"Function name that is used in the timing analysis. " ^.
@@ -291,16 +291,16 @@ let ta_command args =
   let stack_addr = stack_ptr - stack_size + 8 in
   
   (* Parse options and get the binary file name *)
-  let (ops,args) = Uargs.parse args exec_options in
+  let (ops,args) = Uargs.parse args ta_options in
   let binfile_name = getBinFileName ops args in
 
 
   (* The request comes from ta-files? *)
-  if Uargs.has_op OpTa_Tafiles ops then
+  if Uargs.has_op OpTa_Tafile ops then
      raise (Uargs.Error (us"TA-files not yet implemented."))
 
   (* Error. There is no request *)
   else
-    raise (Uargs.Error (us"Error: Option -tafiles needs " ^.
-                         us"to be used\nwith the 'ta' command."))
+    raise (Uargs.Error (us"Error: Option -tafile needs " ^.
+                         us"to be used with the 'ta' command."))
 
