@@ -306,7 +306,14 @@ let ta_command args =
 
       (* Iterate through the file requests *)
       List.iter (fun file_ta_req -> 
-        print_endline (file_ta_req.ta_filename)
+        print_endline (file_ta_req.ta_filename);
+
+        (* Iterate through ta func request *)
+        let resps = List.map (fun freq -> 
+          uprint_endline (us"function: " ^. freq.funcname);
+          ()
+        ) file_ta_req.func_ta_reqs in
+        ()
       ) f_reqs;
 
       us"Done!\n"        
@@ -318,5 +325,6 @@ let ta_command args =
 
   )with
   | Sys_error m -> (remove_tempfile(); raise (Uargs.Error (us"System error: " ^. us m)))
+
 
 
