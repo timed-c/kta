@@ -1,6 +1,7 @@
 
 open Ustring.Op
 open MipsAst
+open Printf
 
 let comp_name = "mipsel-pic32-elf"
 let objcopy = comp_name ^ "-objcopy"
@@ -148,9 +149,29 @@ let assign_program_stack prog ptr size addr =
 
 (* ---------------------------------------------------------------------*)
 let get_timed_eval_func filename =
+  (* Stack constants. Should be command options *)
+  let stack_ptr = 0x80000000 - 8  in
+  let stack_size = 1024*256  in
+  let stack_addr = stack_ptr - stack_size + 8 in
 
+  (* Load the program *)
+  let prog = assign_program_stack (get_program filename) 
+             stack_ptr stack_size stack_addr in
+
+    
   (* Create the timed eval function *)
-  let timed_eval_func funcname args meminitmap func_wcet func_bcet =
+  let timed_eval_func funcname args meminitmap func_wcet func_bcet = 
+
+
+    (* Initialize the state *)
+    let initstate = MipsEval.init prog funcname args in
+  
+    (* Evaluate/execute the function *)
+    let (state,(count,terminate)) =
+      MipsEval.eval prog initstate MipsEval.cycle_count (0,None)  in 
+    
+    printf "Cycles: %d\n" count;
+    
     ExhaustiveTA.TppTimedPathUnknown
   in
   

@@ -311,8 +311,8 @@ let ta_command args =
         (* Iterate through ta func request *)
         let resps = List.map (fun freq -> 
           uprint_endline (us"function: " ^. freq.funcname);
-          let ta_res_list = ExhaustiveTa.analyze eval_fun freq in
-          
+          let ta_res_list = ExhaustiveTA.analyze eval_fun freq in
+          ()
         ) file_ta_req.func_ta_reqs in
         ()
       ) f_reqs;

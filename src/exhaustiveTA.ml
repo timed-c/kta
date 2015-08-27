@@ -37,7 +37,7 @@ type tpp_timed_path =
 
 type assumed_func_timing = (sid * time) list    
   
-type timed_eval_func = ustring -> int32 list -> (int * int32) list ->
+type timed_eval_func = string -> int32 list -> (int * int32) list ->
                 (sid * time) list -> (sid * time) list -> tpp_timed_path
 (** [timed_eval_func funcname args meminitmap func_wcet func_bcet]. The [meminitmap] is
     an assoicative list, where the keys are addresses and the values are the
@@ -52,7 +52,25 @@ let timed_eval_func funcname args mem_init_map func_wcet func_bcet =
 
     
 (* ---------------------------------------------------------------------*)
-let analyze evalfunc func_ta_req = []
+let analyze evalfunc func_ta_req = 
+  
+  let name = Ustring.to_utf8 func_ta_req.funcname in
+  match evalfunc name [] [] [] [] with
+  | TppTimedPath timedpath -> []
+  | TppTimedPathUnknown  -> []
 
+
+(*
+type timed_eval_func = string -> int32 list -> (int * int32) list ->
+                (sid * time) list -> (sid * time) list -> tpp_timed_path
+(** [timed_eval_func funcname args meminitmap func_wcet func_bcet]. The [meminitmap] *)
+
+val analyze : timed_eval_func -> TaFileTypes.func_ta_req -> TaFileTypes.ta_res list
+(** [analyze evalfunc func_ta_req] *)
+
+type tpp_timed_path =
+| TppTimedPath of (clock_cycles * tpp) list      (* Timed path *)
+| TppTimedPathUnknown                            (* The path is unknown. Could not be computed *)
+*)
 
 

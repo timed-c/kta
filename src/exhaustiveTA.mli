@@ -48,7 +48,7 @@ type tpp_timed_path =
 
 type assumed_func_timing = (sid * time) list    
   
-type timed_eval_func = ustring -> int32 list -> (int * int32) list ->
+type timed_eval_func = string -> int32 list -> (int * int32) list ->
                 (sid * time) list -> (sid * time) list -> tpp_timed_path
 (** [timed_eval_func funcname args meminitmap func_wcet func_bcet]. The [meminitmap] is
     an assoicative list, where the keys are addresses and the values are the
