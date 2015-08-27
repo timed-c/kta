@@ -40,9 +40,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 open Ustring.Op
 open TaFileTypes
 
-type clockc_cyles = int
+type clock_cycles = int
 
-type tpp_timed_path
+type tpp_timed_path =
 | TppTimedPath of (clock_cycles * tpp) list      (* Timed path *)
 | TppTimedPathUnknown                            (* The path is unknown. Could not be computed *)
 
@@ -54,7 +54,7 @@ type timed_eval_func = ustring -> int32 list -> (int * int32) list ->
     an assoicative list, where the keys are addresses and the values are the
     memory values at these positions. *)
   
-val analyze : timed_eval_func -> TaFileType.func_ta_req -> TaFileType.ta_res list
+val analyze : timed_eval_func -> TaFileTypes.func_ta_req -> TaFileTypes.ta_res list
 (** [analyze evalfunc func_ta_req] *)
 
 

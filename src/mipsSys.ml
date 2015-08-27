@@ -138,6 +138,7 @@ let get_program filename =
 
 
 
+(* ---------------------------------------------------------------------*)
 let assign_program_stack prog ptr size addr = 
   {prog with stack_sec = {d = Bytes.empty; addr = addr; size = size};
              sp = ptr}
@@ -145,4 +146,18 @@ let assign_program_stack prog ptr size addr =
 
 
 
+(* ---------------------------------------------------------------------*)
+let get_timed_eval_func filename =
+
+  (* Create the timed eval function *)
+  let timed_eval_func funcname args meminitmap func_wcet func_bcet =
+    ExhaustiveTA.TppTimedPathUnknown
+  in
+  
+  (* Return the timed eval function *)
+  timed_eval_func
+  
+  
+  
+    
 

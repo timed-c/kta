@@ -47,3 +47,10 @@ val assign_program_stack : MipsAst.program -> int -> int -> int -> MipsAst.progr
     program object derived from [prog] with the initial stack pointer at [ptr],
     the size buffer [size] and the start address [addr] of the buffer.
 *)
+
+
+val get_timed_eval_func : string -> ExhaustiveTA.timed_eval_func
+(** [get_timed_eval_func filename] returns the timed eval function for
+    a specific MIPS executable. *)
+
+

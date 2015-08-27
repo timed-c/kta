@@ -26,7 +26,25 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *)
 
+open Ustring.Op
+open TaFileTypes
 
+type clock_cycles = int
+
+type tpp_timed_path =
+| TppTimedPath of (clock_cycles * tpp) list      (* Timed path *)
+| TppTimedPathUnknown                            (* The path is unknown. Could not be computed *)
+
+type assumed_func_timing = (sid * time) list    
+  
+type timed_eval_func = ustring -> int32 list -> (int * int32) list ->
+                (sid * time) list -> (sid * time) list -> tpp_timed_path
+(** [timed_eval_func funcname args meminitmap func_wcet func_bcet]. The [meminitmap] is
+    an assoicative list, where the keys are addresses and the values are the
+    memory values at these positions. *)
+  
+
+    
 
 (* ---------------------------------------------------------------------*)
 let timed_eval_func funcname args mem_init_map func_wcet func_bcet =

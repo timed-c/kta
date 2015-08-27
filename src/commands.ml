@@ -286,16 +286,16 @@ let sym_command args =
 
 (* ---------------------------------------------------------------------*)
 let ta_command args =
-  (* Stack constants. Should be command options *)
-  let stack_ptr = 0x80000000 - 8  in
-  let stack_size = 1024*256  in
-  let stack_addr = stack_ptr - stack_size + 8 in
-  
   (* Parse options and get the binary file name *)
   let (ops,args) = Uargs.parse args ta_options in
   let binfile_name = getBinFileName ops args in
-
+        
+  (* Perform the timing analysis *)
   try (
+
+    (* Get the eval function for functions for the MIPS binary *)
+    let eval_fun = MipsSys.get_timed_eval_func binfile_name in
+    
     (* The request comes from ta-files? *)
     if Uargs.has_op OpTa_Tafile ops then
 
@@ -311,11 +311,14 @@ let ta_command args =
         (* Iterate through ta func request *)
         let resps = List.map (fun freq -> 
           uprint_endline (us"function: " ^. freq.funcname);
-          ()
+          let ta_res_list = ExhaustiveTa.analyze eval_fun freq in
+          
         ) file_ta_req.func_ta_reqs in
         ()
       ) f_reqs;
 
+      (* Remove the temp file used when compiling *)
+      remove_tempfile();
       us"Done!\n"        
 
     (* Error. There is no request *)
@@ -324,7 +327,7 @@ let ta_command args =
                          us"to be used with the 'ta' command."))
 
   )with
-  | Sys_error m -> (remove_tempfile(); raise (Uargs.Error (us"System error: " ^. us m)))
+  | Sys_error m -> (raise (Uargs.Error (us"System error: " ^. us m)))
 
 
 
