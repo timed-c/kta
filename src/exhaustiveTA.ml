@@ -28,6 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 open Ustring.Op
 open TaFileTypes
+open Printf
 
 type clock_cycles = int
 
@@ -53,7 +54,32 @@ let timed_eval_func funcname args mem_init_map func_wcet func_bcet =
     
 (* ---------------------------------------------------------------------*)
 let analyze evalfunc func_ta_req = 
+
+  List.iter (fun (s,VInt(l,u)) -> printf "%s, [%d,%d]\n" 
+    (s |> ustring_of_sid |> Ustring.to_utf8) l u) func_ta_req.gvars;
+
+  let (first,addrsym_last) = 
+    List.split (List.map (fun (a,VInt(l,u)) -> (l,(a,u))) func_ta_req.gvars) in
   
+  (*let add_last = List.map (fun (asym,u) -> 
+  let explore l = 
+    match 
+
+  in *)
+
+(*
+  1 1 4
+  1 1 5
+  1 2 4 
+  1 2 5
+  2 1 4
+  2
+  
+  a 1..3
+  b 1..2
+  c 4..5
+*)
+
   let name = Ustring.to_utf8 func_ta_req.funcname in
   match evalfunc name [] [] [] [] with
   | TppTimedPath timedpath -> []

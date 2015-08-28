@@ -161,7 +161,7 @@ let get_timed_eval_func filename =
     
   (* Create the timed eval function *)
   let timed_eval_func funcname args meminitmap func_wcet func_bcet = 
-
+        
 
     (* Initialize the state *)
     let initstate = MipsEval.init prog funcname args in

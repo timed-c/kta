@@ -5,6 +5,7 @@ function foo
 
 # Optional assumptions
 globalvar g1  0..100
+globalvar g2  3
 
 # Requested timing analysis
 LWCET 1 2

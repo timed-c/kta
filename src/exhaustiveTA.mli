@@ -54,7 +54,7 @@ type timed_eval_func = string -> int32 list -> (int * int32) list ->
     an assoicative list, where the keys are addresses and the values are the
     memory values at these positions. *)
   
-val analyze : timed_eval_func -> TaFileTypes.func_ta_req -> TaFileTypes.ta_res list
+val analyze : timed_eval_func -> TaFileTypes.func_ta_req  -> TaFileTypes.ta_res list
 (** [analyze evalfunc func_ta_req] *)
 
 
