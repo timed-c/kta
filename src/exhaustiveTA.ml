@@ -58,9 +58,22 @@ let analyze evalfunc func_ta_req =
   List.iter (fun (s,VInt(l,u)) -> printf "%s, [%d,%d]\n" 
     (s |> ustring_of_sid |> Ustring.to_utf8) l u) func_ta_req.gvars;
 
-  let (first,addrsym_last) = 
-    List.split (List.map (fun (a,VInt(l,u)) -> (l,(a,u))) func_ta_req.gvars) in
+  let (first,addrint) = 
+    List.split (List.map (fun (id,VInt(l,u)) -> (l,(id,l,u))) func_ta_req.gvars) in
   
+  let rec explore lst cur =
+    match lst,cur with
+    | (id,l,u)::lres, c::cres -> ( 
+         (*uprint_endline ((ustring_of_sid id) ^. us (sprintf " [%d,%d]\n" l u));*)
+         printf "%d," c;
+         explore lres cres;
+         if c = u then () else explore lst ((c+1)::cres))
+    | [],[] -> printf "\n"
+    | _,_ -> failwith "should not happen."
+  in
+
+  explore addrint first; 
+
   (*let add_last = List.map (fun (asym,u) -> 
   let explore l = 
     match 
