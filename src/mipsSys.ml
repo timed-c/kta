@@ -149,29 +149,23 @@ let assign_program_stack prog ptr size addr =
 
 
 (* ---------------------------------------------------------------------*)
-let get_eval_func prog =
-
-
-(*
-  (* Extract the symbol table *)
-  let (symtable_hash : (sid,ustring) Hashtbl.t) = Hashtbl.create 1024  in
-
-  (* Create the symbol table function that will be exported *)
-  let symtbl sid = 
-    Hashtbl.find symtable_hash sid    
-  in
-*)
+let get_eval_func ?(bigendian=false) prog =
     
   (* Create the timed eval function *)
   let timed_eval_func funcname args meminitmap func_wcet func_bcet = 
         
-
     (* Initialize the state *)
-    let initstate = MipsEval.init prog funcname args in
+    let state = MipsEval.init prog funcname args in
+
+    (* Set memory init map *)
+    List.iter (fun (addr,v) ->          
+      let (mem,i,_) = MipsEval.getmemptr state prog addr 4 in
+      MipsUtils.set_32_bits bigendian mem i v;
+    ) meminitmap;
   
     (* Evaluate/execute the function *)
     let (state,(count,terminate)) =
-      MipsEval.eval prog initstate MipsEval.cycle_count (0,None)  in 
+      MipsEval.eval ~bigendian:bigendian prog state MipsEval.cycle_count (0,None)  in 
     
     printf "Cycles: %d\n" count;
     

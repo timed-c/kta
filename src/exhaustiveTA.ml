@@ -54,12 +54,8 @@ let timed_eval_func funcname args mem_init_map func_wcet func_bcet =
     
 (* ---------------------------------------------------------------------*)
 let analyze evalfunc func_ta_req symtbl = 
-  
-  (* TEMP prints out globals 
-  List.iter (fun (s,VInt(l,u)) -> printf "%s, [%d,%d]\n" 
-    (s |> ustring_of_sid |> Ustring.to_utf8) l u) func_ta_req.gvars;
-  *)
 
+  (* Extract out global variable assumptions *)  
   let (first,addrint) = 
     List.split (List.map (fun (id,VInt(l,u)) -> (l,(id,l,u))) func_ta_req.gvars) in
 
@@ -70,12 +66,10 @@ let analyze evalfunc func_ta_req symtbl =
   let rec explore lst cur memmap =
     match lst,cur with
     | (id,l,u)::lres, c::cres -> ( 
-         (*uprint_endline ((ustring_of_sid id) ^. us (sprintf " [%d,%d]\n" l u));*)
-         (* printf "%d," c; *)
          explore lres cres ((symtbl id,Int32.of_int c)::memmap);
          if c = u then () else explore lst ((c+1)::cres) memmap)
     | [],[] -> (
-        (* Perform the analysis *)
+        (* Perform the analysis by executing one configuration *)
         match evalfunc name [] memmap [] [] with
         | TppTimedPath timedpath -> ()
         | TppTimedPathUnknown  -> ()
@@ -88,18 +82,5 @@ let analyze evalfunc func_ta_req symtbl =
   []
   
 
-
-(*
-type timed_eval_func = string -> int32 list -> (int * int32) list ->
-                (sid * time) list -> (sid * time) list -> tpp_timed_path
-(** [timed_eval_func funcname args meminitmap func_wcet func_bcet]. The [meminitmap] *)
-
-val analyze : timed_eval_func -> TaFileTypes.func_ta_req -> TaFileTypes.ta_res list
-(** [analyze evalfunc func_ta_req] *)
-
-type tpp_timed_path =
-| TppTimedPath of (clock_cycles * tpp) list      (* Timed path *)
-| TppTimedPathUnknown                            (* The path is unknown. Could not be computed *)
-*)
 
 

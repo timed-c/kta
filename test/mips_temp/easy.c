@@ -11,12 +11,12 @@ int g2 = 7;
 // function to not be inlined.
 int __attribute__ ((noinline)) foo()
 {
-  int u = g1 * 10;
+  int u = g1 * g2;
   int i;
 
   TPP(1);
 
-  for(i=0; i<g1; i++)
+  for(i=0; i<g1*g2; i++)
     u += i * g2;
   TPP(2);
   return u;

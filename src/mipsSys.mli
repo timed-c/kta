@@ -50,7 +50,7 @@ val assign_program_stack : MipsAst.program -> int -> int -> int -> MipsAst.progr
 *)
 
 
-val get_eval_func : MipsAst.program -> ExhaustiveTA.timed_eval_func
+val get_eval_func : ?bigendian:bool -> MipsAst.program -> ExhaustiveTA.timed_eval_func
 (** [get_timed_eval_func prog] returns the a timed eval function for
     a specific MIPS executable and the symbol table. *)
 
