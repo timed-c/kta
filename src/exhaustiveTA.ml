@@ -53,50 +53,40 @@ let timed_eval_func funcname args mem_init_map func_wcet func_bcet =
 
     
 (* ---------------------------------------------------------------------*)
-let analyze evalfunc func_ta_req = 
-
+let analyze evalfunc func_ta_req symtbl = 
+  
+  (* TEMP prints out globals 
   List.iter (fun (s,VInt(l,u)) -> printf "%s, [%d,%d]\n" 
     (s |> ustring_of_sid |> Ustring.to_utf8) l u) func_ta_req.gvars;
+  *)
 
   let (first,addrint) = 
     List.split (List.map (fun (id,VInt(l,u)) -> (l,(id,l,u))) func_ta_req.gvars) in
-  
-  let rec explore lst cur =
+
+  (* Get the actual function name *)
+  let name = Ustring.to_utf8 func_ta_req.funcname in
+
+  (* Exhaustively explore all possible input combinations *)
+  let rec explore lst cur memmap =
     match lst,cur with
     | (id,l,u)::lres, c::cres -> ( 
          (*uprint_endline ((ustring_of_sid id) ^. us (sprintf " [%d,%d]\n" l u));*)
-         printf "%d," c;
-         explore lres cres;
-         if c = u then () else explore lst ((c+1)::cres))
-    | [],[] -> printf "\n"
+         (* printf "%d," c; *)
+         explore lres cres ((symtbl id,Int32.of_int c)::memmap);
+         if c = u then () else explore lst ((c+1)::cres) memmap)
+    | [],[] -> (
+        (* Perform the analysis *)
+        match evalfunc name [] memmap [] [] with
+        | TppTimedPath timedpath -> ()
+        | TppTimedPathUnknown  -> ()
+    )
     | _,_ -> failwith "should not happen."
   in
 
-  explore addrint first; 
+  explore addrint first []; 
 
-  (*let add_last = List.map (fun (asym,u) -> 
-  let explore l = 
-    match 
-
-  in *)
-
-(*
-  1 1 4
-  1 1 5
-  1 2 4 
-  1 2 5
-  2 1 4
-  2
+  []
   
-  a 1..3
-  b 1..2
-  c 4..5
-*)
-
-  let name = Ustring.to_utf8 func_ta_req.funcname in
-  match evalfunc name [] [] [] [] with
-  | TppTimedPath timedpath -> []
-  | TppTimedPathUnknown  -> []
 
 
 (*

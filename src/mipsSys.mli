@@ -1,4 +1,5 @@
 
+open Ustring.Op
 
 val get_section : string -> string -> bytes
 (** [get_section filename section] returns the sequence of bytes from
@@ -49,8 +50,8 @@ val assign_program_stack : MipsAst.program -> int -> int -> int -> MipsAst.progr
 *)
 
 
-val get_timed_eval_func : string -> ExhaustiveTA.timed_eval_func
-(** [get_timed_eval_func filename] returns the timed eval function for
-    a specific MIPS executable. *)
+val get_eval_func : MipsAst.program -> ExhaustiveTA.timed_eval_func
+(** [get_timed_eval_func prog] returns the a timed eval function for
+    a specific MIPS executable and the symbol table. *)
 
 

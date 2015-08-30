@@ -50,12 +50,18 @@ type assumed_func_timing = (sid * time) list
   
 type timed_eval_func = string -> int32 list -> (int * int32) list ->
                 (sid * time) list -> (sid * time) list -> tpp_timed_path
-(** [timed_eval_func funcname args meminitmap func_wcet func_bcet]. The [meminitmap] is
-    an assoicative list, where the keys are addresses and the values are the
-    memory values at these positions. *)
+(** [timed_eval_func funcname args meminitmap func_wcet func_bcet]. 
+    The [meminitmap] is an assoicative list, where the
+    keys are addresses and the values are the memory values at these
+    positions. *)
   
-val analyze : timed_eval_func -> TaFileTypes.func_ta_req  -> TaFileTypes.ta_res list
-(** [analyze evalfunc func_ta_req] *)
+
+val analyze : timed_eval_func -> TaFileTypes.func_ta_req -> (sid -> int)
+              -> TaFileTypes.ta_res list
+(** [analyze evalfunc func_ta_req symtbl] analyze timing function
+    request [func_ta_req] using the evaluation function [evalfunc] and
+    the symbol table [symtbl]. If the symbol table function is called,
+    and the symbol does not exist, exception Not_found is raised. *)
 
 
 

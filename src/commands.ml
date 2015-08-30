@@ -220,7 +220,6 @@ let exec_command args =
     (* Evaluate/execute the function *)
     let (state,(count,terminate)) =
       MipsEval.eval prog initstate MipsEval.cycle_count (0,None)  in
-
     
     (* Pretty print the start register state, after execution *)
     let str = str ^.
@@ -286,6 +285,11 @@ let sym_command args =
 
 (* ---------------------------------------------------------------------*)
 let ta_command args =
+  (* Stack constants. Should be command options *)
+  let stack_ptr = 0x80000000 - 8  in
+  let stack_size = 1024*256  in
+  let stack_addr = stack_ptr - stack_size + 8 in
+
   (* Parse options and get the binary file name *)
   let (ops,args) = Uargs.parse args ta_options in
   let binfile_name = getBinFileName ops args in
@@ -293,8 +297,19 @@ let ta_command args =
   (* Perform the timing analysis *)
   try (
 
-    (* Get the eval function for functions for the MIPS binary *)
-    let eval_fun = MipsSys.get_timed_eval_func binfile_name in
+    (* Load the program *)
+    let prog = MipsSys.assign_program_stack (MipsSys.get_program binfile_name) 
+             stack_ptr stack_size stack_addr in
+
+    (* TODO: check that all symbols in the TA files actually exists in the binary *)
+
+    (* Get the eval function for the  functions for the MIPS binary *)
+    let eval_fun = MipsSys.get_eval_func prog in
+
+    (* Not so fast symbol lookup function. TODO: redesign prog in MipsAST *)
+    let symtbl id = 
+      MipsAst.Sym2Addr.find (id |> ustring_of_sid |> Ustring.to_utf8) prog.sym2addr  
+    in
     
     (* The request comes from ta-files? *)
     if Uargs.has_op OpTa_Tafile ops then
@@ -311,7 +326,7 @@ let ta_command args =
         (* Iterate through ta func request *)
         let resps = List.map (fun freq -> 
           uprint_endline (us"function: " ^. freq.funcname);
-          let ta_res_list = ExhaustiveTA.analyze eval_fun freq in
+          let ta_res_list = ExhaustiveTA.analyze eval_fun freq symtbl in
           ()
         ) file_ta_req.func_ta_reqs in
         ()

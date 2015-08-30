@@ -147,17 +147,20 @@ let assign_program_stack prog ptr size addr =
 
 
 
+
 (* ---------------------------------------------------------------------*)
-let get_timed_eval_func filename =
-  (* Stack constants. Should be command options *)
-  let stack_ptr = 0x80000000 - 8  in
-  let stack_size = 1024*256  in
-  let stack_addr = stack_ptr - stack_size + 8 in
+let get_eval_func prog =
 
-  (* Load the program *)
-  let prog = assign_program_stack (get_program filename) 
-             stack_ptr stack_size stack_addr in
 
+(*
+  (* Extract the symbol table *)
+  let (symtable_hash : (sid,ustring) Hashtbl.t) = Hashtbl.create 1024  in
+
+  (* Create the symbol table function that will be exported *)
+  let symtbl sid = 
+    Hashtbl.find symtable_hash sid    
+  in
+*)
     
   (* Create the timed eval function *)
   let timed_eval_func funcname args meminitmap func_wcet func_bcet = 
