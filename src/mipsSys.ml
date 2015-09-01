@@ -2,6 +2,7 @@
 open Ustring.Op
 open MipsAst
 open Printf
+open MipsEval
 
 let comp_name = "mipsel-pic32-elf"
 let objcopy = comp_name ^ "-objcopy"
@@ -10,6 +11,8 @@ let nm = comp_name ^ "-nm"
 let gcc = comp_name ^ "-gcc"
 let section_guid = "20b8de13-4db6-4ac8-89ff-0bb1ac7aadc8"
 
+let empty_sid = usid ""
+let tpp_magic = us"MAGIC070704090916_TPP"
 
 (* ---------------------------------------------------------------------*)
 let get_section filename section =
@@ -146,17 +149,44 @@ let assign_program_stack prog ptr size addr =
 
 
 
+    
+(* ---------------------------------------------------------------------*)
+let cycle_count_with_tpp tppmap inst pc prog state is_a_delay_slot terminate ((count,lst),_) =
+  try
+    printf "idx: %d  %d\n" ((state.pc - prog.text_sec.addr) / 4) (Array.length tppmap);
+    let tpp_sid = Array.get tppmap ((state.pc - prog.text_sec.addr) / 4) in 
+    let lst' = if tpp_sid = empty_sid then (tpp_sid,count)::lst else lst in
+                                     
+    (((count+1,lst'),terminate), false)
+      
+  with
+    _ -> failwith "Internal error in function cycle_count_with_tpp() in mipsSys.ml"
+      
+    (*
+  ((count + 1,terminate), false )
+    *)
+
 
 
 (* ---------------------------------------------------------------------*)
 let get_eval_func ?(bigendian=false) prog =
-    
+
+  (* Create the tpp map *)
+  let tppmap = Array.make (Array.length prog.code) empty_sid in
+  List.iter (fun (s,a) ->
+    let u = us s in
+    if Ustring.starts_with tpp_magic u then
+      Array.set tppmap ((a - prog.text_sec.addr) / 4) (usid s);
+    ) prog.symbols;                            
+
+
+  
   (* Create the timed eval function *)
   let timed_eval_func funcname args meminitmap func_wcet func_bcet = 
         
     (* Initialize the state *)
     let state = MipsEval.init prog funcname args in
-
+    
     (* Set memory init map *)
     List.iter (fun (addr,v) ->          
       let (mem,i,_) = MipsEval.getmemptr state prog addr 4 in
@@ -164,10 +194,12 @@ let get_eval_func ?(bigendian=false) prog =
     ) meminitmap;
   
     (* Evaluate/execute the function *)
-    let (state,(count,terminate)) =
-      MipsEval.eval ~bigendian:bigendian prog state MipsEval.cycle_count (0,None)  in 
-    
-    printf "Cycles: %d\n" count;
+    let (state,((count,tpp_path),terminate)) =
+      MipsEval.eval ~bigendian:bigendian prog state (cycle_count_with_tpp tppmap) ((0,[]),None)  in 
+
+    List.iter (fun (tpp,count) ->
+      uprint_endline (us"TPP: " ^. ustring_of_sid tpp ^. us(sprintf "count: %d" count)))
+        tpp_path;
     
     ExhaustiveTA.TppTimedPathUnknown
   in

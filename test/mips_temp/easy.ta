@@ -5,7 +5,7 @@ function foo
 
 # Optional assumptions
 globalvar g1  10..20
-globalvar g2  3..100
+globalvar g2  3..3
 # globalvar g3  10..11
 
 # Requested timing analysis
