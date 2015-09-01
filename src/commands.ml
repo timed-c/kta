@@ -37,6 +37,7 @@ open TaFileTypes
 type compOpTypes =
   (* General compiler options used by all commands *)
 | OpCompile
+| OpVerbose
 | OpDisasm_Addr
 | OpExec_Func
 | OpExec_Args
@@ -51,17 +52,19 @@ type compOpTypes =
 | OpTa_Exhaustive
 
 (* List of compiler options *)
-let compile_options = 
+let extra_options = 
   [(OpCompile,     Uargs.No, us"-compile",     us"",
        us"Assume that the input files are C files. These files are then " ^.
-       us"compiled and used as input instead of a binary ELF executable." )]
+       us"compiled and used as input instead of a binary ELF executable." );
+   (OpVerbose,     Uargs.No, us"-verbose",     us"",
+       us"Print out extra information, such as invocation of external compilers.")]
 
 
 (* List of disasm command options *)
 let disasm_options = 
   [(OpDisasm_Addr, Uargs.No,  us"-addr",  us"",
        us"Output the address of each instruction.")]
-  @ compile_options
+  @ extra_options
 
     
 (* List of exec command options *)
@@ -80,14 +83,14 @@ let exec_options =
    (OpExec_All, Uargs.No,  us"-all",  us"",
        us"Output all execution information. This is the same as enabling options " ^.
        us"'-regstart', '-regend', and '-res'.")]
-  @ compile_options
+  @ extra_options
 
     
 (* List of symbol command options *)
 let sym_options =
   [(OpSym_CommaSep, Uargs.No,  us"-commasep",  us"",
        us"Returns all symbols without addresses as a comma separated list.")]
-  @ compile_options
+  @ extra_options
     
 (* List of timing analysis command options *)
 let ta_options =
@@ -104,7 +107,7 @@ let ta_options =
        us"using the syntax l..u, where l is the lower bound and u the upper bound."); *)
    (OpTa_Exhaustive, Uargs.No,  us"-exhaustive",  us"",
        us"Performs exhaustive search of all possible program paths.")]
-  @ compile_options
+  @ extra_options
     
 
     
@@ -121,6 +124,8 @@ let help command toptext =
     us"Options: \n" ^.
     Uargs.optionstext options)
   in
+
+  (* Select the main command *)
   match command with
   | "disasm" -> 
        pstr "disasm" 
@@ -161,14 +166,25 @@ let remove_tempfile() =
   if Sys.file_exists tmpfile then Sys.remove tmpfile else ()
   
 
+(* ---------------------------------------------------------------------*)
+let parse_ops_get_filename args options =
+  (* Parse options*)
+  let (ops,args) = Uargs.parse args options in
+
+  (* Enable verbose mode, if selected *)
+  if Uargs.has_op OpVerbose ops then MipsSys.verbose true;
+
+  (* Get the binary file name *)
+  let binfile_name = getBinFileName ops args in
+  (ops,args,binfile_name)
+
 
 (* ---------------------------------------------------------------------*)
 let disasm_command args =
-  (* Parse options and get the binary file name *)
-  let (ops,args) = Uargs.parse args disasm_options in
-  let binfile_name = getBinFileName ops args in
-  
   try
+    (* Parse options and get the binary file name *)
+    let (ops,args,binfile_name) = parse_ops_get_filename args disasm_options in
+
     (* Read program *)
     let prog =  MipsUtils.add_branch_symbols (MipsSys.get_program binfile_name) in
 
@@ -191,8 +207,7 @@ let exec_command args =
   let stack_addr = stack_ptr - stack_size + 8 in
   
   (* Parse options and get the binary file name *)
-  let (ops,args) = Uargs.parse args exec_options in
-  let binfile_name = getBinFileName ops args in
+  let (ops,args,binfile_name) = parse_ops_get_filename args exec_options in
 
   (* Get the function name *)
   let func =
@@ -260,9 +275,9 @@ let exec_command args =
     
 (* ---------------------------------------------------------------------*)
 let sym_command args =
+
   (* Parse options and get the binary file name *)
-  let (ops,args) = Uargs.parse args sym_options in
-  let binfile_name = getBinFileName ops args in
+  let (ops,args,binfile_name) = parse_ops_get_filename args sym_options in
 
   (* Read the symbol table *)
   let symtbl =
@@ -291,8 +306,7 @@ let ta_command args =
   let stack_addr = stack_ptr - stack_size + 8 in
 
   (* Parse options and get the binary file name *)
-  let (ops,args) = Uargs.parse args ta_options in
-  let binfile_name = getBinFileName ops args in
+  let (ops,args,binfile_name) = parse_ops_get_filename args ta_options in
         
   (* Perform the timing analysis *)
   try (
@@ -321,11 +335,9 @@ let ta_command args =
 
       (* Iterate through the file requests *)
       List.iter (fun file_ta_req -> 
-        print_endline (file_ta_req.ta_filename);
 
         (* Iterate through ta func request *)
         let resps = List.map (fun freq -> 
-          uprint_endline (us"function: " ^. freq.funcname);
           let ta_res_list = ExhaustiveTA.analyze eval_fun freq symtbl in
           ()
         ) file_ta_req.func_ta_reqs in
@@ -334,7 +346,7 @@ let ta_command args =
 
       (* Remove the temp file used when compiling *)
       remove_tempfile();
-      us"Done!\n"        
+      us""        
 
     (* Error. There is no request *)
     else

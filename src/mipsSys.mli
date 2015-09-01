@@ -1,6 +1,12 @@
 
 open Ustring.Op
 
+
+val verbose : bool -> unit
+(** [verbose v] enables verbose output to standard output by supplying
+    a boolean true value to parameter [v] *)
+
+
 val get_section : string -> string -> bytes
 (** [get_section filename section] returns the sequence of bytes from
     [section] in the file with name [filename]. For instance, to get

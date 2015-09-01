@@ -62,8 +62,8 @@ val init : MipsAst.program -> string -> int32 list -> machinestate
 
 
 val eval : ?bigendian:bool -> MipsAst.program -> machinestate ->
-           (MipsAst.inst -> int -> MipsAst.program -> machinestate -> 
-             bool -> string option -> 'a -> ('a * bool)) -> 
+                (MipsAst.inst -> int -> MipsAst.program -> machinestate -> 
+                 bool -> string option -> 'a -> ('a * bool)) -> 
             'a -> (machinestate * 'a)
 (** [eval program state hookfunc hookinit] evaluates a program, starting
     at the machine state [state]. The [hookfunc] is a function that is

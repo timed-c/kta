@@ -14,12 +14,21 @@ let section_guid = "20b8de13-4db6-4ac8-89ff-0bb1ac7aadc8"
 let empty_sid = usid ""
 let tpp_magic = us"MAGIC070704090916_TPP"
 
+let enable_verbose = ref false
+
+(* ---------------------------------------------------------------------*)
+let verbose enable = 
+  enable_verbose := enable
+  
+
 (* ---------------------------------------------------------------------*)
 let get_section filename section =
   try 
-    let (code,stdout,stderr) = 
-      USys.shellcmd (objcopy ^ " " ^ filename ^ " --dump-section " 
+    let command = (objcopy ^ " " ^ filename ^ " --dump-section " 
                    ^ section ^ "=" ^ section_guid) in
+    if !enable_verbose then print_endline (command ^ "\n");
+    let (code,stdout,stderr) = 
+      USys.shellcmd command in
     if code != 0 then Bytes.empty 
     else
       let data = Utils.read_binfile section_guid in
@@ -31,22 +40,27 @@ let get_section filename section =
 
 (* ---------------------------------------------------------------------*)
 let pic32_compile filenames only_compile optimization outputname =
-(*  let cflags = " -ffreestanding -march=mips32r2 -msoft-float -Wa,-msoft-float " in *)
    let cflags = " -ffreestanding  -mips32 -mips2  -msoft-float -Wa,-msoft-float " in 
 (* NOTE:  -march=mips32r2  and -mips32 -mips2  are not the same. *)
-  let (code,stdout,stderr) = 
-    USys.shellcmd (gcc ^ cflags ^ (String.concat " " filenames) ^ " " ^
+  let command = (gcc ^ cflags ^ (String.concat " " filenames) ^ " " ^
                    (if only_compile then "-c " else "") ^ 
                    (if optimization then "-O3 " else "-O0 ") ^ 
-                   "-o " ^ outputname) in
+                   "-o " ^ outputname) in 
+  if !enable_verbose then print_endline (command ^ "\n");
+  let (code,stdout,stderr) = USys.shellcmd command in
   if code != 0 then raise (Sys_error (stderr ^ " " ^ stdout)) else ()
   
 
     
 (* ---------------------------------------------------------------------*)
 let section_info filename = 
+
+  (* Print verbose *)
+  let command = (objdump ^ " -h " ^ filename) in
+  if !enable_verbose then print_endline (command ^ "\n");
+
   let (code,stdout,stderr) = 
-    USys.shellcmd (objdump ^ " -h " ^ filename) in
+    USys.shellcmd command in
   if code != 0 then raise (Sys_error (stderr ^ " " ^ stdout));
   let lines = List.map Ustring.trim (Ustring.split (us stdout) (us"\n")) in
   let splits = List.map (fun x -> (
@@ -71,7 +85,9 @@ let section_info filename =
 
 (* ---------------------------------------------------------------------*)
 let symbol_table filename = 
-  let (code,stdout,stderr) = USys.shellcmd (nm ^ " " ^ filename) in
+  let command = nm ^ " " ^ filename in
+  if !enable_verbose then print_endline (command ^ "\n");
+  let (code,stdout,stderr) = USys.shellcmd command in
   if code != 0 then raise (Sys_error (stderr ^ " " ^ stdout));
   let lines = List.map Ustring.trim (Ustring.split (us stdout) (us"\n")) in
   List.fold_left 
@@ -151,20 +167,20 @@ let assign_program_stack prog ptr size addr =
 
     
 (* ---------------------------------------------------------------------*)
-let cycle_count_with_tpp tppmap inst pc prog state is_a_delay_slot terminate ((count,lst),_) =
+let cycle_count_with_tpp tppmap inst pc prog state is_a_delay_slot 
+                        terminate ((count,lst),_) =
   try
-    printf "idx: %d  %d\n" ((state.pc - prog.text_sec.addr) / 4) (Array.length tppmap);
-    let tpp_sid = Array.get tppmap ((state.pc - prog.text_sec.addr) / 4) in 
-    let lst' = if tpp_sid = empty_sid then (tpp_sid,count)::lst else lst in
-                                     
-    (((count+1,lst'),terminate), false)
-      
+    let tpp_sid_list = Array.get tppmap ((pc - prog.text_sec.addr) / 4) in 
+    let lst' =       
+      if tpp_sid_list <> [] then 
+        List.fold_left (fun lst tpp_sid -> (tpp_sid,count)::lst) lst tpp_sid_list
+      else 
+        lst 
+    in                                     
+    (((count+1,lst'),terminate), false)      
   with
     _ -> failwith "Internal error in function cycle_count_with_tpp() in mipsSys.ml"
       
-    (*
-  ((count + 1,terminate), false )
-    *)
 
 
 
@@ -172,13 +188,13 @@ let cycle_count_with_tpp tppmap inst pc prog state is_a_delay_slot terminate ((c
 let get_eval_func ?(bigendian=false) prog =
 
   (* Create the tpp map *)
-  let tppmap = Array.make (Array.length prog.code) empty_sid in
+  let tppmap = Array.make (Array.length prog.code) [] in
   List.iter (fun (s,a) ->
     let u = us s in
     if Ustring.starts_with tpp_magic u then
-      Array.set tppmap ((a - prog.text_sec.addr) / 4) (usid s);
+      let address = (a - prog.text_sec.addr) / 4 in
+      Array.set tppmap address ((usid s)::(Array.get tppmap address));
     ) prog.symbols;                            
-
 
   
   (* Create the timed eval function *)
@@ -196,10 +212,12 @@ let get_eval_func ?(bigendian=false) prog =
     (* Evaluate/execute the function *)
     let (state,((count,tpp_path),terminate)) =
       MipsEval.eval ~bigendian:bigendian prog state (cycle_count_with_tpp tppmap) ((0,[]),None)  in 
-
+      
     List.iter (fun (tpp,count) ->
-      uprint_endline (us"TPP: " ^. ustring_of_sid tpp ^. us(sprintf "count: %d" count)))
+      uprint_endline (us"TPP: " ^. ustring_of_sid tpp ^. us(sprintf " count: %d" count)))
         tpp_path;
+
+    printf "final: %d\n" count;
     
     ExhaustiveTA.TppTimedPathUnknown
   in

@@ -72,7 +72,7 @@ let analyze evalfunc func_ta_req symtbl =
         (* Perform the analysis by executing one configuration *)
         match evalfunc name [] memmap [] [] with
         | TppTimedPath timedpath -> ()
-        | TppTimedPathUnknown  -> ()
+        | TppTimedPathUnknown  -> () 
     )
     | _,_ -> failwith "should not happen."
   in

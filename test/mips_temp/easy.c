@@ -11,6 +11,7 @@ int g2 = 7;
 // function to not be inlined.
 int __attribute__ ((noinline)) foo()
 {
+  TPP(asa); 
   int u = g1 * g2;
   int i;
 
