@@ -80,7 +80,8 @@ let analyze evalfunc func_ta_req symtbl =
 
   explore addrint first []; 
 
-  []
+  
+  [ResLWCET(TimeCycles(100));ResLWCET(TimeCycles(200))]
   
 
 

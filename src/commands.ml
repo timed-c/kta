@@ -337,11 +337,19 @@ let ta_command args =
       List.iter (fun file_ta_req -> 
 
         (* Iterate through ta func request *)
-        let resps = List.map (fun freq -> 
-          let ta_res_list = ExhaustiveTA.analyze eval_fun freq symtbl in
-          ()
+        let resps = List.map (fun func_ta_req -> 
+          (* Perform the analysis for one function ta request *)
+          ExhaustiveTA.analyze eval_fun func_ta_req symtbl           
         ) file_ta_req.func_ta_reqs in
-        ()
+        
+        (* Currently, we only support one Function request 
+           TODO: Fix multiple function requests*)
+        (match resps with
+         | [ta_res_list] -> 
+              (* Write down the ta file *)
+              TaFile.pprint_simple_ta_res ta_res_list |> 
+                  (Ustring.write_file (file_ta_req.ta_filename ^ ".out"))
+         | _ -> failwith "Only supports one single function request right now.")
       ) f_reqs;
 
       (* Remove the temp file used when compiling *)
