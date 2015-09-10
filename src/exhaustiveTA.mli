@@ -41,9 +41,10 @@ open Ustring.Op
 open TaFileTypes
 
 type clock_cycles = int
+type total_clock_cycles = int
 
 type tpp_timed_path =
-| TppTimedPath of (clock_cycles * tpp) list      (* Timed path *)
+| TppTimedPath of total_clock_cycles * ((clock_cycles * tpp) list)  (* Timed path *)
 | TppTimedPathUnknown                            (* The path is unknown. Could not be computed *)
 
 type assumed_func_timing = (sid * time) list    

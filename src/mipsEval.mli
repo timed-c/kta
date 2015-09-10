@@ -43,7 +43,7 @@ val cycle_count : MipsAst.inst -> int -> MipsAst.program ->  machinestate ->
     clock cycle). *)
 
 
-val debug_print : MipsAst.inst -> int -> MipsAst.program ->  machinestate ->
+val debug_print : MipsAst.inst -> int -> MipsAst.program -> machinestate ->
                   bool -> string option -> (ustring * int32 array) -> ((ustring * int32 array) * bool)
 (** This function can be used to debug print each step of a program
     evaluation.  Note that this function should be supplied as an opfunc

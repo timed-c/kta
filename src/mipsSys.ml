@@ -4,7 +4,7 @@ open MipsAst
 open Printf
 open MipsEval
 
-let comp_name = "mipsel-pic32-elf"
+let comp_name = "mipsel-mcb32-elf"
 let objcopy = comp_name ^ "-objcopy"
 let objdump = comp_name ^ "-objdump"
 let nm = comp_name ^ "-nm"
