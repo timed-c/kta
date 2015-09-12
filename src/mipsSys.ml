@@ -12,7 +12,8 @@ let gcc = comp_name ^ "-gcc"
 let section_guid = "20b8de13-4db6-4ac8-89ff-0bb1ac7aadc8"
 
 let empty_sid = usid ""
-let tpp_magic = us"MAGIC070704090916_TPP"
+let tpp_magic = us"MAGIC070704090916_TPP_"
+let magic_len = Ustring.length tpp_magic
 
 let enable_verbose = ref false
 
@@ -171,6 +172,7 @@ let cycle_count_with_tpp tppmap inst pc prog state is_a_delay_slot
                         terminate ((count,lst),_) =
   try
     let tpp_sid_list = Array.get tppmap ((pc - prog.text_sec.addr) / 4) in 
+    (* There can be more than one tpp for the same address *)
     let lst' =       
       if tpp_sid_list <> [] then 
         List.fold_left (fun lst tpp_sid -> (tpp_sid,count)::lst) lst tpp_sid_list
@@ -191,10 +193,17 @@ let get_eval_func ?(bigendian=false) prog =
   let tppmap = Array.make (Array.length prog.code) [] in
   List.iter (fun (s,a) ->
     let u = us s in
+    (* Check if a tpp symbol *)
     if Ustring.starts_with tpp_magic u then
+      (* Remove the magic string from the tpp string *)
+      let tpp = Ustring.sub u magic_len (Ustring.length u - magic_len)
+          |> sid_of_ustring in
+      (* Calculate the address in words in the code section *)
       let address = (a - prog.text_sec.addr) / 4 in
-      Array.set tppmap address ((usid s)::(Array.get tppmap address));
-    ) prog.symbols;                            
+      Array.set tppmap address (tpp::(Array.get tppmap address));
+    ) prog.symbols;         
+  (* Change the order ofsymbols, making them  the same as original code *)
+  let tppmap' = Array.map List.rev tppmap in
 
   
   (* Create the timed eval function *)
@@ -211,15 +220,18 @@ let get_eval_func ?(bigendian=false) prog =
   
     (* Evaluate/execute the function *)
     let (state,((count,tpp_path),terminate)) =
-      MipsEval.eval ~bigendian:bigendian prog state (cycle_count_with_tpp tppmap) ((0,[]),None)  in 
-      
+      MipsEval.eval ~bigendian:bigendian prog state 
+        (cycle_count_with_tpp tppmap') ((0,[]),None)  in 
+
+    (* TODO: Right now, there is no timeout. This means tha
+       a program with infinit loop will go on forever *)
+    ExhaustiveTA.TppTimedPath(count,List.rev tpp_path)  
+(*      
     List.iter (fun (tpp,count) ->
       uprint_endline (us"TPP: " ^. ustring_of_sid tpp ^. us(sprintf " count: %d" count)))
         tpp_path;
-
     printf "final: %d\n" count;
-    
-    ExhaustiveTA.TppTimedPathUnknown
+    ExhaustiveTA.TppTimedPathUnknown *)
   in
   
   (* Return the timed eval function *)

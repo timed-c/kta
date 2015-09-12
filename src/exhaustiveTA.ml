@@ -34,7 +34,7 @@ type clock_cycles = int
 type total_clock_cycles = int
 
 type tpp_timed_path =
-| TppTimedPath of total_clock_cycles * ((clock_cycles * tpp) list)  (* Timed path *)
+| TppTimedPath of total_clock_cycles * ((sid * clock_cycles) list)  (* Timed path *)
 | TppTimedPathUnknown                            (* The path is unknown. Could not be computed *)
 
 type assumed_func_timing = (sid * time) list    
@@ -72,7 +72,14 @@ let analyze evalfunc func_ta_req symtbl =
     | [],[] -> (
         (* Perform the analysis by executing one configuration *)
         match evalfunc name [] memmap [] [] with
-        | TppTimedPath(cycles,timedpath) -> ()
+        | TppTimedPath(cycles,timedpath) -> 
+           printf "-----------\n";
+           List.iter (fun (s,c) -> 
+              uprint_endline ((ustring_of_sid s) ^. us": " ^. ustring_of_int c)) 
+              timedpath;
+           printf "final: %d\n" cycles
+             
+          
         | TppTimedPathUnknown  -> () 
     )
     | _,_ -> failwith "should not happen."
