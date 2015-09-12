@@ -12,9 +12,6 @@ all:    native
 # Compile native version
 native:
 	@rm -rf bin; mkdir bin 
-	@ocamlbuild -tag use_str -Is $(DIRS) ktc.native 
-	@rm -f ktc.native
-	@cd bin; cp ../_build/src/ktc.native ktc 
 	@ocamlbuild -tag use_str -Is $(DIRS) kta.native 
 	@rm -f kta.native
 	@cd bin; cp ../_build/src/kta.native kta 

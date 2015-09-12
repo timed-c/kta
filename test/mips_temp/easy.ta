@@ -9,6 +9,6 @@ globalvar g1  10..12
 # globalvar g3  10..11
 
 # Requested timing analysis
-LWCET 1 2
-LWCET entry exit
-
+#LWCET 1 2
+#LWCET entry exit
+FWCET entry exit

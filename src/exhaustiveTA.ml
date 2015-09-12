@@ -63,7 +63,6 @@ type timing_info = {
     
 (* ---------------------------------------------------------------------*)
 let analyze evalfunc func_ta_req symtbl = 
-
   (* Extract out global variable assumptions *)  
   let (first,addrint) = 
     List.split (List.map (fun (id,VInt(l,u)) -> (l,(id,l,u))) func_ta_req.gvars) in
@@ -75,40 +74,94 @@ let analyze evalfunc func_ta_req symtbl =
   let rec explore lst cur memmap tinfo =
     match lst,cur with
     | (id,l,u)::lres, c::cres -> ( 
-         explore lres cres ((symtbl id,Int32.of_int c)::memmap) tinfo;
-         if c = u then () else explore lst ((c+1)::cres) memmap tinfo)
+        let tinfo' = explore lres cres ((symtbl id,Int32.of_int c)::memmap) tinfo in
+        if c = u then tinfo'
+        else explore lst ((c+1)::cres) memmap tinfo')
     | [],[] -> (
         (* Perform the analysis by executing one configuration.
            For MIPS, this function is defined in mipsSys.ml *)
         match evalfunc name [] memmap [] [] with
-        | TppTimedPath(cycles,timedpath) ->           
+        (*** Return a new update tinfo record in the case of a valid evaluation  *)
+        | TppTimedPath(cycles,timedpath) as newpath ->           
           
            printf "-----------\n";
            List.iter (fun (s,c) -> 
               uprint_endline ((ustring_of_sid s) ^. us": " ^. ustring_of_int c)) 
               timedpath;
-           printf "final: %d\n" cycles
+           printf "final: %d\n" cycles;
+
+           {
+           (* wcpath field *)
+            wcpath = (
+              match tinfo.wcpath with
+              | TppTimedPath(curr_cycles,curr_timedpath) ->
+                if cycles > curr_cycles then newpath else tinfo.wcpath
+              | TppTimedPathUnknown -> TppTimedPathUnknown);             
+               
+           (* bcpath field *)
+             bcpath = (
+               match tinfo.bcpath with
+               | TppTimedPath(curr_cycles,curr_timedpath) ->
+                 if cycles < curr_cycles then newpath else tinfo.bcpath
+               | TppTimedPathUnknown -> TppTimedPathUnknown);             
              
-          
-        | TppTimedPathUnknown  -> () 
+           (* tocunt field: Update the test counter. Should be removed. *)
+             tcount = tinfo.tcount + 1;
+           } 
+                    
+        (*** Return a new update tinfo record in the case of a invalid evaluation  *)
+        | TppTimedPathUnknown  -> 
+           {
+           (* wcpath field *)
+            wcpath = TppTimedPathUnknown;
+               
+           (* bcpath field *)
+             bcpath = TppTimedPathUnknown;
+             
+           (* tocunt field: Update the test counter. Should be removed. *)
+             tcount = tinfo.tcount + 1;
+           } 
     )
     | _,_ -> failwith "should not happen."
   in
     
   (* Init the timing info that is passed around for calculating the response *)
   let init_timing_info = {
-    wcpath = TppTimedPathUnknown;
-    bcpath = TppTimedPathUnknown;    
+    wcpath = TppTimedPath(0,[]);
+    bcpath = TppTimedPath(max_int,[]);    
     tcount = 0;
   } 
   in
 
   (* Start to explore all paths, calling the function above *)
-  explore addrint first [] init_timing_info; 
+  let tinfo = explore addrint first [] init_timing_info in
+  printf "FINAL: %d\n" tinfo.tcount;
 
+  (* Generate the ta responses by iterating over ta requests *)
+  List.fold_left (fun accresp (_,ta_req) ->
+    match ta_req with
+    | ReqWCP(tpp1,tpp2) -> failwith "Not yet implemented"
+    | ReqBCP(tpp1,tpp2) -> failwith "Not yet implemented"
+    | ReqLWCET(tpp1,tpp2) -> failwith "Not yet implemented"
+    | ReqLBCET(tpp1,tpp2) -> failwith "Not yet implemented"
+    | ReqFWCET(tpp1,tpp2) -> ([]
+
+    )
+    | ReqFBCET(tpp1,tpp2) -> failwith "Not yet implemented"
+   (*  [ResLWCET(TimeCycles(100));ResLWCET(TimeCycles(300))]  *)
+  ) [] func_ta_req.ta_req |> List.rev
+ 
   
-  [ResLWCET(TimeCycles(100));ResLWCET(TimeCycles(200))]
-  
+
+
+
+
+
+
+
+
+
+
 
 
 
