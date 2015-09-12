@@ -52,6 +52,14 @@ type timed_eval_func = string -> int32 list -> (int * int32) list ->
 let timed_eval_func funcname args mem_init_map func_wcet func_bcet =
   TppTimedPathUnknown
 
+
+type timing_info = {
+   wcpath : tpp_timed_path;   (* Overall worst-case path *)
+   bcpath : tpp_timed_path;   (* Overall best-case path *)
+   tcount : int;
+} 
+
+
     
 (* ---------------------------------------------------------------------*)
 let analyze evalfunc func_ta_req symtbl = 
@@ -64,15 +72,17 @@ let analyze evalfunc func_ta_req symtbl =
   let name = Ustring.to_utf8 func_ta_req.funcname in
 
   (* Exhaustively explore all possible input combinations *)
-  let rec explore lst cur memmap =
+  let rec explore lst cur memmap tinfo =
     match lst,cur with
     | (id,l,u)::lres, c::cres -> ( 
-         explore lres cres ((symtbl id,Int32.of_int c)::memmap);
-         if c = u then () else explore lst ((c+1)::cres) memmap)
+         explore lres cres ((symtbl id,Int32.of_int c)::memmap) tinfo;
+         if c = u then () else explore lst ((c+1)::cres) memmap tinfo)
     | [],[] -> (
-        (* Perform the analysis by executing one configuration *)
+        (* Perform the analysis by executing one configuration.
+           For MIPS, this function is defined in mipsSys.ml *)
         match evalfunc name [] memmap [] [] with
-        | TppTimedPath(cycles,timedpath) -> 
+        | TppTimedPath(cycles,timedpath) ->           
+          
            printf "-----------\n";
            List.iter (fun (s,c) -> 
               uprint_endline ((ustring_of_sid s) ^. us": " ^. ustring_of_int c)) 
@@ -84,8 +94,17 @@ let analyze evalfunc func_ta_req symtbl =
     )
     | _,_ -> failwith "should not happen."
   in
+    
+  (* Init the timing info that is passed around for calculating the response *)
+  let init_timing_info = {
+    wcpath = TppTimedPathUnknown;
+    bcpath = TppTimedPathUnknown;    
+    tcount = 0;
+  } 
+  in
 
-  explore addrint first []; 
+  (* Start to explore all paths, calling the function above *)
+  explore addrint first [] init_timing_info; 
 
   
   [ResLWCET(TimeCycles(100));ResLWCET(TimeCycles(200))]

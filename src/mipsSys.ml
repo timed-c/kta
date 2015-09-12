@@ -226,12 +226,6 @@ let get_eval_func ?(bigendian=false) prog =
     (* TODO: Right now, there is no timeout. This means tha
        a program with infinit loop will go on forever *)
     ExhaustiveTA.TppTimedPath(count,List.rev tpp_path)  
-(*      
-    List.iter (fun (tpp,count) ->
-      uprint_endline (us"TPP: " ^. ustring_of_sid tpp ^. us(sprintf " count: %d" count)))
-        tpp_path;
-    printf "final: %d\n" count;
-    ExhaustiveTA.TppTimedPathUnknown *)
   in
   
   (* Return the timed eval function *)
