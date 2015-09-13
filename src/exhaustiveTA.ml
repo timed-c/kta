@@ -204,7 +204,20 @@ let analyze evalfunc func_ta_req symtbl =
   (* Generate the ta responses by iterating over ta requests *)
   List.fold_left (fun accresp (_,ta_req) ->
     match ta_req with
-    | ReqWCP(tpp1,tpp2) -> failwith "Not yet implemented"
+      (* Compute worst case path *)
+    | ReqWCP(tpp1,tpp2) -> (
+        (* Special case, entry to exit *)
+        if tpp1 = tpp_entry && tpp2 = tpp_exit then (
+          let path = (match tinfo.wcpath with
+                     | TppTimedPath(_,_,lst) -> 
+                        TppPath(tpp_entry::(List.append 
+                                             (List.split lst |> fst) [tpp_exit]))
+                     | TppTimedPathUnknown -> TppPathUnknown)
+          in 
+          ResWCP(path)::accresp)
+        else
+          ResWCP(TppPathUnknown)::accresp)
+
     | ReqBCP(tpp1,tpp2) -> failwith "Not yet implemented"
     | ReqLWCET(tpp1,tpp2) ->       
         if List.length tinfo.lwcet = 0 then 

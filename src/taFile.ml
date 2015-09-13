@@ -79,13 +79,13 @@ let pprint_func_ta_req func_ta_req =
   (* Function WCET assumptions *)
   (if List.length func_ta_req.fwcet = 0 then us"" else 
     Ustring.concat (us"\n") 
-      (List.map (fun (x,v) -> us"FunctionWCET " ^. ustring_of_sid x ^. us" " ^.
+      (List.map (fun (x,v) -> us"FuncWCET " ^. ustring_of_sid x ^. us" " ^.
                  ustring_of_int v) func_ta_req.fwcet) ^. us"\n")  ^.
 
   (* Function BCET assumptions *)
   (if List.length func_ta_req.fbcet = 0 then us"" else 
     Ustring.concat (us"\n") 
-      (List.map (fun (x,v) -> us"FunctionBCET " ^. ustring_of_sid x ^. us" " ^.
+      (List.map (fun (x,v) -> us"FuncBCET " ^. ustring_of_sid x ^. us" " ^.
                  ustring_of_int v) func_ta_req.fbcet) ^. us"\n") ^.
   
   (* Timing requests *)
@@ -231,10 +231,10 @@ let parse_ta_strings filename lines =
     | (lineno,["GlobalVar";var;value])::ts -> (
         let value' = parse_abstract_value filename lineno value in 
         extract ts fname args (((usid var),value')::gvars) fwcet fbcet ta_req acc)
-    | (lineno,["FunctionWCET";var;time])::ts -> (
+    | (lineno,["FuncWCET";var;time])::ts -> (
         let tval = parse_int_literal filename lineno time in 
         extract ts fname args gvars (((usid var),tval)::fwcet) fbcet ta_req acc)        
-    | (lineno,["FunctionBCET";var;time])::ts -> (
+    | (lineno,["FuncBCET";var;time])::ts -> (
         let tval = parse_int_literal filename lineno time in 
         extract ts fname args gvars fwcet (((usid var),tval)::fbcet) ta_req acc)        
     | (lineno,["WCP";tpp1;tpp2])::ts -> (
