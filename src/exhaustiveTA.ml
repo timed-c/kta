@@ -42,7 +42,8 @@ type tpp_timed_path =
 type assumed_func_timing = (sid * time) list    
   
 type timed_eval_func = string -> int32 list -> (int * int32) list ->
-                (sid * time) list -> (sid * time) list -> tpp_timed_path
+                (sid * time) list -> (sid * time) list -> (string -> (int * int))
+                -> tpp_timed_path
 (** [timed_eval_func funcname args meminitmap func_wcet func_bcet]. The [meminitmap] is
     an assoicative list, where the keys are addresses and the values are the
     memory values at these positions. *)
@@ -91,6 +92,17 @@ let analyze evalfunc func_ta_req symtbl =
   (* Get the actual function name *)
   let name = Ustring.to_utf8 func_ta_req.funcname in
 
+  (* Create a map from global assumptions to timing tuple (wcet,bcet) *)
+  let fmap = List.map (fun (sid,wcet) ->
+               (ustring_of_sid sid |> Ustring.to_utf8,(wcet,0))) func_ta_req.fwcet in
+  let func_assumptions s = List.assoc s fmap  in
+  List.iter (fun (s,(w,b)) -> printf "## %s: w:%d  b:%d\n" s w b) fmap;
+
+  (* TODO: implement support for function assumptons for BCET *)
+  if (List.length func_ta_req.fbcet) <> 0 
+  then failwith "Assumptions for Function BCET is not yet supported.";
+
+
   (* Exhaustively explore all possible input combinations *)
   let rec explore lst cur memmap tinfo =
     match lst,cur with
@@ -101,7 +113,7 @@ let analyze evalfunc func_ta_req symtbl =
     | [],[] -> (
         (* Perform the analysis by executing one configuration.
            For MIPS, this function is defined in mipsSys.ml *)
-        match evalfunc name [] memmap [] [] with
+        match evalfunc name [] memmap [] [] func_assumptions with
         (*** Return a new update tinfo record in the case of a valid evaluation  *)
         | TppTimedPath(wc_cycles,bc_cycles,timedpath) as newpath ->           
           

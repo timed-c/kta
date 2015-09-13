@@ -49,8 +49,8 @@ type func_ta_req = {
   funcname : ustring;               (* Name of the function that should be analyzed *)
   args : (argno * value) list;      (* Argument assumptions. argno = 0 is first argument *)
   gvars : (sid * value) list;       (* Global variable assumptions *)
-  fwcet : (sid * time) list;        (* Assumed WCET in clock cycles for functions *)
-  fbcet : (sid * time) list;        (* Assumed BCET in clock cycles for functions *)  
+  fwcet : (sid * int) list;        (* Assumed WCET in clock cycles for functions *)
+  fbcet : (sid * int) list;        (* Assumed BCET in clock cycles for functions *)  
   ta_req : (lineno * ta_req) list;  (* Requested timing analysis values *)
 }
 

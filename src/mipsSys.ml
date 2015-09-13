@@ -168,8 +168,9 @@ let assign_program_stack prog ptr size addr =
 
     
 (* ---------------------------------------------------------------------*)
-let cycle_count_with_tpp tppmap inst pc prog state is_a_delay_slot 
-                        terminate ((wc_count,bc_count,lst),_) =
+let cycle_count_with_tpp tppmap func_assumptions 
+                         inst pc prog state is_a_delay_slot 
+                         terminate ((wc_count,bc_count,lst),_) =
   try
     let tpp_sid_list = Array.get tppmap ((pc - prog.text_sec.addr) / 4) in 
     (* There can be more than one tpp for the same address *)
@@ -179,8 +180,14 @@ let cycle_count_with_tpp tppmap inst pc prog state is_a_delay_slot
                        lst tpp_sid_list
       else 
         lst 
-    in                                     
-    (((wc_count+1,bc_count+1,lst'),terminate), false)      
+    in
+    (* Compute extra time for function assumptions *)
+    let (wc_g,bc_g) = 
+      (match inst with
+       | MipsJAL(_,s) -> (try func_assumptions s with _ -> (0,0))
+       | _ -> (0,0))
+    in
+      (((wc_count+1+wc_g,bc_count+1+bc_g,lst'),terminate), false)      
   with
     _ -> failwith "Internal error in function cycle_count_with_tpp() in mipsSys.ml"
       
@@ -208,7 +215,7 @@ let get_eval_func ?(bigendian=false) prog =
 
   
   (* Create the timed eval function *)
-  let timed_eval_func funcname args meminitmap func_wcet func_bcet = 
+  let timed_eval_func funcname args meminitmap func_wcet func_bcet func_assumptions = 
         
     (* Initialize the state *)
     let state = MipsEval.init prog funcname args in
@@ -222,7 +229,7 @@ let get_eval_func ?(bigendian=false) prog =
     (* Evaluate/execute the function *)
     let (state,((wc_count,bc_count,tpp_path),terminate)) =
       MipsEval.eval ~bigendian:bigendian prog state 
-        (cycle_count_with_tpp tppmap') ((0,0,[]),None)  in 
+        (cycle_count_with_tpp tppmap' func_assumptions) ((0,0,[]),None)  in 
 
     (* TODO: Right now, there is no timeout. This means that
        a program with infinit loop will go on forever *)

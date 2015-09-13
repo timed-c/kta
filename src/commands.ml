@@ -340,8 +340,9 @@ let ta_command args =
   try (
 
     (* Load the program *)
-    let prog = MipsSys.assign_program_stack (MipsSys.get_program binfile_name) 
-             stack_ptr stack_size stack_addr in
+    let prog = MipsSys.assign_program_stack 
+               (MipsSys.get_program binfile_name |>  MipsUtils.add_branch_symbols) 
+                stack_ptr stack_size stack_addr in
 
     (* TODO: check that all symbols in the TA files actually exists in the binary
        and that "entry" and "exit" TPPs does not exist in the binary. *)
