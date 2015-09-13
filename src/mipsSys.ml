@@ -169,17 +169,18 @@ let assign_program_stack prog ptr size addr =
     
 (* ---------------------------------------------------------------------*)
 let cycle_count_with_tpp tppmap inst pc prog state is_a_delay_slot 
-                        terminate ((count,lst),_) =
+                        terminate ((wc_count,bc_count,lst),_) =
   try
     let tpp_sid_list = Array.get tppmap ((pc - prog.text_sec.addr) / 4) in 
     (* There can be more than one tpp for the same address *)
     let lst' =       
       if tpp_sid_list <> [] then 
-        List.fold_left (fun lst tpp_sid -> (tpp_sid,count)::lst) lst tpp_sid_list
+        List.fold_left (fun lst tpp_sid -> (tpp_sid,(wc_count,bc_count))::lst) 
+                       lst tpp_sid_list
       else 
         lst 
     in                                     
-    (((count+1,lst'),terminate), false)      
+    (((wc_count+1,bc_count+1,lst'),terminate), false)      
   with
     _ -> failwith "Internal error in function cycle_count_with_tpp() in mipsSys.ml"
       
@@ -219,13 +220,13 @@ let get_eval_func ?(bigendian=false) prog =
     ) meminitmap;
 
     (* Evaluate/execute the function *)
-    let (state,((count,tpp_path),terminate)) =
+    let (state,((wc_count,bc_count,tpp_path),terminate)) =
       MipsEval.eval ~bigendian:bigendian prog state 
-        (cycle_count_with_tpp tppmap') ((0,[]),None)  in 
+        (cycle_count_with_tpp tppmap') ((0,0,[]),None)  in 
 
-    (* TODO: Right now, there is no timeout. This means tha
+    (* TODO: Right now, there is no timeout. This means that
        a program with infinit loop will go on forever *)
-    ExhaustiveTA.TppTimedPath(count,List.rev tpp_path)  
+    ExhaustiveTA.TppTimedPath(wc_count,bc_count,List.rev tpp_path)  
   in
   
   (* Return the timed eval function *)

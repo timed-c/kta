@@ -122,7 +122,7 @@ let rec step bigendian prog state hookfunc hookval is_a_delay_slot =
   | MipsJ(addr,_) ->
        branch (jta addr)
   | MipsJAL(addr,_) -> 
-       wreg (reg_ra) (Int32.of_int (state.pc + 4)); 
+       wreg (reg_ra) (Int32.of_int (state.pc + 8)); 
        branch (jta addr)
   | MipsLB(rt,imm,rs) -> 
        let (mem,i,_) = getmemptr state prog ((Int32.to_int (reg rs)) + imm) 1 in

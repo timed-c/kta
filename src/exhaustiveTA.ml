@@ -30,12 +30,14 @@ open Ustring.Op
 open TaFileTypes
 open Printf
 
-type clock_cycles = int
-type total_clock_cycles = int
+type wc_clock_cycles = int
+type bc_clock_cycles = int
 
 type tpp_timed_path =
-| TppTimedPath of total_clock_cycles * ((sid * clock_cycles) list)  (* Timed path *)
-| TppTimedPathUnknown                            (* The path is unknown. Could not be computed *)
+| TppTimedPath of wc_clock_cycles * 
+                  bc_clock_cycles *
+                  ((sid * (wc_clock_cycles * bc_clock_cycles)) list)
+| TppTimedPathUnknown                          
 
 type assumed_func_timing = (sid * time) list    
   
@@ -66,15 +68,17 @@ let timed_eval_func funcname args mem_init_map func_wcet func_bcet =
 
 (* ---------------------------------------------------------------------*)
 (* Internal. Computes the fractional time from a timed path *)
-let frac_time_from_path tpp1 tpp2 c prepath = 
-  let path = (tpp_entry,0)::(List.append prepath [(tpp_exit,c)]) in
+let frac_time_from_path tpp1 tpp2 wc_c bc_c prepath = 
+  let path = (tpp_entry,(0,0))::(List.append prepath [(tpp_exit),(wc_c,bc_c)]) in
   try 
-    let start_time = List.assoc tpp1 path in
-    let end_time = List.assoc tpp2 path in
-    if end_time > start_time then TimeCycles(end_time - start_time)      
-    else TimeCycles(0)
+    let (wc_start_time,bc_start_time) = List.assoc tpp1 path in
+    let (wc_end_time,bc_end_time) = List.assoc tpp2 path in
+    ((if wc_end_time > wc_start_time then TimeCycles(wc_end_time - wc_start_time)      
+     else TimeCycles(0)),
+     (if bc_end_time > bc_start_time then TimeCycles(bc_end_time - bc_start_time)      
+     else TimeCycles(0)))  
   with 
-    Not_found -> TimeCycles(0)
+    Not_found -> (TimeCycles(0),TimeCycles(0))
 
  
      
@@ -99,7 +103,7 @@ let analyze evalfunc func_ta_req symtbl =
            For MIPS, this function is defined in mipsSys.ml *)
         match evalfunc name [] memmap [] [] with
         (*** Return a new update tinfo record in the case of a valid evaluation  *)
-        | TppTimedPath(cycles,timedpath) as newpath ->           
+        | TppTimedPath(wc_cycles,bc_cycles,timedpath) as newpath ->           
           
            (* (*Print out information about all program points  *)
            printf "-----------\n";
@@ -113,15 +117,15 @@ let analyze evalfunc func_ta_req symtbl =
            (* wcpath field *)
             wcpath = (
               match tinfo.wcpath with
-              | TppTimedPath(curr_cycles,curr_timedpath) ->
-                if cycles > curr_cycles then newpath else tinfo.wcpath
+              | TppTimedPath(curr_wc_cycles,_,curr_timedpath) ->
+                if wc_cycles > curr_wc_cycles then newpath else tinfo.wcpath
               | TppTimedPathUnknown -> TppTimedPathUnknown);             
                
            (* bcpath field *)
              bcpath = (
                match tinfo.bcpath with
-               | TppTimedPath(curr_cycles,curr_timedpath) ->
-                 if cycles < curr_cycles then newpath else tinfo.bcpath
+               | TppTimedPath(_,curr_bc_cycles,curr_timedpath) ->
+                 if bc_cycles < curr_bc_cycles then newpath else tinfo.bcpath
                | TppTimedPathUnknown -> TppTimedPathUnknown);             
              
            (* tocunt field: Update the test counter. *)
@@ -146,8 +150,8 @@ let analyze evalfunc func_ta_req symtbl =
     
   (* Init the timing info that is passed around for calculating the response *)
   let init_timing_info = {
-    wcpath = TppTimedPath(0,[]);
-    bcpath = TppTimedPath(max_int,[]);    
+    wcpath = TppTimedPath(0,max_int,[]);
+    bcpath = TppTimedPath(0,max_int,[]);    
     tcount = 0;
   } 
   in
@@ -169,15 +173,17 @@ let analyze evalfunc func_ta_req symtbl =
       (* Compute fractional WCET *)
     | ReqFWCET(tpp1,tpp2) -> (
         match tinfo.wcpath with
-        | TppTimedPath(c,prepath) -> 
-             ResFWCET(frac_time_from_path tpp1 tpp2 c prepath)::accresp
+        | TppTimedPath(wc_c,bc_c,prepath) -> 
+             let (wc_time,_) = frac_time_from_path tpp1 tpp2 wc_c bc_c prepath in
+             ResFWCET(wc_time)::accresp
         | TppTimedPathUnknown -> ResFWCET(TimeUnknown)::accresp)
 
       (* Compute fractional BCET *)
     | ReqFBCET(tpp1,tpp2) -> (
         match tinfo.bcpath with
-        | TppTimedPath(c,prepath) -> 
-             ResFBCET(frac_time_from_path tpp1 tpp2 c prepath)::accresp
+        | TppTimedPath(wc_c,bc_c,prepath) -> 
+             let (_,bc_time) = frac_time_from_path tpp1 tpp2 wc_c bc_c prepath in
+             ResFBCET(bc_time)::accresp
         | TppTimedPathUnknown -> ResFBCET(TimeUnknown)::accresp)
 
   ) [] func_ta_req.ta_req |> List.rev

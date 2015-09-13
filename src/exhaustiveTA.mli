@@ -40,12 +40,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 open Ustring.Op
 open TaFileTypes
 
-type clock_cycles = int
-type total_clock_cycles = int
+type wc_clock_cycles = int
+type bc_clock_cycles = int
 
 type tpp_timed_path =
-| TppTimedPath of total_clock_cycles * ((sid * clock_cycles) list)  (* Timed path *)
-| TppTimedPathUnknown                            (* The path is unknown. Could not be computed *)
+| TppTimedPath of wc_clock_cycles * 
+                  bc_clock_cycles *
+                  ((sid * (wc_clock_cycles * bc_clock_cycles)) list)
+| TppTimedPathUnknown                          
 
 type assumed_func_timing = (sid * time) list    
   
