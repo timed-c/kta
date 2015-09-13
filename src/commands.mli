@@ -44,23 +44,34 @@ val help : string -> ustring -> ustring option
     printed help text for the [command] using the top text
     [toptext]. Returns None if the command is unknown.*)
 
+
 val disasm_command : string list -> ustring
-(** [disasm_command args] executes the [disasm] command with the arguments [args].
-  Raises exception Uargs.Error if there is an error *)
+(** [disasm_command args] executes the [disasm] command with the
+    arguments [args].  Raises exception Uargs.Error if there is an
+    error *)
 
 
 val exec_command : string list -> ustring
-(** [exec_command args] executes the [exec] command with the arguments [args].
-  Raises exception Uargs.Error if there is an error *)
-  
+(** [exec_command args] executes the [exec] command with the arguments
+    [args].  Raises exception Uargs.Error if there is an error *)
+
+
+val sections_command : string list -> ustring
+(** [sections_command args] executes the [sections] command with the
+    arguments [args].  Raises exception Uargs.Error if there is an
+    error *)
+
 
 val sym_command : string list -> ustring
-(** [sym_command args] executes the [sym] command with the arguments [args].
-  Raises exception Uargs.Error if there is an error *)
+(** [sym_command args] executes the [sym] command with the arguments
+    [args].  Raises exception Uargs.Error if there is an error *)
+
 
 val ta_command : string list -> ustring
-(** [ta_command args] executes the [ta] command with the arguments [args].
-  Raises exception Uargs.Error if there is an error *)
+(** [ta_command args] executes the [ta] command with the arguments
+    [args].  Raises exception Uargs.Error if there is an error *)
+
+
 
 
 

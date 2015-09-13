@@ -56,7 +56,7 @@ let print_main_help() =
  us"  disasm   Outputs the disassembled ASM code of the .text section.\n" ^. 
  us"  exec     Concrete execution of a function.\n" ^. 
  us"  help     Prints out help about commands.\n" ^.
-(* us"  sections Prints out information about sections.\n" ^. *)
+ us"  sections Prints out information about sections.\n" ^. 
  us"  sym      Prints out the symbol table of the executable.\n" ^.
  us"  ta       Performs timing analysis.\n" ^. 
 (* us"  trace    Prints out a debug trace of a concrete execution.\n" ^. *)
@@ -73,7 +73,7 @@ let main =
     (* Commands *)
     | _::"disasm"::args   -> Commands.disasm_command args |> uprint_endline
     | _::"exec"::args     -> Commands.exec_command args |> uprint_endline
-    | _::"sections"::args -> printf "Sections\n"
+    | _::"sections"::args -> Commands.sections_command args |> uprint_endline
     | _::"sym"::args      -> Commands.sym_command args |> uprint_endline
     | _::"ta"::args       -> Commands.ta_command args |> uprint_endline
     | _::"trace"::args    -> printf "Trace\n"

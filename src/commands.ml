@@ -85,6 +85,11 @@ let exec_options =
        us"'-regstart', '-regend', and '-res'.")]
   @ extra_options
 
+
+(* List of sections command options *)
+let sections_options =
+    extra_options
+
     
 (* List of symbol command options *)
 let sym_options =
@@ -104,7 +109,7 @@ let ta_options =
        us"Arguments to the function supplied by the -func option. " ^.
        us"One or more arguments can be listed after option " ^.
        us"'-args'. The argument values need to be integers or integer intervals " ^.
-       us"using the syntax l..u, where l is the lower bound and u the upper bound."); *)
+       us"usbing the syntax l..u, where l is the lower bound and u the upper bound."); *)
    (OpTa_Exhaustive, Uargs.No,  us"-exhaustive",  us"",
        us"Performs exhaustive search of all possible program paths.")]
   @ extra_options
@@ -135,6 +140,11 @@ let help command toptext =
        pstr "exec" 
          ("  Concrete execution of a function. Outputs the number of used clock cycles.\n")
         exec_options         
+  | "sections" -> 
+       pstr "sections" 
+       ("  Prints out sections information for a binary ELF \n" ^
+        "  file, or a compiled file if option -compile is used.\n")
+        sections_options
   | "sym" -> 
        pstr "sym" 
        ("  Prints all symbols and corresponding addresses from a a binary ELF \n" ^
@@ -270,6 +280,24 @@ let exec_command args =
                          (us"Execution error: Function '" ^. us m ^. us"' cannot be found.")))
     
 
+(* ---------------------------------------------------------------------*)
+let sections_command args =
+
+  (* Parse options and get the binary file name *)
+  let (ops,args,binfile_name) = parse_ops_get_filename args sym_options in
+
+  (* Read the symbol table *)
+  let sections_list =
+    try 
+      MipsSys.section_info binfile_name
+    with Sys_error m -> (remove_tempfile();
+                         raise (Uargs.Error (us"System error: " ^. us m)))
+  in
+  remove_tempfile();
+
+  (* Pretty print all sections *)
+    sections_list |> List.map (fun (k,(s,a)) -> us(sprintf "%s %d,0x%x\n" k s a)) 
+      |> List.fold_left (^.) (us"") 
     
 
     
