@@ -23,7 +23,9 @@ type machinestate =
 
 (* ---------------------------------------------------------------------*)
 let getmemptr state prog addr size =
-  let check sec = (addr >= sec.addr && addr + size <= sec.addr + sec.size) in
+  let check sec =  
+     (addr >= sec.addr && addr + size <= sec.addr + sec.size) 
+    in
   let res stbytes sec = (stbytes, addr - sec.addr, sec.addr + sec.size - addr) in
   if check prog.data_sec then res state.data prog.data_sec else
   if check prog.sdata_sec then res state.sdata prog.sdata_sec else

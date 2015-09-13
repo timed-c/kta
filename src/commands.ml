@@ -376,8 +376,9 @@ let ta_command args =
         (match resps with
          | [ta_res_list] -> 
               (* Write down the ta file *)
-              TaFile.pprint_simple_ta_res ta_res_list |> 
-                  (Ustring.write_file (file_ta_req.ta_filename ^ ".out"))
+              let name = file_ta_req.ta_filename ^ ".out" in
+              TaFile.pprint_simple_ta_res ta_res_list |> Ustring.write_file name;
+              printf "The analysis results are written to file '%s'\n" name
          | _ -> failwith "Only supports one single function request right now.")
       ) f_reqs;
 

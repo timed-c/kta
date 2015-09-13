@@ -101,11 +101,13 @@ let analyze evalfunc func_ta_req symtbl =
         (*** Return a new update tinfo record in the case of a valid evaluation  *)
         | TppTimedPath(cycles,timedpath) as newpath ->           
           
+           (* (*Print out information about all program points  *)
            printf "-----------\n";
            List.iter (fun (s,c) -> 
               uprint_endline ((ustring_of_sid s) ^. us": " ^. ustring_of_int c)) 
               timedpath;
            printf "final: %d\n" cycles;
+           *)
 
            {
            (* wcpath field *)
@@ -122,7 +124,7 @@ let analyze evalfunc func_ta_req symtbl =
                  if cycles < curr_cycles then newpath else tinfo.bcpath
                | TppTimedPathUnknown -> TppTimedPathUnknown);             
              
-           (* tocunt field: Update the test counter. Should be removed. *)
+           (* tocunt field: Update the test counter. *)
              tcount = tinfo.tcount + 1;
            } 
                     
@@ -152,7 +154,9 @@ let analyze evalfunc func_ta_req symtbl =
 
   (* Start to explore all paths, calling the function above *)
   let tinfo = explore addrint first [] init_timing_info in
-  printf "FINAL: %d\n" tinfo.tcount;
+  
+  (* Inform about explored paths.  *)
+  printf "\nExhaustive search explored %d program paths.\n" tinfo.tcount;
 
   (* Generate the ta responses by iterating over ta requests *)
   List.fold_left (fun accresp (_,ta_req) ->

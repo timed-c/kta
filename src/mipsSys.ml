@@ -214,9 +214,8 @@ let get_eval_func ?(bigendian=false) prog =
     
     (* Set memory init map *)
     List.iter (fun (addr,v) ->          
-      printf "** 0x%08X   %d\n" addr (Int32.to_int v);
       let (mem,i,_) = MipsEval.getmemptr state prog addr 4 in
-      MipsUtils.set_32_bits bigendian mem i v;
+      MipsUtils.set_32_bits bigendian mem i v; 
     ) meminitmap;
 
     (* Evaluate/execute the function *)
