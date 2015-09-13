@@ -96,7 +96,6 @@ let analyze evalfunc func_ta_req symtbl =
   let fmap = List.map (fun (sid,wcet) ->
                (ustring_of_sid sid |> Ustring.to_utf8,(wcet,0))) func_ta_req.fwcet in
   let func_assumptions s = List.assoc s fmap  in
-  List.iter (fun (s,(w,b)) -> printf "## %s: w:%d  b:%d\n" s w b) fmap;
 
   (* TODO: implement support for function assumptons for BCET *)
   if (List.length func_ta_req.fbcet) <> 0 
