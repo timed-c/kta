@@ -328,13 +328,24 @@ let sym_command args =
 
 (* ---------------------------------------------------------------------*)
 let ta_command args =
+
+  (* Command short cut if the user writes "kta ta myfile.ta" *)
+  let newargs = 
+    match args with
+    | [s] when Ustring.ends_with (us".ta") (us s) -> 
+         let name = Ustring.to_utf8 
+                (Ustring.sub (us s) 0 ((String.length s) - 3)) in
+         [name ^ ".c"; "-compile"; "-tafile"; name ^ ".ta"]
+    | _ -> args
+  in                      
+  
   (* Stack constants. Should be command options *)
   let stack_ptr = 0x80000000 - 8  in
   let stack_size = 1024*256  in
   let stack_addr = stack_ptr - stack_size + 8 in
 
   (* Parse options and get the binary file name *)
-  let (ops,args,binfile_name) = parse_ops_get_filename args ta_options in
+  let (ops,args,binfile_name) = parse_ops_get_filename newargs ta_options in
         
   (* Perform the timing analysis *)
   try (
