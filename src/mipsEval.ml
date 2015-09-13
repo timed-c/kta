@@ -117,9 +117,9 @@ let rec step bigendian prog state hookfunc hookval is_a_delay_slot =
   | MipsJALR(rs) -> failwith "JALR is not implemented"     
   | MipsJR(rs) -> 
        branch (Int32.to_int state.registers.(rs))
-  | MipsJ(addr) ->
+  | MipsJ(addr,_) ->
        branch (jta addr)
-  | MipsJAL(addr) -> 
+  | MipsJAL(addr,_) -> 
        wreg (reg_ra) (Int32.of_int (state.pc + 4)); 
        branch (jta addr)
   | MipsLB(rt,imm,rs) -> 
@@ -243,8 +243,8 @@ let debug_print inst pc prog state is_a_delay_slot terminate (acc,prev_regfile) 
     | MipsBNEL(rs,rt,_,_) -> (0,rs,rt)
     | MipsJALR(rs) -> (0,rs,0)
     | MipsJR(rs) -> (0,rs,0)
-    | MipsJ(_) -> (0,0,0)
-    | MipsJAL(_) -> (0,0,0)
+    | MipsJ(_,_) -> (0,0,0)
+    | MipsJAL(_,_) -> (0,0,0)
     | MipsLB(rt,imm,rs) -> (rt,rs,0)
     | MipsLBU(rt,_,rs) -> (rt,rs,0)
     | MipsLUI(rt,_) -> (rt,0,0)

@@ -28,8 +28,8 @@ type inst =
   | MipsDIVU    of rs * rt
   | MipsJALR    of rs
   | MipsJR      of rs
-  | MipsJ       of addr
-  | MipsJAL     of addr
+  | MipsJ       of addr * string
+  | MipsJAL     of addr * string
   | MipsLB      of rt * imm * rs
   | MipsLBU     of rt * imm * rs
   | MipsLUI     of rt * imm

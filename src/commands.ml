@@ -315,7 +315,8 @@ let ta_command args =
     let prog = MipsSys.assign_program_stack (MipsSys.get_program binfile_name) 
              stack_ptr stack_size stack_addr in
 
-    (* TODO: check that all symbols in the TA files actually exists in the binary *)
+    (* TODO: check that all symbols in the TA files actually exists in the binary
+       and that "entry" and "exit" TPPs does not exist in the binary. *)
 
     (* Get the eval function for the  functions for the MIPS binary *)
     let eval_fun = MipsSys.get_eval_func prog in

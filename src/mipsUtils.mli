@@ -36,9 +36,10 @@ val pprint_asm : MipsAst.program -> int -> int -> bool -> ustring
 
 
 val add_branch_symbols : MipsAst.program -> MipsAst.program
-(** [add_branch_symbols prog] creates branch symbols for all BEQ and BNE instructions
- and adds them to the fields sym2addr and add2sym in the returned program. The
- string labels are also added to the instructions in fields 'code' field of the program.
+(** [add_branch_symbols prog] creates branch symbols for all BEQ, BNE,
+    J, and JAL instructions and adds them to the fields sym2addr and
+    add2sym in the returned program. The string labels are also added to
+    the instructions in fields 'code' field of the program.
 *)
 
 val get_32_bits : bool -> bytes -> int -> int32 

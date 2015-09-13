@@ -51,8 +51,8 @@ let decode_inst bininst =
            | 0  -> MipsBLTZ(rs(),imm(),"")
            | 1  -> MipsBGEZ(rs(),imm(),"")
            | _  -> MipsUnknown(bininst)) 
-  | 2  -> MipsJ(address())
-  | 3  -> MipsJAL(address())
+  | 2  -> MipsJ(address(),"")
+  | 3  -> MipsJAL(address(),"")
   | 4  -> MipsBEQ(rs(),rt(),imm(),"")
   | 5  -> MipsBNE(rs(),rt(),imm(),"")
   | 6  -> MipsBLEZ(rs(),imm(),"")
@@ -173,7 +173,7 @@ let pprint_inst inst =
                        lparan ^. (reg rs) ^. rparan in  
   let dta  rd rt shamt = rtsi rd rt shamt in
   let istr is = Ustring.spaces_after (us is) 8 in
-  let address a = us(sprintf "0x%x" a) in
+  let address a s = if String.length s <> 0 then us s else us(sprintf "0x%x" a) in
   match inst with
   | MipsADD(rd,rs,rt)     -> (istr "add") ^. (rdst rd rs rt)
   | MipsADDI(rt,rs,imm)   -> (istr "addi") ^. (rtsi rt rs imm)
@@ -191,8 +191,8 @@ let pprint_inst inst =
   | MipsBNEL(rs,rt,imm,s) -> (istr "bnel") ^. (rtsis rs rt imm s)
   | MipsJALR(rs)          -> (istr "jalr") ^. (reg rs)
   | MipsJR(rs)            -> (istr "jr") ^. (reg rs)
-  | MipsJ(addr)           -> (istr "j") ^. (address addr)
-  | MipsJAL(addr)         -> (istr "jal") ^. (address addr)
+  | MipsJ(addr,s)         -> (istr "j") ^. (address addr s)
+  | MipsJAL(addr,s)       -> (istr "jal") ^. (address addr s)
   | MipsLB(rt,imm,rs)     -> (istr "lb") ^. (rtis rt imm rs)
   | MipsLBU(rt,imm,rs)    -> (istr "lbu") ^. (rtis rt imm rs)
   | MipsLUI(rt,imm)       -> (istr "lui") ^. (rti rt imm)
@@ -270,8 +270,9 @@ let add_branch_symbols prog =
   let codearray = Array.copy prog.code in
   let x = ref 1 in
   let (_,s2a,a2s) = Array.fold_left (fun (i,s2a,a2s) inst -> 
-    let makenew imm =
-      let addr = i*4 + 4 + imm*4 + prog.text_sec.addr in
+
+    (* Creates new symbol if address to symbol does not exists *)
+    let makenew addr =
       if Addr2Sym.mem addr a2s then 
         (Addr2Sym.find addr a2s,s2a,a2s)
       else 
@@ -284,12 +285,14 @@ let add_branch_symbols prog =
             find_unique()
         in find_unique()
     in
-
+  
     match inst with
+    (* Match relative branch instructions *)
     | MipsBEQ(_,_,imm,_) | MipsBEQL(_,_,imm,_) | 
       MipsBLEZ(_,imm,_)  | MipsBNE(_,_,imm,_)  | MipsBNEL(_,_,imm,_)  |
       MipsBLTZ(_,imm,_)  | MipsBGEZ(_,imm,_)   | MipsBGTZ(_,imm,_) ->
-        let (newlabel,s2a',a2s') = makenew imm in
+        let addr = i*4 + 4 + imm*4 + prog.text_sec.addr in
+        let (newlabel,s2a',a2s') = makenew addr in
         let i2 = (match inst with
           | MipsBEQ(rs,rt,_,_)  -> MipsBEQ(rs,rt,imm,newlabel)
           | MipsBEQL(rs,rt,_,_)  -> MipsBEQL(rs,rt,imm,newlabel)
@@ -303,6 +306,16 @@ let add_branch_symbols prog =
         )in
         codearray.(i) <- i2;
         (i+1,s2a',a2s')
+    (* Match jump instructions *)
+    | MipsJ(saddr,_) | MipsJAL(saddr,_) -> 
+         let addr = ((i * 4) land 0xf0000000) lor (saddr lsl 2) in 
+         let (newlabel,s2a',a2s') = makenew addr in
+         let i2 = (match inst with 
+                   | MipsJ(_,_) -> MipsJ(saddr,newlabel)
+                   | MipsJAL(_,_) -> MipsJAL(saddr,newlabel)
+                   | _ -> failwith "Should not happen") in
+         codearray.(i) <- i2;
+         (i+1,s2a',a2s')
     | _ -> (i+1,s2a,a2s)
   ) (0,prog.sym2addr,prog.addr2sym) codearray in
   { prog with code = codearray ; sym2addr = s2a ; addr2sym = a2s}

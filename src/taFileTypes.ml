@@ -7,16 +7,11 @@ type argno = int                 (* Argument number. Used for assumptions of arg
 (* Representing execution time *)
 type time = 
 | TimeCycles of int              (* Time in clock cycles *)
-| TimeInfinity                   (* The time is proven to be infinite *)
 | TimeUnknown                    (* A safe bound can not be computed. This does not, 
                                    however, mean that such a bound does not exist *)
  
 (* Timing Program Point *)
-type tpp = 
-|TppEntry   
-|TppExit 
-|TppNode of sid
-
+type tpp = sid
     
 (* Abstract value *)
 type value = 
@@ -36,7 +31,6 @@ type ta_req =
 (* Different possible responses to a path request *)
 type tpp_path =
 | TppPath of tpp list              (* Path represented as a list of timing program points *)
-| TppPathInfinity                  (* The path is proven to be infinite *)
 | TppPathUnknown                   (* The path is unknown. Could not be computed *)
 
     

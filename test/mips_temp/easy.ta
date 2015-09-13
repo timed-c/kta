@@ -12,3 +12,4 @@ globalvar g1  10..12
 #LWCET 1 2
 #LWCET entry exit
 FWCET entry exit
+FWCET 7 9

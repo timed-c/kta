@@ -8,11 +8,7 @@ open AInt32
 
 (* ---------------------------------------------------------------------*)
 (** Pretty print a timing program point *)
-let pprint_tpp tpp =
-  match tpp with 
-  |TppEntry -> us"entry"
-  |TppExit -> us"exit"
-  |TppNode(i) -> ustring_of_sid i
+let pprint_tpp tpp = ustring_of_sid tpp
 
 
 
@@ -21,7 +17,6 @@ let pprint_tpp tpp =
 let pprint_path path =
   match path with  
   | TppPath(tpps) -> Ustring.concat (us",") (List.map pprint_tpp tpps)
-  | TppPathInfinity -> us"infinity"  
   | TppPathUnknown -> us"unknown"
 
    
@@ -32,7 +27,6 @@ let pprint_path path =
 let pprint_time_value v = 
   match v with
   | TimeCycles(i) -> ustring_of_int i
-  | TimeInfinity -> us"infinity"
   | TimeUnknown -> us"unknown"
 
 
@@ -68,7 +62,7 @@ let get_req_tpp req =
 (** Pretty print the timing request of a function *)
 let pprint_func_ta_req func_ta_req =
   (* Function *)
-  us"function " ^. func_ta_req.funcname  ^. us"\n" ^.
+  us"Function " ^. func_ta_req.funcname  ^. us"\n" ^.
 
   (* Arguments *)
   (if List.length func_ta_req.args = 0 then us"" else 
@@ -79,19 +73,19 @@ let pprint_func_ta_req func_ta_req =
   (* Global variables *)
   (if List.length func_ta_req.gvars = 0 then us"" else 
     Ustring.concat (us"\n") 
-      (List.map (fun (x,v) -> us"globalvar " ^. ustring_of_sid x ^. us" " ^.
+      (List.map (fun (x,v) -> us"GlobalVar " ^. ustring_of_sid x ^. us" " ^.
                  pprint_abstract_value v) func_ta_req.gvars) ^. us"\n") ^. 
 
   (* Function WCET assumptions *)
   (if List.length func_ta_req.fwcet = 0 then us"" else 
     Ustring.concat (us"\n") 
-      (List.map (fun (x,v) -> us"funcWCET " ^. ustring_of_sid x ^. us" " ^.
+      (List.map (fun (x,v) -> us"FunctionWCET " ^. ustring_of_sid x ^. us" " ^.
                  pprint_time_value v) func_ta_req.fwcet) ^. us"\n")  ^.
 
   (* Function BCET assumptions *)
   (if List.length func_ta_req.fbcet = 0 then us"" else 
     Ustring.concat (us"\n") 
-      (List.map (fun (x,v) -> us"funcBCET " ^. ustring_of_sid x ^. us" " ^.
+      (List.map (fun (x,v) -> us"FunctionBCET " ^. ustring_of_sid x ^. us" " ^.
                  pprint_time_value v) func_ta_req.fbcet) ^. us"\n") ^.
   
   (* Timing requests *)
@@ -153,18 +147,14 @@ let parse_positive_int filename line_no value  =
     
 (* ---------------------------------------------------------------------*)
 (** Parse a timing program point *)
-let parse_tpp filename line_no str =
-  match str with 
-  | "entry" -> TppEntry
-  | "exit" -> TppExit
-  | _ -> TppNode(usid str)
+let parse_tpp filename line_no str = usid str
+
 
 
     
 (* ---------------------------------------------------------------------*)
 (* Parse an literal to to a time value *)
 let parse_time_literal filename line_no str =
-  if str = "infinity" then TimeInfinity else
   let v = try int_of_string str
     with _ -> raise (TA_file_syntax_error(filename,line_no)) in
   TimeCycles(v)
@@ -214,7 +204,7 @@ let parse_ta_strings filename lines =
   (* Extract timing analysis request data *)
   let rec extract tokens fname args gvars fwcet fbcet ta_req acc =
     match tokens with
-    | (_,["function";name])::ts -> (
+    | (_,["Function";name])::ts -> (
         match fname with
         | Some(prename) ->
         (* We are done with this function. Process next *)
@@ -225,17 +215,17 @@ let parse_ta_strings filename lines =
         | None -> 
              (* We have detected a new function (the first one) *)
           extract ts (Some(name)) [] [] [] [] [] acc)
-    | (lineno,["arg";pos;value])::ts -> (
+    | (lineno,["Arg";pos;value])::ts -> (
         let pos' = parse_positive_int filename lineno pos in
         let value' = parse_abstract_value filename lineno value in 
         extract ts fname ((pos',value')::args) gvars fwcet fbcet ta_req acc)
-    | (lineno,["globalvar";var;value])::ts -> (
+    | (lineno,["GlobalVar";var;value])::ts -> (
         let value' = parse_abstract_value filename lineno value in 
         extract ts fname args (((usid var),value')::gvars) fwcet fbcet ta_req acc)
-    | (lineno,["funcWCET";var;time])::ts -> (
+    | (lineno,["FunctionWCET";var;time])::ts -> (
         let tval = parse_time_literal filename lineno time in 
         extract ts fname args gvars (((usid var),tval)::fwcet) fbcet ta_req acc)        
-    | (lineno,["funcBCET";var;time])::ts -> (
+    | (lineno,["FunctionBCET";var;time])::ts -> (
         let tval = parse_time_literal filename lineno time in 
         extract ts fname args gvars fwcet (((usid var),tval)::fbcet) ta_req acc)        
     | (lineno,["WCP";tpp1;tpp2])::ts -> (

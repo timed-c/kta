@@ -44,23 +44,40 @@ type timed_eval_func = string -> int32 list -> (int * int32) list ->
 (** [timed_eval_func funcname args meminitmap func_wcet func_bcet]. The [meminitmap] is
     an assoicative list, where the keys are addresses and the values are the
     memory values at these positions. *)
-  
 
-    
+  
+type timing_info = {
+   wcpath : tpp_timed_path;   (* Overall worst-case path *)
+   bcpath : tpp_timed_path;   (* Overall best-case path *)
+   tcount : int;
+} 
+(** Internal timing info structure that is used by the analyze() function
+    when computing timing responses. *)
+  
+let tpp_entry = usid "entry"
+let tpp_exit = usid "exit"
 
 (* ---------------------------------------------------------------------*)
 let timed_eval_func funcname args mem_init_map func_wcet func_bcet =
   TppTimedPathUnknown
 
 
-type timing_info = {
-   wcpath : tpp_timed_path;   (* Overall worst-case path *)
-   bcpath : tpp_timed_path;   (* Overall best-case path *)
-   tcount : int;
-} 
 
 
-    
+(* ---------------------------------------------------------------------*)
+(* Internal. Computes the fractional time from a timed path *)
+let frac_time_from_path tpp1 tpp2 c prepath = 
+  let path = (tpp_entry,0)::(List.append prepath [(tpp_exit,c)]) in
+  try 
+    let start_time = List.assoc tpp1 path in
+    let end_time = List.assoc tpp2 path in
+    if end_time > start_time then TimeCycles(end_time - start_time)      
+    else TimeCycles(0)
+  with 
+    Not_found -> TimeCycles(0)
+
+ 
+     
 (* ---------------------------------------------------------------------*)
 let analyze evalfunc func_ta_req symtbl = 
   (* Extract out global variable assumptions *)  
@@ -144,11 +161,21 @@ let analyze evalfunc func_ta_req symtbl =
     | ReqBCP(tpp1,tpp2) -> failwith "Not yet implemented"
     | ReqLWCET(tpp1,tpp2) -> failwith "Not yet implemented"
     | ReqLBCET(tpp1,tpp2) -> failwith "Not yet implemented"
-    | ReqFWCET(tpp1,tpp2) -> ([]
 
-    )
-    | ReqFBCET(tpp1,tpp2) -> failwith "Not yet implemented"
-   (*  [ResLWCET(TimeCycles(100));ResLWCET(TimeCycles(300))]  *)
+      (* Compute fractional WCET *)
+    | ReqFWCET(tpp1,tpp2) -> (
+        match tinfo.wcpath with
+        | TppTimedPath(c,prepath) -> 
+             ResFWCET(frac_time_from_path tpp1 tpp2 c prepath)::accresp
+        | TppTimedPathUnknown -> ResFWCET(TimeUnknown)::accresp)
+
+      (* Compute fractional BCET *)
+    | ReqFBCET(tpp1,tpp2) -> (
+        match tinfo.bcpath with
+        | TppTimedPath(c,prepath) -> 
+             ResFBCET(frac_time_from_path tpp1 tpp2 c prepath)::accresp
+        | TppTimedPathUnknown -> ResFBCET(TimeUnknown)::accresp)
+
   ) [] func_ta_req.ta_req |> List.rev
  
   
