@@ -50,9 +50,9 @@ type timed_eval_func = string -> int32 list -> (int * int32) list ->
 
   
 type timing_info = {
-   wcpath : tpp_timed_path;         (* Overall worst-case path *)
-   bcpath : tpp_timed_path;         (* Overall best-case path *)
-   lwcet  : (int * sid * sid) list; (* Local WCET list *)  
+   wcpath : tpp_timed_path;           (* Overall worst-case path *)
+   bcpath : tpp_timed_path;           (* Overall best-case path *)
+   lwcet  : ((sid * sid) * int) list; (* Local WCET list *)  
    tcount : int;
 } 
 (** Internal timing info structure that is used by the analyze() function
@@ -106,7 +106,7 @@ let analyze evalfunc func_ta_req symtbl =
   (* Create lwcet init list *)
   let lwcet_list = List.fold_left (fun a (_,ta_req) ->
      match ta_req with
-     | ReqLWCET(tpp1,tpp2) -> (0,tpp1,tpp2)::a
+     | ReqLWCET(tpp1,tpp2) -> ((tpp1,tpp2),0)::a
      | _ -> a
   ) [] func_ta_req.ta_req |> List.rev in
 
@@ -152,14 +152,15 @@ let analyze evalfunc func_ta_req symtbl =
              lwcet = (
                let path = (tpp_entry,(0,0))::(List.append timedpath 
                                              [(tpp_exit),(wc_cycles,bc_cycles)]) in
-               List.map (fun (c,tp1,tp2) ->
+               List.map (fun ((tp1,tp2),c) ->
                  try
                    let (wc_start,_) = List.assoc tp1 path in
                    let (wc_end,_) = List.assoc tp2 path in
                    let wc_diff = wc_end - wc_start in
-                   if wc_diff >= 0 && wc_diff > c then (wc_diff,tp1,tp2)
-                   else (c,tp1,tp2)
-                 with Not_found -> (c,tp1,tp2)) tinfo.lwcet
+                   if wc_diff >= 0 && wc_diff > c then ((tp1,tp2),wc_diff)
+                   else ((tp1,tp2),c)
+                 with Not_found -> ((tp1,tp2),c))
+                tinfo.lwcet
              );
              
            (* tocunt field: Update the test counter. *)
@@ -209,8 +210,11 @@ let analyze evalfunc func_ta_req symtbl =
         if List.length tinfo.lwcet = 0 then 
           (* Time is unknown because the list is empty. *)
           ResLWCET(TimeUnknown)::accresp 
-        else (         
-          ResLWCET(TimeCycles(0))::accresp
+        else (  
+          (* See if we find the pair of tpps *)
+          let cycles = try List.assoc (tpp1,tpp2) tinfo.lwcet 
+                       with Not_found -> 0 in
+          ResLWCET(TimeCycles(cycles))::accresp
         )
       
     | ReqLBCET(tpp1,tpp2) -> failwith "Not yet implemented"
