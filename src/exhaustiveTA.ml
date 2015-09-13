@@ -50,8 +50,9 @@ type timed_eval_func = string -> int32 list -> (int * int32) list ->
 
   
 type timing_info = {
-   wcpath : tpp_timed_path;   (* Overall worst-case path *)
-   bcpath : tpp_timed_path;   (* Overall best-case path *)
+   wcpath : tpp_timed_path;         (* Overall worst-case path *)
+   bcpath : tpp_timed_path;         (* Overall best-case path *)
+   lwcet  : (int * sid * sid) list; (* Local WCET list *)  
    tcount : int;
 } 
 (** Internal timing info structure that is used by the analyze() function
@@ -97,9 +98,17 @@ let analyze evalfunc func_ta_req symtbl =
                (ustring_of_sid sid |> Ustring.to_utf8,(wcet,0))) func_ta_req.fwcet in
   let func_assumptions s = List.assoc s fmap  in
 
-  (* TODO: implement support for function assumptons for BCET *)
+  (* TODO: implement support for function assumptons for BCET. 
+           See above. *)
   if (List.length func_ta_req.fbcet) <> 0 
   then failwith "Assumptions for Function BCET is not yet supported.";
+
+  (* Create lwcet init list *)
+  let lwcet_list = List.fold_left (fun a (_,ta_req) ->
+     match ta_req with
+     | ReqLWCET(tpp1,tpp2) -> (0,tpp1,tpp2)::a
+     | _ -> a
+  ) [] func_ta_req.ta_req |> List.rev in
 
 
   (* Exhaustively explore all possible input combinations *)
@@ -138,6 +147,20 @@ let analyze evalfunc func_ta_req symtbl =
                | TppTimedPath(_,curr_bc_cycles,curr_timedpath) ->
                  if bc_cycles < curr_bc_cycles then newpath else tinfo.bcpath
                | TppTimedPathUnknown -> TppTimedPathUnknown);             
+
+           (* lwcet field *)
+             lwcet = (
+               let path = (tpp_entry,(0,0))::(List.append timedpath 
+                                             [(tpp_exit),(wc_cycles,bc_cycles)]) in
+               List.map (fun (c,tp1,tp2) ->
+                 try
+                   let (wc_start,_) = List.assoc tp1 path in
+                   let (wc_end,_) = List.assoc tp2 path in
+                   let wc_diff = wc_end - wc_start in
+                   if wc_diff >= 0 && wc_diff > c then (wc_diff,tp1,tp2)
+                   else (c,tp1,tp2)
+                 with Not_found -> (c,tp1,tp2)) tinfo.lwcet
+             );
              
            (* tocunt field: Update the test counter. *)
              tcount = tinfo.tcount + 1;
@@ -151,6 +174,9 @@ let analyze evalfunc func_ta_req symtbl =
                
            (* bcpath field *)
              bcpath = TppTimedPathUnknown;
+
+           (* lwcet field *)
+             lwcet = []; 
              
            (* tocunt field: Update the test counter. Should be removed. *)
              tcount = tinfo.tcount + 1;
@@ -163,6 +189,7 @@ let analyze evalfunc func_ta_req symtbl =
   let init_timing_info = {
     wcpath = TppTimedPath(0,max_int,[]);
     bcpath = TppTimedPath(0,max_int,[]);    
+    lwcet = lwcet_list;
     tcount = 0;
   } 
   in
@@ -178,7 +205,14 @@ let analyze evalfunc func_ta_req symtbl =
     match ta_req with
     | ReqWCP(tpp1,tpp2) -> failwith "Not yet implemented"
     | ReqBCP(tpp1,tpp2) -> failwith "Not yet implemented"
-    | ReqLWCET(tpp1,tpp2) -> failwith "Not yet implemented"
+    | ReqLWCET(tpp1,tpp2) ->       
+        if List.length tinfo.lwcet = 0 then 
+          (* Time is unknown because the list is empty. *)
+          ResLWCET(TimeUnknown)::accresp 
+        else (         
+          ResLWCET(TimeCycles(0))::accresp
+        )
+      
     | ReqLBCET(tpp1,tpp2) -> failwith "Not yet implemented"
 
       (* Compute fractional WCET *)
