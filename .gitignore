@@ -6,3 +6,6 @@ bin/
 oldsrc/
 doc/api
 doc/user/manual.html
+*.elf
+*.out
+*.o

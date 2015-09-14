@@ -9,7 +9,7 @@ DIRS = src,test,ext/ucamlib/src
 all:    native 
 
 
-# Compile native version
+# Compile native version.
 native:
 	@rm -rf bin; mkdir bin 
 	@ocamlbuild -tag use_str -Is $(DIRS) kta.native 
