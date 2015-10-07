@@ -54,6 +54,10 @@ test:
 	@rm -f maintest.native
 
 
+dac16:	clean
+	cp -Rf * ~/paper/dac16/kta/.
+
+
 # Clean all submodules and the main Modelyze source
 clean:
 	@ocamlbuild -clean	
