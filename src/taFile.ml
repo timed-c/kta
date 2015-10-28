@@ -64,6 +64,11 @@ let pprint_func_ta_req func_ta_req =
   (* Function *)
   us"Function " ^. func_ta_req.funcname  ^. us"\n" ^.
 
+  (* Init Function *)
+  (if Ustring.length func_ta_req.initfunc <> 0 then
+    us"InitFunction " ^. func_ta_req.initfunc  ^. us"\n" 
+  else us"") ^.
+
   (* Arguments *)
   (if List.length func_ta_req.args = 0 then us"" else 
     Ustring.concat (us"\n") 
@@ -79,8 +84,8 @@ let pprint_func_ta_req func_ta_req =
   (* State variables *)
   (if List.length func_ta_req.state = 0 then us"" else 
     Ustring.concat (us"\n") 
-      (List.map (fun (x,v) -> us"State " ^. ustring_of_sid x ^. us" " ^.
-                 pprint_abstract_value v) func_ta_req.gvars) ^. us"\n") ^. 
+      (List.map (fun x -> us"State " ^. ustring_of_sid x) func_ta_req.state)
+         ^. us"\n") ^. 
     
   (* Function WCET assumptions *)
   (if List.length func_ta_req.fwcet = 0 then us"" else 
