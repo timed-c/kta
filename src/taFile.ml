@@ -76,6 +76,12 @@ let pprint_func_ta_req func_ta_req =
       (List.map (fun (x,v) -> us"GlobalVar " ^. ustring_of_sid x ^. us" " ^.
                  pprint_abstract_value v) func_ta_req.gvars) ^. us"\n") ^. 
 
+  (* State variables *)
+  (if List.length func_ta_req.state = 0 then us"" else 
+    Ustring.concat (us"\n") 
+      (List.map (fun (x,v) -> us"State " ^. ustring_of_sid x ^. us" " ^.
+                 pprint_abstract_value v) func_ta_req.gvars) ^. us"\n") ^. 
+    
   (* Function WCET assumptions *)
   (if List.length func_ta_req.fwcet = 0 then us"" else 
     Ustring.concat (us"\n") 
@@ -211,7 +217,7 @@ let parse_ta_strings filename lines =
   let utf8tokens = List.map (fun (n,ls) -> (n,List.map Ustring.to_utf8 ls)) tokenlst in 
 
   (* Extract timing analysis request data *)
-  let rec extract tokens fname args gvars fwcet fbcet ta_req acc =
+  let rec extract tokens fname initfunc args gvars state fwcet fbcet ta_req acc =
     let uppertokens = (match tokens with
                       | (k,s::ss)::ts -> (k,(String.uppercase s)::ss)::ts
                       | _ -> tokens) in
@@ -220,61 +226,67 @@ let parse_ta_strings filename lines =
         match fname with
         | Some(prename) ->
         (* We are done with this function. Process next *)
-          let func =  {funcname = us prename; args = List.rev args; 
-                       gvars = List.rev gvars; fwcet = List.rev fwcet; 
+          let func =  {funcname = us prename; initfunc = initfunc;
+                       args = List.rev args; gvars = List.rev gvars;
+                       state = List.rev state; fwcet = List.rev fwcet; 
                        fbcet = List.rev fbcet; ta_req = List.rev ta_req} in
-          extract ts (Some(name)) [] [] [] [] [] (func::acc)
+          extract ts (Some(name)) (us"") [] [] [] [] [] [] (func::acc)
         | None -> 
              (* We have detected a new function (the first one) *)
-          extract ts (Some(name)) [] [] [] [] [] acc)
+          extract ts (Some(name)) (us"") [] [] [] [] [] [] acc)
+    | (lineno,["INITFUNCTION";name])::ts -> (
+        extract ts fname (us name) args gvars state fwcet fbcet ta_req acc)
     | (lineno,["ARG";pos;value])::ts -> (
         let pos' = parse_positive_int filename lineno pos in
         let value' = parse_abstract_value filename lineno value in 
-        extract ts fname ((pos',value')::args) gvars fwcet fbcet ta_req acc)
+        extract ts fname initfunc ((pos',value')::args) gvars state fwcet fbcet ta_req acc)
     | (lineno,["GLOBALVAR";var;value])::ts -> (
         let value' = parse_abstract_value filename lineno value in 
-        extract ts fname args (((usid var),value')::gvars) fwcet fbcet ta_req acc)
+        extract ts fname initfunc args (((usid var),value')::gvars) state fwcet fbcet ta_req acc)
+    | (lineno,["STATE";var])::ts -> (
+        extract ts fname initfunc args gvars ((usid var)::state) fwcet fbcet ta_req acc)
     | (lineno,["FUNCTIONWCET";var;time])::ts -> (
         let tval = parse_int_literal filename lineno time in 
-        extract ts fname args gvars (((usid var),tval)::fwcet) fbcet ta_req acc)        
+        extract ts fname initfunc args gvars state (((usid var),tval)::fwcet) fbcet ta_req acc)        
     | (lineno,["FUNCTIONBCET";var;time])::ts -> (
         let tval = parse_int_literal filename lineno time in 
-        extract ts fname args gvars fwcet (((usid var),tval)::fbcet) ta_req acc)        
+        extract ts fname initfunc args gvars state fwcet (((usid var),tval)::fbcet) ta_req acc)        
     | (lineno,["WCP";tpp1;tpp2])::ts -> (
         let mktpp = parse_tpp filename lineno in
         let newreq = (lineno,ReqWCP(mktpp tpp1,mktpp tpp2)) in
-        extract ts fname args gvars fwcet fbcet (newreq::ta_req) acc)
+        extract ts fname initfunc args gvars state fwcet fbcet (newreq::ta_req) acc)
     | (lineno,["BCP";tpp1;tpp2])::ts -> (
         let mktpp = parse_tpp filename lineno in
         let newreq = (lineno,ReqBCP(mktpp tpp1,mktpp tpp2)) in
-        extract ts fname args gvars fwcet fbcet (newreq::ta_req) acc)
+        extract ts fname initfunc args gvars state fwcet fbcet (newreq::ta_req) acc)
     | (lineno,["LWCET";tpp1;tpp2])::ts -> (
         let mktpp = parse_tpp filename lineno in
         let newreq = (lineno,ReqLWCET(mktpp tpp1,mktpp tpp2)) in
-        extract ts fname args gvars fwcet fbcet (newreq::ta_req) acc)
+        extract ts fname initfunc args gvars state fwcet fbcet (newreq::ta_req) acc)
     | (lineno,["LBCET";tpp1;tpp2])::ts -> (
         let mktpp = parse_tpp filename lineno in
         let newreq = (lineno,ReqLBCET(mktpp tpp1,mktpp tpp2)) in
-        extract ts fname args gvars fwcet fbcet (newreq::ta_req) acc)
+        extract ts fname initfunc args gvars state fwcet fbcet (newreq::ta_req) acc)
     | (lineno,["FWCET";tpp1;tpp2])::ts -> (
         let mktpp = parse_tpp filename lineno in
         let newreq = (lineno,ReqFWCET(mktpp tpp1,mktpp tpp2)) in
-        extract ts fname args gvars fwcet fbcet (newreq::ta_req) acc)
+        extract ts fname initfunc args gvars state fwcet fbcet (newreq::ta_req) acc)
     | (lineno,["FBCET";tpp1;tpp2])::ts -> (
         let mktpp = parse_tpp filename lineno in
         let newreq = (lineno,ReqFBCET(mktpp tpp1,mktpp tpp2)) in
-        extract ts fname args gvars fwcet fbcet (newreq::ta_req) acc)
+        extract ts fname initfunc args gvars state fwcet fbcet (newreq::ta_req) acc)
     | (lineno,_)::ts -> raise (TA_file_syntax_error(filename,lineno))
     | [] -> (
         match fname with
         | Some(prename) -> 
-          let func = {funcname = us prename; args = List.rev args; 
-                       gvars = List.rev gvars; fwcet = List.rev fwcet; 
-                       fbcet = List.rev fbcet; ta_req = List.rev ta_req} in
+          let func = {funcname = us prename; initfunc = initfunc;
+                      args = List.rev args; gvars = List.rev gvars;
+                      state = List.rev state; fwcet = List.rev fwcet; 
+                      fbcet = List.rev fbcet; ta_req = List.rev ta_req} in
           func::acc
         | None -> acc)
   in 
-  List.rev (extract utf8tokens None [] [] [] [] [] [])
+  List.rev (extract utf8tokens None (us"") [] [] [] [] [] [] [])
 
 
 (* ---------------------------------------------------------------------*)

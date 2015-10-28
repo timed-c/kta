@@ -47,7 +47,7 @@ type ta_res =
 (* Structure to represent a timing analysis request for a specific function *)
 type func_ta_req = {
   funcname : ustring;               (* Name of the function that should be analyzed *)
-  initfunct : ustring;              (* An initial function that initiates states *)
+  initfunc : ustring;               (* An initial function that initiates states. Empty string if not exists *)
   args : (argno * value) list;      (* Argument assumptions. argno = 0 is first argument *)
   gvars : (sid * value) list;       (* Global variable assumptions *)
   state : sid list;                 (* List of state variables *)
