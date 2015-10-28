@@ -47,8 +47,10 @@ type ta_res =
 (* Structure to represent a timing analysis request for a specific function *)
 type func_ta_req = {
   funcname : ustring;               (* Name of the function that should be analyzed *)
+  initfunct : ustring;              (* An initial function that initiates states *)
   args : (argno * value) list;      (* Argument assumptions. argno = 0 is first argument *)
   gvars : (sid * value) list;       (* Global variable assumptions *)
+  state : sid list;                 (* List of state variables *)
   fwcet : (sid * int) list;         (* Assumed WCET in clock cycles for functions *)
   fbcet : (sid * int) list;         (* Assumed BCET in clock cycles for functions *)  
   ta_req : (lineno * ta_req) list;  (* Requested timing analysis values *)
