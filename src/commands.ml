@@ -328,7 +328,6 @@ let sym_command args =
 
 (* ---------------------------------------------------------------------*)
 let ta_command args =
-
   (* Command short cut if the user writes "kta ta myfile.ta" *)
   let newargs = 
     match args with

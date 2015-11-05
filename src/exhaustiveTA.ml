@@ -111,6 +111,8 @@ let analyze evalfunc func_ta_req symtbl =
   ) [] func_ta_req.ta_req |> List.rev in
 
 
+  List.iter (fun x -> uprint_endline (ustring_of_sid x)) func_ta_req.state;
+
   (* Exhaustively explore all possible input combinations *)
   let rec explore lst cur memmap tinfo =
     match lst,cur with
