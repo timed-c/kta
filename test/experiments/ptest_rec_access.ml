@@ -35,7 +35,7 @@ f = v;
 g = v;
 }
 
-let times = 100000000
+let times = 1000000000
 
 let addv = 87
 
