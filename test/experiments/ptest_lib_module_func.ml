@@ -30,6 +30,15 @@ g = v;
 
 type inst = A | B | C | D | E | F | G
 
+let __a = A
+let __b = B
+let __c = C
+let __d = D
+let __e = E
+let __f = F
+let __g = G
+
+
 let getV t inst =
     match inst with
     | A -> t.a

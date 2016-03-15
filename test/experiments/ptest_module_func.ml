@@ -89,6 +89,16 @@ let record_abs_local() =
       (loop times (_newrec 0))._d
         
 
+let record_abs_func() = 
+    let rec loop count t =
+        if count == 0 then t
+        else
+           let t' = adder t __a 7 in
+           let t'' = adder t' __d (getV t' __a) in
+           loop (count-1) t''
+    in
+      (loop times (newrec 0)).d
+
 
 
 let timetest str f1 =
@@ -101,6 +111,9 @@ let timetest str f1 =
 let main =
     timetest "Using module    " record_abs; 
     timetest "Local functions " record_abs_local;
+    timetest "Model with func " record_abs_func;
     timetest "Using module    " record_abs; 
     timetest "Local functions " record_abs_local;
+    timetest "Model with func " record_abs_func;
+
     
