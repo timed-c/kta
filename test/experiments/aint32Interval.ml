@@ -2,7 +2,7 @@
 type high = int
 type low = int
 
-type aval = high * low
+type aint32 = high * low
 
 
 let aint32_add (h1,l1) (h2,l2) =

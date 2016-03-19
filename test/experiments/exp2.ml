@@ -13,7 +13,7 @@ let addi state rt rs imm =
 (* ------------------ *)
 
 let rec exp1 state = state |> 
-    addi  v0 zero 0  |>
+    addi  (v0 s) (zero s) 0  |>
     continue 
     
 

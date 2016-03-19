@@ -3,8 +3,8 @@
 Performance test to check if it is more expensive to call functions if the are located in another 
 module compared to if they are local.
 
-Conclusion: It is not possible to notice any performance difference if the functions are local
-or shared in a module. 
+Conclusion: It is not possible to notice any performance difference if the
+functions are local or shared in a module. It is  
 
 Execute the program using the following line
  >>ocamlbuild ptest_module_func.native -lib unix --
