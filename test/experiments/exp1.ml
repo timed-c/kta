@@ -16,8 +16,16 @@ let return_ = 2
 
       
 let rec main =
-  let s = init_pstate 0x100 in
-  uprint_endline (pprint_pstate s)
+  let s =
+    init 0x100        |>
+    lii  t1 (-7) 100  |>
+    addi v0 zero 77   |>
+    add  t0 v0 v0     |>
+    add  t2 t1 v0     |>
+    add  t3 t1 t2            
+        
+  in
+  uprint_endline (pprint_pstate s 32)
 
 
 (* -- Program code -- *)

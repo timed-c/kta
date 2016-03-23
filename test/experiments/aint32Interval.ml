@@ -23,8 +23,10 @@ let aint32_any =
 
 
 let aint32_pprint v =
+  let (l,h) = v in
   if v = aint32_any then us"ANY"
+  else if l = h then
+    us (sprintf "%d" l)
   else
-    let (l,h) = v in
     us (sprintf "[%d,%d]" l h)
           

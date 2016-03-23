@@ -45,7 +45,30 @@ let sp = R29
 let fp = R30
 let ra = R31
 
-
+let pprint_reg r =
+  us(match r with
+  | R0 -> "zero" | R8  -> "t0" | R16 -> "s0" | R24 -> "t8"
+  | R1 -> "at"   | R9  -> "t1" | R17 -> "s1" | R25 -> "t9"
+  | R2 -> "v0"   | R10 -> "t2" | R18 -> "s2" | R26 -> "k0"
+  | R3 -> "v1"   | R11 -> "t3" | R19 -> "s3" | R27 -> "k1"
+  | R4 -> "a0"   | R12 -> "t4" | R20 -> "s4" | R28 -> "gp"
+  | R5 -> "a1"   | R13 -> "t5" | R21 -> "s5" | R29 -> "sp"
+  | R6 -> "a2"   | R14 -> "t6" | R22 -> "s6" | R30 -> "fp"
+  | R7 -> "a3"   | R15 -> "t7" | R23 -> "s7" | R31 -> "ra")
+      
+let int2reg x =
+  match x with
+  | 0 -> R0 | 8  -> R8  | 16 -> R16 | 24 -> R24
+  | 1 -> R1 | 9  -> R9  | 17 -> R17 | 25 -> R25
+  | 2 -> R2 | 10 -> R10 | 18 -> R18 | 26 -> R26
+  | 3 -> R3 | 11 -> R11 | 19 -> R19 | 27 -> R27
+  | 4 -> R4 | 12 -> R12 | 20 -> R20 | 28 -> R28
+  | 5 -> R5 | 13 -> R13 | 21 -> R21 | 29 -> R29
+  | 6 -> R6 | 14 -> R14 | 22 -> R22 | 30 -> R30
+  | 7 -> R7 | 15 -> R15 | 23 -> R23 | 31 -> R31
+  | _ -> failwith "Unknown register."
+                 
+    
 (** Abstract program state. Contains a concrete value
     for the program counter and abstract values for 
     registers and memory *)
@@ -63,7 +86,7 @@ type pstate = {
 
 (** Creates an initial any state of the program state 
     ps = The program counter value *)
-let init_pstate pc =
+let init pc =
   {
     pc = pc;
                          reg16 = aint32_any;
@@ -84,11 +107,7 @@ let init_pstate pc =
     reg15 = aint32_any;  reg31 = aint32_any;
 }
 
-let pprint_pstate ps =
-  us(sprintf "PC = 0x%8x\n" ps.pc)  
-   
-  
-    
+     
 
 (** Returns the abstract value for a specific register
    r = register symbol, ps = program state
@@ -135,7 +154,22 @@ let setreg r v ps =
   | R14  -> {ps with reg14 = v}  | R30 -> {ps with reg30 = v}
   | R15  -> {ps with reg15 = v}  | R31 -> {ps with reg31 = v}
 
-  
+    
+(** Pretty prints the entire program state 
+    ps = program state
+    noregs = number of registers to print *)
+let pprint_pstate ps noregs =
+  let rec pregs x s =
+    if x < noregs then
+      let r = int2reg x in
+      let n = pprint_reg r ^. us" = " ^. (aint32_pprint (reg r ps)) in      
+      let n' = Ustring.spaces_after n 20 ^. us(if x mod 4 = 0 then "\n" else "") in
+      pregs (x+1) (s ^. n')        
+    else s
+  in      
+    us(sprintf "PC = 0x%08x\n" ps.pc) ^.
+    pregs 1 (us"") 
+   
 
   
 (* ----------------------  BASIC BLOCKS   ------------------------*)
@@ -169,9 +203,11 @@ let next ps =
     ps
 
 
+(* -------------------- PSEUDO INSTRUCTIONS -------------------------*)
 
-
-
+(* load immediate interval *)
+let lii rd l h ps =
+  setreg rd (aint32_interval l h) ps
 
 
 
