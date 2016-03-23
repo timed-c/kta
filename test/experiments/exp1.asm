@@ -1,7 +1,7 @@
 
 
 .text
-	addi	$a0,$zero,100
+	add	$a0,$zero,100
 	addi	$a1,$zero,50
 	jal	exp1
 stop:	j      	stop

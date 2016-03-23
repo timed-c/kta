@@ -9,3 +9,6 @@ doc/user/manual.html
 *.elf
 *.out
 *.o
+*.native
+*.byte
+*.ll
