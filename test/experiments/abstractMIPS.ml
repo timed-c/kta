@@ -4,6 +4,8 @@ open Ustring.Op
 open Printf
 open Aint32Interval
 
+
+
 (* ------------------------ REGISTERS ------------------------------*)
 
 type registers = |R0 |R1 |R2 |R3 |R4 |R5 |R6 |R7
@@ -67,7 +69,8 @@ let int2reg x =
   | 6 -> R6 | 14 -> R14 | 22 -> R22 | 30 -> R30
   | 7 -> R7 | 15 -> R15 | 23 -> R23 | 31 -> R31
   | _ -> failwith "Unknown register."
-                 
+
+
     
 (** Abstract program state. Contains a concrete value
     for the program counter and abstract values for 
@@ -171,19 +174,40 @@ let pprint_pstate ps noregs =
     pregs 1 (us"") 
    
 
-  
-(* ----------------------  BASIC BLOCKS   ------------------------*)
+(* ---------------  BASIC BLOCKS AND PRIORITY QUEUE -----------------*)
   
 type blockid = int
+type distance = int
+type listsize = int  
 let exit_ = -1
 
+type pqueue = (distance * blockid * listsize * pstate list) 
+
+type gstate = pqueue
+  
 type block_info =
 {
-   func   : pstate -> pstate;
+   func   : gstate -> pstate -> pstate;
    nextid : blockid;
+   dist   : distance;
    addr   : int; 
 }
+
   
+(* ------------------------ PRIORITY QUEUE --------------------------*)
+  
+(*let enqueue queue dist blockid =
+  let (
+*)
+
+
+
+  
+  
+  
+  
+(* ------------------------ CONTINUATION  -------------------------*)
+
   
 (* ------------------------ INSTRUCTIONS -------------------------*)
 
@@ -193,13 +217,13 @@ let add rd rs rt ps =
 let addi rt rs imm ps  =
     setreg rt (aint32_add (reg rs ps) (aint32_const imm)) ps
 
-let bne rs rt label ps =
+let bne rs rt label gs ps =
+    ps 
+
+let jr rs gs ps  =
     ps
 
-let jr rs ps  =
-    ps
-
-let next ps =
+let next gs ps =
     ps
 
 
@@ -210,7 +234,36 @@ let lii rd l h ps =
   setreg rd (aint32_interval l h) ps
 
 
+    
+
+(* ------------------- MAIN ANALYSIS FUNCTIONS ----------------------*)
+    
+(** Main function for analyzing a function *)
+let analyze startblock blocks =
+  (* Get the block info of the first basic block *)  
+  let bi = blocks.(startblock) in
+
+  (* Create a new program state with the start address *)
+  let ps = init bi.addr in
+  ()
+
+  
 
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  

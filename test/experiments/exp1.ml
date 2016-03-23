@@ -12,10 +12,43 @@ let loop_   = 1
 let return_ = 2
 
 
+
+
+(* -- Program code -- *)
+let rec start() = ()
+    
+and exp1 gs ps = ps      |>   
+    addi  v0 zero 88     |>
+    next  gs
+
+and loop gs ps = ps      |>
+    add   v0 v0 a0       |>
+    addi  a0 a0 (-1)     |>	
+    bne	  a0 a1 loop_ gs  
+
+and return gs ps = ps    |>
+    jr	  ra gs          
+
+    
+
+(* -- Basic Block Info -- *)
+
+
+let blocks =
+[|
+  (* {func=exp1;   nextid=loop_;   addr=0x00400000}; *)
+  {func=exp1;   nextid=return_; dist=3; addr=0x00400000};
+  {func=loop;   nextid=return_; dist=2; addr=0x00400200};
+  {func=return; nextid=exit_;   dist=1; addr=0x00400400};
+|]
+
 (* -- Start of analysis -- *)
 
-      
-let rec main =
+let main =
+    analyze exp1_ blocks
+    
+  
+let testmain =
   let s =
     init 0x100        |>
     lii  t1 (-7) 100  |>
@@ -26,40 +59,8 @@ let rec main =
         
   in
   uprint_endline (pprint_pstate s 32)
+  
 
 
-(* -- Program code -- *)
 
-and exp1 ps = ps       |>   
-    addi  v0 zero 0    |>
-    next
-
-and loop ps = ps       |>
-    add   v0 v0 a0     |>
-    addi  a0 a0 (-1)   |>	
-    bne	  a0 a1 loop_  
-
-and return ps = ps     |>
-    jr	  ra           
-
-
-(* -- Basic Block Info -- *)
-
-
-let blocks =
-[
-  {func=exp1;   nextid=loop_;   addr=0};
-  {func=loop;   nextid=return_; addr=4};
-  {func=return; nextid=exit_;   addr=16};
-]
-    
-
-
-(*
-  priority queue
-
-
-type pqueue = distance * blockid * count * list pstate
-
-*)
 
