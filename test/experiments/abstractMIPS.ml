@@ -1,5 +1,7 @@
 
 
+open Ustring.Op
+open Printf
 open Aint32Interval
 
 (* ------------------------ REGISTERS ------------------------------*)
@@ -44,7 +46,11 @@ let fp = R30
 let ra = R31
 
 
-type astate = {
+(** Abstract program state. Contains a concrete value
+    for the program counter and abstract values for 
+    registers and memory *)
+type pstate = {
+  pc : int;
                  reg8  : aint32; reg16 : aint32; reg24 : aint32;
   reg1 : aint32; reg9  : aint32; reg17 : aint32; reg25 : aint32;
   reg2 : aint32; reg10 : aint32; reg18 : aint32; reg26 : aint32;
@@ -53,58 +59,87 @@ type astate = {
   reg5 : aint32; reg13 : aint32; reg21 : aint32; reg29 : aint32;
   reg6 : aint32; reg14 : aint32; reg22 : aint32; reg30 : aint32;
   reg7 : aint32; reg15 : aint32; reg23 : aint32; reg31 : aint32;
-
-  pc : int;
 }
 
+(** Creates an initial any state of the program state 
+    ps = The program counter value *)
+let init_pstate pc =
+  {
+    pc = pc;
+                         reg16 = aint32_any;
+    reg1  = aint32_any;  reg17 = aint32_any;
+    reg2  = aint32_any;  reg18 = aint32_any;
+    reg3  = aint32_any;  reg19 = aint32_any;
+    reg4  = aint32_any;  reg20 = aint32_any;
+    reg5  = aint32_any;  reg21 = aint32_any;
+    reg6  = aint32_any;  reg22 = aint32_any;
+    reg7  = aint32_any;  reg23 = aint32_any;
+    reg8  = aint32_any;  reg24 = aint32_any;
+    reg9  = aint32_any;  reg25 = aint32_any;
+    reg10 = aint32_any;  reg26 = aint32_any;
+    reg11 = aint32_any;  reg27 = aint32_any;
+    reg12 = aint32_any;  reg28 = aint32_any;
+    reg13 = aint32_any;  reg29 = aint32_any;
+    reg14 = aint32_any;  reg30 = aint32_any;
+    reg15 = aint32_any;  reg31 = aint32_any;
+}
 
-(* Returns the abstract value for a specific register *)
-let reg state r =
-  match r with
-  | R0  -> aint32_const(0)  | R16 -> state.reg16 
-  | R1  -> state.reg1       | R17 -> state.reg17 
-  | R2  -> state.reg2       | R18 -> state.reg18 
-  | R3  -> state.reg3       | R19 -> state.reg19 
-  | R4  -> state.reg4       | R20 -> state.reg20 
-  | R5  -> state.reg5       | R21 -> state.reg21 
-  | R6  -> state.reg6       | R22 -> state.reg22 
-  | R7  -> state.reg7       | R23 -> state.reg23 
-  | R8  -> state.reg8       | R24 -> state.reg24 
-  | R9  -> state.reg9       | R25 -> state.reg25 
-  | R10 -> state.reg10      | R26 -> state.reg26 
-  | R11 -> state.reg11      | R27 -> state.reg27 
-  | R12 -> state.reg12      | R28 -> state.reg28 
-  | R13 -> state.reg13      | R29 -> state.reg29 
-  | R14 -> state.reg14      | R30 -> state.reg30 
-  | R15 -> state.reg15      | R31 -> state.reg31 
+let pprint_pstate ps =
+  us(sprintf "PC = 0x%8x\n" ps.pc)  
+   
+  
+    
 
-let setreg state r v =
+(** Returns the abstract value for a specific register
+   r = register symbol, ps = program state
+   returns the abstract value for the register r *)
+let reg r ps =
   match r with
-  | R0   -> state                   | R16 -> {state with reg16 = v}
-  | R1   -> {state with reg1 = v}   | R17 -> {state with reg17 = v}
-  | R2   -> {state with reg2 = v}   | R18 -> {state with reg18 = v}
-  | R3   -> {state with reg3 = v}   | R19 -> {state with reg19 = v}
-  | R4   -> {state with reg4 = v}   | R20 -> {state with reg20 = v}
-  | R5   -> {state with reg5 = v}   | R21 -> {state with reg21 = v}
-  | R6   -> {state with reg6 = v}   | R22 -> {state with reg22 = v}
-  | R7   -> {state with reg7 = v}   | R23 -> {state with reg23 = v}
-  | R8   -> {state with reg8 = v}   | R24 -> {state with reg24 = v}
-  | R9   -> {state with reg9 = v}   | R25 -> {state with reg25 = v}
-  | R10  -> {state with reg10 = v}  | R26 -> {state with reg26 = v}
-  | R11  -> {state with reg11 = v}  | R27 -> {state with reg27 = v}
-  | R12  -> {state with reg12 = v}  | R28 -> {state with reg28 = v}
-  | R13  -> {state with reg13 = v}  | R29 -> {state with reg29 = v}
-  | R14  -> {state with reg14 = v}  | R30 -> {state with reg30 = v}
-  | R15  -> {state with reg15 = v}  | R31 -> {state with reg31 = v}
+  | R0  -> aint32_const(0) | R16 -> ps.reg16 
+  | R1  -> ps.reg1         | R17 -> ps.reg17 
+  | R2  -> ps.reg2         | R18 -> ps.reg18 
+  | R3  -> ps.reg3         | R19 -> ps.reg19 
+  | R4  -> ps.reg4         | R20 -> ps.reg20 
+  | R5  -> ps.reg5         | R21 -> ps.reg21 
+  | R6  -> ps.reg6         | R22 -> ps.reg22 
+  | R7  -> ps.reg7         | R23 -> ps.reg23 
+  | R8  -> ps.reg8         | R24 -> ps.reg24 
+  | R9  -> ps.reg9         | R25 -> ps.reg25 
+  | R10 -> ps.reg10        | R26 -> ps.reg26 
+  | R11 -> ps.reg11        | R27 -> ps.reg27 
+  | R12 -> ps.reg12        | R28 -> ps.reg28 
+  | R13 -> ps.reg13        | R29 -> ps.reg29 
+  | R14 -> ps.reg14        | R30 -> ps.reg30 
+  | R15 -> ps.reg15        | R31 -> ps.reg31 
+
+(** Sets the value of a register.
+    r = register symbol, v = abstract value to be set
+    ps = program state
+    returns the new abstract program state. *)
+let setreg r v ps =
+  match r with
+  | R0   -> ps                   | R16 -> {ps with reg16 = v}
+  | R1   -> {ps with reg1 = v}   | R17 -> {ps with reg17 = v}
+  | R2   -> {ps with reg2 = v}   | R18 -> {ps with reg18 = v}
+  | R3   -> {ps with reg3 = v}   | R19 -> {ps with reg19 = v}
+  | R4   -> {ps with reg4 = v}   | R20 -> {ps with reg20 = v}
+  | R5   -> {ps with reg5 = v}   | R21 -> {ps with reg21 = v}
+  | R6   -> {ps with reg6 = v}   | R22 -> {ps with reg22 = v}
+  | R7   -> {ps with reg7 = v}   | R23 -> {ps with reg23 = v}
+  | R8   -> {ps with reg8 = v}   | R24 -> {ps with reg24 = v}
+  | R9   -> {ps with reg9 = v}   | R25 -> {ps with reg25 = v}
+  | R10  -> {ps with reg10 = v}  | R26 -> {ps with reg26 = v}
+  | R11  -> {ps with reg11 = v}  | R27 -> {ps with reg27 = v}
+  | R12  -> {ps with reg12 = v}  | R28 -> {ps with reg28 = v}
+  | R13  -> {ps with reg13 = v}  | R29 -> {ps with reg29 = v}
+  | R14  -> {ps with reg14 = v}  | R30 -> {ps with reg30 = v}
+  | R15  -> {ps with reg15 = v}  | R31 -> {ps with reg31 = v}
 
   
-
-
 
   
 (* ----------------------  BASIC BLOCKS   ------------------------*)
   
-type pstate = int
 type blockid = int
 let exit_ = -1
 
@@ -118,20 +153,20 @@ type block_info =
   
 (* ------------------------ INSTRUCTIONS -------------------------*)
 
-let add rd rs rt state =
-    state
+let add rd rs rt ps =
+    setreg rd (aint32_add (reg rs ps) (reg rt ps)) ps
 
-let addi rt rs imm state  =
-    state
+let addi rt rs imm ps  =
+    setreg rt (aint32_add (reg rs ps) (aint32_const imm)) ps
 
-let bne rs rt label state =
-    state
+let bne rs rt label ps =
+    ps
 
-let jr rs state  =
-    state
+let jr rs ps  =
+    ps
 
-let next state =
-    state
+let next ps =
+    ps
 
 
 

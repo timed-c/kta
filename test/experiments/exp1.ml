@@ -3,7 +3,7 @@
 
 open Printf
 open AbstractMIPS 
-
+open Ustring.Op
 
 (* -- Basic Block Identifiers -- *)
 
@@ -15,8 +15,10 @@ let return_ = 2
 (* -- Start of analysis -- *)
 
       
-let rec main = 
-    printf "Hello\n"
+let rec main =
+  let s = init_pstate 0x100 in
+  uprint_endline (pprint_pstate s)
+
 
 (* -- Program code -- *)
 
