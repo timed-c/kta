@@ -194,11 +194,33 @@ type block_info =
 }
 
   
-(* ------------------------ PRIORITY QUEUE --------------------------*)
-  
-(*let enqueue queue dist blockid =
-  let (
-*)
+let rec enqueue dist blockid ps queue =
+  match queue with
+    (* Distance larger? Go to next *)
+  | (d,bid,size,pstates)::qs when d > dist ->
+      (d,bid,size,pstates)::(enqueue dist blockid ps qs)
+    (* Same dist?  *)
+  | (d,bid,size,pstates)::qs when dist = d ->
+     (* Same block id? *)                          
+     if bid = blockid then
+       (* Yes, enqueue *)                          
+       (d,bid,size+1, ps::pstates)::qs       
+     else
+       (* No. Go to next *)
+       (d,bid,size,pstates)::(enqueue dist blockid ps qs)
+    (* Block not found. Enqueue *)
+  | qs -> (dist,blockid,1,[ps])::qs
+
+
+(** Picks the block with highest priority.
+    Returns Maybe tuple, where the Some includes the block ID,
+    the size of the program state list, and the program state list *)
+let dequeue queue =
+  match queue with
+  | [] -> None
+  | (_,blockid,lsize,pslist)::_ -> Some(blockid,lsize,pslist)
+    
+
 
 
 
