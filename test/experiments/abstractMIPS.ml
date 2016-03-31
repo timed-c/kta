@@ -167,7 +167,7 @@ let pprint_pstate ps noregs =
     if x < noregs then
       let r = int2reg x in
       let n = pprint_reg r ^. us" = " ^. (aint32_pprint (reg r ps)) in      
-      let n' = Ustring.spaces_after n 20 ^. us(if x mod 4 = 0 then "\n" else "") in
+      let n' = Ustring.spaces_after n 18 ^. us(if x mod 4 = 0 then "\n" else "") in
       pregs (x+1) (s ^. n')        
     else s
   in      

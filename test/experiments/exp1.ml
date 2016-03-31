@@ -47,15 +47,15 @@ let bblocks =
       
 let testmain =
   let ms =
-    init_mstate 0x100 bblocks |>
+    init_mstate 0 bblocks  |>
     lii  t1 (-7) 100  |>
     addi v0 zero 77   |>
     add  t0 v0 v0     |>
     add  t2 t1 v0     |>
     add  t3 t1 t2            
-        
-  in
-  uprint_endline (pprint_pstate ms.pstate 32)
+                              
+    in  
+      uprint_endline (pprint_pstate ms.pstate 32) 
   
 
 
