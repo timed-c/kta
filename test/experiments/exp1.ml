@@ -11,43 +11,46 @@ let exp1_   = 0
 let loop_   = 1
 let return_ = 2
 
-
-
-
-(* -- Program code -- *)
-let rec final() = ()
+  
+(* -- Program Code -- *)
     
-and exp1 ms ps = ps      |>   
-    addi  v0 zero 88     |>
-    next  ms
+let
+rec exp1 ps = ps        |>   
+    addi  v0 zero 0     |>
+    next  
 
-and loop ms ps = ps      |>
-    add   v0 v0 a0       |>
-    addi  a0 a0 (-1)     |>	
-    bne	  a0 a1 loop_ ms  
+and loop ps = ps        |>
+    add  v0 v0 a0       |>
+    addi a0 a0 (-1)     |>	
+    bne	 a0 a1 loop_ 
 
-and return ms ps = ps    |>
-    jr	  ra ms          
+and return ps = ps      |>
+    jr	 ra           
 
-    
 
 (* -- Basic Block Info -- *)
-
-
-let blocks =
+    
+let bblocks =
 [|
-  {func=final;  nextid=final_;  dist=0; addr=0};
-  {func=exp1;   nextid=return_; dist=3; addr=0x00400000};
-  {func=loop;   nextid=return_; dist=2; addr=0x00400200};
-  {func=return; nextid=final_;  dist=1; addr=0x00400400};
+  {func=exp1;   nextid=loop_;   dist=2; addr=0x00400000};
+  {func=loop;   nextid=return_; dist=1; addr=0x00400200};
+  {func=return; nextid=na_;     dist=0; addr=0x00400400};
 |]
 
-(* -- Start of analysis -- *)
+  
+(* -- Start of Analysis -- *)
 
 let main =
-    analyze exp1_ blocks
+    analyze exp1_ bblocks
     
-  
+
+
+
+
+
+
+
+      
 let testmain =
   let s =
     init 0x100        |>

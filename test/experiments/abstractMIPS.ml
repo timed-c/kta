@@ -176,30 +176,36 @@ let pprint_pstate ps noregs =
 
 (* ---------------  BASIC BLOCKS AND PRIORITY QUEUE -----------------*)
   
-type blockid = int
-type distance = int
-type listsize = int  
-let exit_ = -1
+type blockid = int     (* The block ID type *)
+type distance = int    (* The type for describing distances of blocks *)
+type listsize = int    (* Size of the list *)
 
+(** Basic block ID na_ means "not applicable". *)
+let  na_ = -1
+
+(** Priority queue type *)
 type pqueue = (distance * blockid * listsize * pstate list) list 
 
-  
-type block_info =
+
+(** The basic block info entry type is one element in the
+    basic block table. This table provides all information about
+    how basic blocks are related, which distances they have etc. *)  
+type bblock_info =
 {
-   func   : gstate -> pstate -> pstate;
-   nextid : blockid;
-   dist   : distance;
-   addr   : int; 
+   func   : pstate -> pstate;  (* The function that represents the basic block *)
+   nextid : blockid;           (* The identifier that shows the next basic block *)
+   dist   : distance;          (* The distance to the exit, that is the number of edges *)
+   addr   : int;               (* Address to the first instruction in the basic block *)
 }
 
-(* Main state *)
+(** Main state of the analysis *)
 type mstate = {
-  prio    : pqueue;           (* Overall priority queue *)
-  cblock  : blockid;          (* Current basic block *)
-  bitable : block_info array; (* Basic block info table *)
+  prio    : pqueue;            (* Overall priority queue *)
+  cblock  : blockid;           (* Current basic block *)
+  bbtable : bblock_info array; (* Basic block info table *)
 }
   
-  
+(* Enqueue a basic block *)  
 let rec enqueue dist blockid ps queue =
   match queue with
     (* Distance larger? Go to next *)
@@ -228,7 +234,7 @@ let dequeue queue =
     let queue' = (dist,blockid,lsize-1,pss)::rest in
       (blockid,ps,queue')
     
-
+(** Returns the empty queue *)
 let emptyqueue = []
 
 
@@ -283,10 +289,11 @@ let lii rd l h ps =
 
 (* ------------------- MAIN ANALYSIS FUNCTIONS ----------------------*)
     
-(** Main function for analyzing a function *)
-let analyze startblock blocks =
+(** Main function for analyzing an assembly function *)
+let analyze startblock bblocks =
+  
   (* Get the block info of the first basic block *)  
-  let bi = blocks.(startblock) in
+  let bi = bblocks.(startblock) in
 
   (* Create a new program state with the start address *)
   let ps = init bi.addr in
@@ -294,8 +301,16 @@ let analyze startblock blocks =
   (* Add the start block to the priority queue *)
   let pqueue = enqueue bi.dist startblock ps emptyqueue in
 
+  (* Create the main state *)
+  let mstate = {
+    prio = pqueue;     (* Starts with a queue with just one element, the entry *)
+    cblock = na_;      (* N/A, since the process has not yet started *)
+    bbtable = bblock;  (* Stores a reference to the basic block info table *)
+  } in
+
+  (* Continue the process and execute the next basic block from the queue *)
+  continue mstate
   
-  ()
   
 
 

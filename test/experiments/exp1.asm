@@ -16,4 +16,5 @@ exp1:
 loop:   add 	$v0,$v0,$a0
 	addi	$a0,$a0,-1	
 	bne	$a0,$a1,loop
+return:	
 	jr	$ra
