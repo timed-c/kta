@@ -1,5 +1,6 @@
 
 
+
 open Ustring.Op
 open Printf
 open Aint32Interval
@@ -75,7 +76,7 @@ let int2reg x =
 (** Abstract program state. Contains a concrete value
     for the program counter and abstract values for 
     registers and memory *)
-type pstate = {
+type progstate = {
   pc : int;
                  reg8  : aint32; reg16 : aint32; reg24 : aint32;
   reg1 : aint32; reg9  : aint32; reg17 : aint32; reg25 : aint32;
@@ -89,7 +90,7 @@ type pstate = {
 
 (** Creates an initial any state of the program state 
     ps = The program counter value *)
-let init pc =
+let init_pstate pc =
   {
     pc = pc;
                          reg16 = aint32_any;
@@ -184,7 +185,7 @@ type listsize = int    (* Size of the list *)
 let  na_ = -1
 
 (** Priority queue type *)
-type pqueue = (distance * blockid * listsize * pstate list) list 
+type pqueue = (distance * blockid * listsize * progstate list) list 
 
 
 (** The basic block info entry type is one element in the
@@ -192,34 +193,37 @@ type pqueue = (distance * blockid * listsize * pstate list) list
     how basic blocks are related, which distances they have etc. *)  
 type bblock_info =
 {
-   func   : pstate -> pstate;  (* The function that represents the basic block *)
+   func   : mstate -> mstate;  (* The function that represents the basic block *)
    nextid : blockid;           (* The identifier that shows the next basic block *)
    dist   : distance;          (* The distance to the exit, that is the number of edges *)
    addr   : int;               (* Address to the first instruction in the basic block *)
 }
 
 (** Main state of the analysis *)
-type mstate = {
-  prio    : pqueue;            (* Overall priority queue *)
+and mstate = {
   cblock  : blockid;           (* Current basic block *)
+  pstate  : progstate;         (* Current program state *)
+  prio    : pqueue;            (* Overall priority queue *)
   bbtable : bblock_info array; (* Basic block info table *)
 }
+
   
+
 (* Enqueue a basic block *)  
 let rec enqueue dist blockid ps queue =
   match queue with
     (* Distance larger? Go to next *)
-  | (d,bid,size,pstates)::qs when d > dist ->
-      (d,bid,size,pstates)::(enqueue dist blockid ps qs)
+  | (d,bid,size,pss)::qs when d > dist ->
+      (d,bid,size,pss)::(enqueue dist blockid ps qs)
     (* Same dist?  *)
-  | (d,bid,size,pstates)::qs when dist = d ->
+  | (d,bid,size,pss)::qs when dist = d ->
      (* Same block id? *)                          
      if bid = blockid then
        (* Yes, enqueue *)                          
-       (d,bid,size+1, ps::pstates)::qs       
+       (d,bid,size+1, ps::pss)::qs       
      else
        (* No. Go to next *)
-       (d,bid,size,pstates)::(enqueue dist blockid ps qs)
+       (d,bid,size,pss)::(enqueue dist blockid ps qs)
     (* Block not found. Enqueue *)
   | qs -> (dist,blockid,1,[ps])::qs
 
@@ -229,14 +233,33 @@ let rec enqueue dist blockid ps queue =
     the size of the program state list, and the program state list *)
 let dequeue queue =
   match queue with
-  | [] -> failwith "Should not happen"
+  | (_,0,_,ps)::rest ->  failwith "Finished!!!" 
   | (dist,blockid,lsize,ps::pss)::rest ->
     let queue' = (dist,blockid,lsize-1,pss)::rest in
       (blockid,ps,queue')
+  | _ -> failwith "Should not happen"
     
 (** Returns the empty queue *)
 let emptyqueue = []
 
+(* Initiates the basic blocks *)
+let init_mstate startblock bblocks =
+  (* Get the block info of the first basic block *)  
+  let bi = bblocks.(startblock) in
+
+  (* Create a new program state with the start address *)
+  let ps = init_pstate bi.addr in
+
+  (* Add the start block to the priority queue *)
+  let pqueue = enqueue bi.dist startblock ps emptyqueue in
+  
+  (* Create the main state *)
+  {
+    cblock = startblock;  (* N/A, since the process has not yet started *)
+    pstate = ps;          (* New program state *)
+    prio = pqueue;        (* Starts with a queue with just one element, the entry *)
+    bbtable = bblocks;    (* Stores a reference to the basic block info table *)
+  } 
 
   
 (* ------------------------ CONTINUATION  -------------------------*)
@@ -244,36 +267,39 @@ let emptyqueue = []
 (* Continue and execute the next basic block in turn *)
 let continue ms =
   let (blockid,ps,queue') = dequeue ms.prio in
-  let ms' = {ms with cblock = blockid, prio = queue'} in
-  let bi = ms.bitable.(blockid) in
-  bi.func ms' ps
+  let ms' = {ms with cblock = blockid; prio = queue'} in
+  let bi = ms.bbtable.(blockid) in
+  bi.func ms' 
 
-(* Enqueue a new program state using a block id. Returns a machine state *)    
-let enqueue_block blockid ps ms in
-  let bi = ms.bitable(blockid) in
+(* Enqueue a new program state using a block id. Returns a main state *)    
+let enqueue_block blockid ps ms =
+  let bi = ms.bbtable.(blockid) in
   let prio' = enqueue bi.dist blockid ps ms.prio in
   {ms with prio = prio'}
+
+let to_mstate ms ps =
+  {ms with pstate = ps}
     
 (* ------------------------ INSTRUCTIONS -------------------------*)
 
-let add rd rs rt ps =
-    setreg rd (aint32_add (reg rs ps) (reg rt ps)) ps
+let add rd rs rt ms =
+    let ps = ms.pstate in
+    setreg rd (aint32_add (reg rs ps) (reg rt ps)) ps |> to_mstate ms
 
-let addi rt rs imm ps  =
-    setreg rt (aint32_add (reg rs ps) (aint32_const imm)) ps
+let addi rt rs imm ms  =
+    let ps = ms.pstate in
+    setreg rt (aint32_add (reg rs ps) (aint32_const imm)) ps |> to_mstate ms
 
-let bne rs rt label ms ps =
-    ps 
+let bne rs rt label ms =
+    ms 
 
-let jr rs ms ps  =
-    ps
 
 (* Go to next basic block *)
-let next ms ps =
+let next ms =
   (* Get the block info for the current basic block *)
-  let bi = ms.bitable(ms.cblock) in
+  let bi = ms.bbtable.(ms.cblock) in
   (* Enqueue the current program state with the next basic block *)
-  let ms' = enqueue_block bi.nextid ps ms in
+  let ms' = enqueue_block bi.nextid ms.pstate ms in
   (* Continue and process next block *)
   continue ms'
 
@@ -281,32 +307,21 @@ let next ms ps =
 (* -------------------- PSEUDO INSTRUCTIONS -------------------------*)
 
 (* load immediate interval *)
-let lii rd l h ps =
-  setreg rd (aint32_interval l h) ps
+let lii rd l h ms =
+  setreg rd (aint32_interval l h) ms.pstate |> to_mstate ms
 
 
+  
+  
     
 
 (* ------------------- MAIN ANALYSIS FUNCTIONS ----------------------*)
     
 (** Main function for analyzing an assembly function *)
 let analyze startblock bblocks =
-  
-  (* Get the block info of the first basic block *)  
-  let bi = bblocks.(startblock) in
 
-  (* Create a new program state with the start address *)
-  let ps = init bi.addr in
-
-  (* Add the start block to the priority queue *)
-  let pqueue = enqueue bi.dist startblock ps emptyqueue in
-
-  (* Create the main state *)
-  let mstate = {
-    prio = pqueue;     (* Starts with a queue with just one element, the entry *)
-    cblock = na_;      (* N/A, since the process has not yet started *)
-    bbtable = bblock;  (* Stores a reference to the basic block info table *)
-  } in
+  (* Initiate the main block *)
+  let mstate = init_mstate startblock bblocks in
 
   (* Continue the process and execute the next basic block from the queue *)
   continue mstate
