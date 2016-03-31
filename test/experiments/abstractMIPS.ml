@@ -77,7 +77,6 @@ let int2reg x =
     for the program counter and abstract values for 
     registers and memory *)
 type progstate = {
-  pc : int;
                  reg8  : aint32; reg16 : aint32; reg24 : aint32;
   reg1 : aint32; reg9  : aint32; reg17 : aint32; reg25 : aint32;
   reg2 : aint32; reg10 : aint32; reg18 : aint32; reg26 : aint32;
@@ -90,9 +89,8 @@ type progstate = {
 
 (** Creates an initial any state of the program state 
     ps = The program counter value *)
-let init_pstate pc =
+let init_pstate =
   {
-    pc = pc;
                          reg16 = aint32_any;
     reg1  = aint32_any;  reg17 = aint32_any;
     reg2  = aint32_any;  reg18 = aint32_any;
@@ -171,10 +169,29 @@ let pprint_pstate ps noregs =
       pregs (x+1) (s ^. n')        
     else s
   in      
-    us(sprintf "PC = 0x%08x\n" ps.pc) ^.
     pregs 1 (us"") 
    
+(** Join two program states, assuming they have the same program counter value *)
+let join_pstates ps1 ps2 =
+  {reg1  = aint32_join ps1.reg1  ps2.reg1;  reg17 = aint32_join ps1.reg17 ps2.reg17;
+   reg2  = aint32_join ps1.reg2  ps2.reg2;  reg18 = aint32_join ps1.reg18 ps2.reg18;
+   reg3  = aint32_join ps1.reg3  ps2.reg3;  reg19 = aint32_join ps1.reg19 ps2.reg19;
+   reg4  = aint32_join ps1.reg4  ps2.reg4;  reg20 = aint32_join ps1.reg20 ps2.reg20;
+   reg5  = aint32_join ps1.reg5  ps2.reg5;  reg21 = aint32_join ps1.reg21 ps2.reg21;
+   reg6  = aint32_join ps1.reg6  ps2.reg6;  reg22 = aint32_join ps1.reg22 ps2.reg22;
+   reg7  = aint32_join ps1.reg7  ps2.reg7;  reg23 = aint32_join ps1.reg23 ps2.reg23;
+   reg8  = aint32_join ps1.reg8  ps2.reg8;  reg24 = aint32_join ps1.reg24 ps2.reg24;
+   reg9  = aint32_join ps1.reg9  ps2.reg9;  reg25 = aint32_join ps1.reg25 ps2.reg25;
+   reg10 = aint32_join ps1.reg10 ps2.reg10; reg26 = aint32_join ps1.reg26 ps2.reg26;
+   reg11 = aint32_join ps1.reg11 ps2.reg11; reg27 = aint32_join ps1.reg27 ps2.reg27;
+   reg12 = aint32_join ps1.reg12 ps2.reg12; reg28 = aint32_join ps1.reg28 ps2.reg28;
+   reg13 = aint32_join ps1.reg13 ps2.reg13; reg29 = aint32_join ps1.reg29 ps2.reg29;
+   reg14 = aint32_join ps1.reg14 ps2.reg14; reg30 = aint32_join ps1.reg30 ps2.reg30;
+   reg15 = aint32_join ps1.reg15 ps2.reg15; reg31 = aint32_join ps1.reg31 ps2.reg31;
+   reg16 = aint32_join ps1.reg16 ps2.reg16}
+     
 
+      
 (* ---------------  BASIC BLOCKS AND PRIORITY QUEUE -----------------*)
   
 type blockid = int     (* The block ID type *)
@@ -186,7 +203,6 @@ let  na_ = -1
 
 (** Priority queue type *)
 type pqueue = (distance * blockid * listsize * progstate list) list 
-
 
 (** The basic block info entry type is one element in the
     basic block table. This table provides all information about
@@ -202,6 +218,7 @@ type bblock_info =
 (** Main state of the analysis *)
 and mstate = {
   cblock  : blockid;           (* Current basic block *)
+  pc      : int;               (* Current program counter *)
   pstate  : progstate;         (* Current program state *)
   prio    : pqueue;            (* Overall priority queue *)
   bbtable : bblock_info array; (* Basic block info table *)
@@ -247,16 +264,14 @@ let init_mstate startblock bblocks =
   (* Get the block info of the first basic block *)  
   let bi = bblocks.(startblock) in
 
-  (* Create a new program state with the start address *)
-  let ps = init_pstate bi.addr in
-
   (* Add the start block to the priority queue *)
-  let pqueue = enqueue bi.dist startblock ps emptyqueue in
+  let pqueue = enqueue bi.dist startblock init_pstate emptyqueue in
   
   (* Create the main state *)
   {
-    cblock = startblock;  (* N/A, since the process has not yet started *)
-    pstate = ps;          (* New program state *)
+    pc = bi.addr;
+    cblock= startblock;   (* N/A, since the process has not yet started *)    
+    pstate = init_pstate; (* New program state *)
     prio = pqueue;        (* Starts with a queue with just one element, the entry *)
     bbtable = bblocks;    (* Stores a reference to the basic block info table *)
   } 

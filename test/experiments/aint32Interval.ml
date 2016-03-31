@@ -21,6 +21,8 @@ let aint32_interval l h =
 let aint32_any =
    (-2147483648,2147483647)
 
+let aint32_join (l1,h1) (l2,h2) =
+  (min l1 l2, max h1 h2)
 
 let aint32_pprint v =
   let (l,h) = v in
