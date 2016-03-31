@@ -15,19 +15,19 @@ let return_ = 2
 
 
 (* -- Program code -- *)
-let rec start() = ()
+let rec final() = ()
     
-and exp1 gs ps = ps      |>   
+and exp1 ms ps = ps      |>   
     addi  v0 zero 88     |>
-    next  gs
+    next  ms
 
-and loop gs ps = ps      |>
+and loop ms ps = ps      |>
     add   v0 v0 a0       |>
     addi  a0 a0 (-1)     |>	
-    bne	  a0 a1 loop_ gs  
+    bne	  a0 a1 loop_ ms  
 
-and return gs ps = ps    |>
-    jr	  ra gs          
+and return ms ps = ps    |>
+    jr	  ra ms          
 
     
 
@@ -36,10 +36,10 @@ and return gs ps = ps    |>
 
 let blocks =
 [|
-  (* {func=exp1;   nextid=loop_;   addr=0x00400000}; *)
+  {func=final;  nextid=final_;  dist=0; addr=0};
   {func=exp1;   nextid=return_; dist=3; addr=0x00400000};
   {func=loop;   nextid=return_; dist=2; addr=0x00400200};
-  {func=return; nextid=exit_;   dist=1; addr=0x00400400};
+  {func=return; nextid=final_;  dist=1; addr=0x00400400};
 |]
 
 (* -- Start of analysis -- *)

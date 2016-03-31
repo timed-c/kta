@@ -1,0 +1,34 @@
+
+
+
+
+
+
++++++++++++ case 1
+ 
+#1  input           next            rest
+    xxxxxxx         xxxxxx          xxxxxxx
+          xxxxx           xxxxx            xxxx
+
+#2  input           next            rest
+     xxxxxx          xxxxx           xxxxxx
+          xxxxx           xxxxx            xxxx
+
+#3  input           next            rest
+      xxxxx           xxxx            xxxxx
+          xxxxx           xxxxx            xxxx
+
+
++++++++++++ case 1
+ 
+#1  input           next            rest
+    xxxxxxx         xxxxxxx         xxxxxx
+          xxxxx            xxxx           xxxxx
+
+#2  input           next            rest
+     xxxxxxx         xxxxxxx         xxxxxx
+           xxxx             xxx            xxxx
+
+#3  input           next            rest
+      xxxxxxx         xxxxxxx         xxxxxx
+            xxx              xx             xxx

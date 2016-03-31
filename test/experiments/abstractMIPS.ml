@@ -181,9 +181,8 @@ type distance = int
 type listsize = int  
 let exit_ = -1
 
-type pqueue = (distance * blockid * listsize * pstate list) 
+type pqueue = (distance * blockid * listsize * pstate list) list 
 
-type gstate = pqueue
   
 type block_info =
 {
@@ -193,6 +192,13 @@ type block_info =
    addr   : int; 
 }
 
+(* Main state *)
+type mstate = {
+  prio    : pqueue;           (* Overall priority queue *)
+  cblock  : blockid;          (* Current basic block *)
+  bitable : block_info array; (* Basic block info table *)
+}
+  
   
 let rec enqueue dist blockid ps queue =
   match queue with
@@ -213,24 +219,35 @@ let rec enqueue dist blockid ps queue =
 
 
 (** Picks the block with highest priority.
-    Returns Maybe tuple, where the Some includes the block ID,
+    Returns the block id,
     the size of the program state list, and the program state list *)
 let dequeue queue =
   match queue with
-  | [] -> None
-  | (_,blockid,lsize,pslist)::_ -> Some(blockid,lsize,pslist)
+  | [] -> failwith "Should not happen"
+  | (dist,blockid,lsize,ps::pss)::rest ->
+    let queue' = (dist,blockid,lsize-1,pss)::rest in
+      (blockid,ps,queue')
     
 
+let emptyqueue = []
 
 
-
-  
-  
-  
   
 (* ------------------------ CONTINUATION  -------------------------*)
 
-  
+(* Continue and execute the next basic block in turn *)
+let continue ms =
+  let (blockid,ps,queue') = dequeue ms.prio in
+  let ms' = {ms with cblock = blockid, prio = queue'} in
+  let bi = ms.bitable.(blockid) in
+  bi.func ms' ps
+
+(* Enqueue a new program state using a block id. Returns a machine state *)    
+let enqueue_block blockid ps ms in
+  let bi = ms.bitable(blockid) in
+  let prio' = enqueue bi.dist blockid ps ms.prio in
+  {ms with prio = prio'}
+    
 (* ------------------------ INSTRUCTIONS -------------------------*)
 
 let add rd rs rt ps =
@@ -239,14 +256,20 @@ let add rd rs rt ps =
 let addi rt rs imm ps  =
     setreg rt (aint32_add (reg rs ps) (aint32_const imm)) ps
 
-let bne rs rt label gs ps =
+let bne rs rt label ms ps =
     ps 
 
-let jr rs gs ps  =
+let jr rs ms ps  =
     ps
 
-let next gs ps =
-    ps
+(* Go to next basic block *)
+let next ms ps =
+  (* Get the block info for the current basic block *)
+  let bi = ms.bitable(ms.cblock) in
+  (* Enqueue the current program state with the next basic block *)
+  let ms' = enqueue_block bi.nextid ps ms in
+  (* Continue and process next block *)
+  continue ms'
 
 
 (* -------------------- PSEUDO INSTRUCTIONS -------------------------*)
@@ -267,8 +290,12 @@ let analyze startblock blocks =
 
   (* Create a new program state with the start address *)
   let ps = init bi.addr in
-  ()
 
+  (* Add the start block to the priority queue *)
+  let pqueue = enqueue bi.dist startblock ps emptyqueue in
+
+  
+  ()
   
 
 
