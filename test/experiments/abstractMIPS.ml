@@ -1,10 +1,15 @@
 
+(*
 
+  Execute the main experiment using the following example
+  >> ocamlbuild experiment.native -lib Str -- v0=[1,100]
+*)
 
 open Ustring.Op
 open Printf
 open Aint32Interval
-
+open Scanf
+open Str
 
 
 (* ------------------------ REGISTERS ------------------------------*)
@@ -71,7 +76,18 @@ let int2reg x =
   | 7 -> R7 | 15 -> R15 | 23 -> R23 | 31 -> R31
   | _ -> failwith "Unknown register."
 
-
+let str2reg str =
+  match str with
+  | "zero" -> Some R0 | "t0" -> Some R8  | "s0" -> Some R16 | "t8" -> Some R24
+  | "at"   -> Some R1 | "t1" -> Some R9  | "s1" -> Some R17 | "t9" -> Some R25
+  | "v0"   -> Some R2 | "t2" -> Some R10 | "s2" -> Some R18 | "k0" -> Some R26
+  | "v1"   -> Some R3 | "t3" -> Some R11 | "s3" -> Some R19 | "k1" -> Some R27
+  | "a0"   -> Some R4 | "t4" -> Some R12 | "s4" -> Some R20 | "gp" -> Some R28
+  | "a1"   -> Some R5 | "t5" -> Some R13 | "s5" -> Some R21 | "sp" -> Some R29
+  | "a2"   -> Some R6 | "t6" -> Some R14 | "s6" -> Some R22 | "fp" -> Some R30
+  | "a3"   -> Some R7 | "t7" -> Some R15 | "s7" -> Some R23 | "ra" -> Some R31
+  | _ -> None
+    
     
 (** Abstract program state. Contains a concrete value
     for the program counter and abstract values for 
@@ -194,10 +210,33 @@ let join_pstates ps1 ps2 =
 
 (** Returns a new program state that is updated with input from
     the command line using args (a list of arguments) *)
-let pstate_input ps args =
-  ps
-
-
+let rec pstate_input ps args =
+  let make_error a = raise (Failure ("Unknown argument: " ^ a)) in
+  (* No more args? *)
+  match args with
+  | [] -> ps 
+  | a::next_args -> (    
+    (* Is a register definition? *)
+    match split (regexp "=") a with
+    | [reg;value] ->
+         (match str2reg reg with
+         | Some(regval) ->
+             (* Is concrete value? *)
+            (try (let aval = aint32_const (int_of_string value) in
+                  pstate_input (setreg regval aval ps) next_args)
+             with _ -> (
+               (* Is abstract interval value? *)
+               (match (try bscanf (Scanning.from_string value) "[%d,%d]" (fun x y -> Some(x,y))
+                         with _ -> None)
+               with
+               | Some(l,h) ->
+                   let aval = aint32_interval l h in
+                   pstate_input (setreg regval aval ps) next_args
+               | None -> make_error a)))
+          | None -> make_error a)
+    | _ -> make_error a)
+ 
+  
     
 (* ---------------  BASIC BLOCKS AND PRIORITY QUEUE -----------------*)
   
@@ -257,14 +296,20 @@ let rec enqueue dist blockid ps queue =
     the size of the program state list, and the program state list *)
 let dequeue queue =
   match queue with
-  | (_,0,_,ps)::rest ->  failwith "Finished!!!" 
-  | (dist,blockid,lsize,ps::pss)::rest ->
-    let queue' = (dist,blockid,lsize-1,pss)::rest in
+  (* Have we finished (block id equal to 0)? *)
+  | (_,0,_,ps::_)::rest ->  (0,ps,rest)
+  (* Dequeue the top program state *)  
+  | (dist,blockid,lsize,ps::pss)::rest ->      
+      let queue' = if lsize = 1 then rest 
+                   else (dist,blockid,lsize-1,pss)::rest in 
       (blockid,ps,queue')
+  (* This should never happen. It should end with a terminating 
+     block id zero block. *)    
   | _ -> failwith "Should not happen"
     
 (** Returns the empty queue *)
 let emptyqueue = []
+ 
 
   
   
@@ -317,9 +362,7 @@ let lii rd l h ms =
   setreg rd (aint32_interval l h) ms.pstate |> to_mstate ms
 
 
-  
-  
-    
+     
 
 (* ------------------- MAIN ANALYSIS FUNCTIONS ----------------------*)
     
@@ -330,11 +373,16 @@ let analyze startblock bblocks args =
   let bi = bblocks.(startblock) in
 
   (* Update the program states with abstract inputs from program arguments *)
-  let ps = pstate_input init_pstate args in
+  let ps =
+    try pstate_input init_pstate args
+    with Failure s -> (printf "Error: %s\n" s; exit 1) in
+
+ (* uprint_endline (pprint_pstate ps 16);
+    exit 0; *)
   
   (* Add the start block to the priority queue *)
   let pqueue = enqueue bi.dist startblock ps emptyqueue in
-  
+
   (* Create the main state *)
   let mstate = {
     pc = bi.addr;
@@ -345,8 +393,13 @@ let analyze startblock bblocks args =
   } in
 
   (* Continue the process and execute the next basic block from the queue *)
-  continue mstate
+  continue mstate 
   
+
+(** Print main state info *)
+let print_mstate ms =
+  uprint_endline (pprint_pstate ms.pstate 32)
+    
   
 
 
