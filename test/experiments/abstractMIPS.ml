@@ -190,8 +190,15 @@ let join_pstates ps1 ps2 =
    reg15 = aint32_join ps1.reg15 ps2.reg15; reg31 = aint32_join ps1.reg31 ps2.reg31;
    reg16 = aint32_join ps1.reg16 ps2.reg16}
      
+(* ---------------  INPUT ARGUMENT HANDLING -----------------*)
 
-      
+(** Returns a new program state that is updated with input from
+    the command line using args (a list of arguments) *)
+let pstate_input ps args =
+  ps
+
+
+    
 (* ---------------  BASIC BLOCKS AND PRIORITY QUEUE -----------------*)
   
 type blockid = int     (* The block ID type *)
@@ -259,23 +266,7 @@ let dequeue queue =
 (** Returns the empty queue *)
 let emptyqueue = []
 
-(* Initiates the basic blocks *)
-let init_mstate startblock bblocks =
-  (* Get the block info of the first basic block *)  
-  let bi = bblocks.(startblock) in
-
-  (* Add the start block to the priority queue *)
-  let pqueue = enqueue bi.dist startblock init_pstate emptyqueue in
   
-  (* Create the main state *)
-  {
-    pc = bi.addr;
-    cblock= startblock;   (* N/A, since the process has not yet started *)    
-    pstate = init_pstate; (* New program state *)
-    prio = pqueue;        (* Starts with a queue with just one element, the entry *)
-    bbtable = bblocks;    (* Stores a reference to the basic block info table *)
-  } 
-
   
 (* ------------------------ CONTINUATION  -------------------------*)
 
@@ -333,10 +324,25 @@ let lii rd l h ms =
 (* ------------------- MAIN ANALYSIS FUNCTIONS ----------------------*)
     
 (** Main function for analyzing an assembly function *)
-let analyze startblock bblocks =
+let analyze startblock bblocks args =
 
-  (* Initiate the main block *)
-  let mstate = init_mstate startblock bblocks in
+  (* Get the block info of the first basic block *)  
+  let bi = bblocks.(startblock) in
+
+  (* Update the program states with abstract inputs from program arguments *)
+  let ps = pstate_input init_pstate args in
+  
+  (* Add the start block to the priority queue *)
+  let pqueue = enqueue bi.dist startblock ps emptyqueue in
+  
+  (* Create the main state *)
+  let mstate = {
+    pc = bi.addr;
+    cblock= startblock;   (* N/A, since the process has not yet started *)    
+    pstate = ps;          (* New program state *)
+    prio = pqueue;        (* Starts with a queue with just one element, the entry *)
+    bbtable = bblocks;    (* Stores a reference to the basic block info table *)
+  } in
 
   (* Continue the process and execute the next basic block from the queue *)
   continue mstate

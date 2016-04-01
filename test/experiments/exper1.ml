@@ -1,30 +1,24 @@
 
-
-
 open Printf
 open AbstractMIPS 
 open Ustring.Op
 
+open Scanf
+
 (* -- Basic Block Identifiers -- *)
 
 let final_  = 0
-let exp1_   = 1
-let loop_   = 2
-
+let exper_  = 1
+  
   
 (* -- Program Code -- *)
     
 let rec final ms = ms
     
 and exper ms = ms        |>   
-    addi  v0 zero 0     |>
+    addi  t0 zero 10     |>
+    add   v0 t0 a0       |>
     next  
-
-and loop ms = ms        |>
-    add  v0 v0 a0       |>
-    addi a0 a0 (-1)     |>	
-    bne	 a0 a1 loop_ 
-
 
 
 (* -- Basic Block Info -- *)
@@ -32,32 +26,29 @@ and loop ms = ms        |>
 let bblocks =
 [|
   {func=final;  nextid=na_;    dist=0; addr=0x0};
-  {func=exper;  nextid=loop_;  dist=2; addr=0x00400000};
-  {func=loop;   nextid=final_; dist=1; addr=0x00400200};
+  {func=exper;  nextid=final_; dist=1; addr=0x00400000};
 |]
 
   
 (* -- Start of Analysis -- *)
 
-(*let main =
-    analyze exper_ bblocks
-*)  
+(* Returns a option tuple Some(low,high) if the input string
+   has format "[low,high]" where low and high are decimal numbers.
+   Returns none if there are any errors *)
+let get_str str =
+  try bscanf (Scanning.from_string str) "[%d,%d]" (fun x y -> Some(x,y))
+  with _ -> None
 
+  
+let main =
+  let s = Sys.argv.(1) in
+ (* (try bscanf Scanning.stdin "[%d,%d]" (fun x y -> printf "[%d,%d]\n" x y)
+    with _ -> printf "Scan failure\n"); *)
+  printf "%s\n" s;
+  (match get_str s with
+   | Some(x,y) -> printf "[%d,%d]\n" x y
+   | None -> ());
+
+  analyze exper_ bblocks (Array.to_list Sys.argv |> List.tl)
 
       
-let testmain =
-  let ms =
-    init_mstate 0 bblocks  |>
-    lii  t1 (-7) 100  |>
-    addi v0 zero 77   |>
-    add  t0 v0 v0     |>
-    add  t2 t1 v0     |>
-    add  t3 t1 t2            
-                              
-    in  
-      uprint_endline (pprint_pstate ms.pstate 32) 
-  
-
-
-
-
