@@ -297,7 +297,10 @@ let rec enqueue dist blockid ps queue =
 let dequeue queue =
   match queue with
   (* Have we finished (block id equal to 0)? *)
-  | (_,0,_,ps::_)::rest ->  (0,ps,rest)
+  | (_,0,_,ps::pss)::rest ->
+    (* Join all final program states *)
+    let ps' = List.fold_left join_pstates ps pss in
+     (0,ps',rest) 
   (* Dequeue the top program state *)  
   | (dist,blockid,lsize,ps::pss)::rest ->      
       let queue' = if lsize = 1 then rest 
