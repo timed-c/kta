@@ -16,7 +16,7 @@ let loop_   = 2
     
 let rec final ms = ms
     
-and exp1 ms = ms        |>   
+and exper ms = ms        |>   
     addi  v0 zero 0     |>
     next  
 
@@ -32,7 +32,7 @@ and loop ms = ms        |>
 let bblocks =
 [|
   {func=final;  nextid=na_;    dist=0; addr=0x0};
-  {func=exp1;   nextid=loop_;  dist=2; addr=0x00400000};
+  {func=exper;  nextid=loop_;  dist=2; addr=0x00400000};
   {func=loop;   nextid=final_; dist=1; addr=0x00400200};
 |]
 
@@ -40,7 +40,7 @@ let bblocks =
 (* -- Start of Analysis -- *)
 
 (*let main =
-    analyze exp1_ bblocks
+    analyze exper_ bblocks
 *)  
 
 

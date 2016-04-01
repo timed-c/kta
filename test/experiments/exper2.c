@@ -1,7 +1,7 @@
 
 
 
-unsigned exp1(unsigned start, unsigned end){
+unsigned exper(unsigned start, unsigned end){
   unsigned retval = 0;
   do{
     retval += start;
@@ -13,5 +13,5 @@ unsigned exp1(unsigned start, unsigned end){
 
 
 int main(){
-  unsigned v = exp1(100,50);
+  unsigned v = exper(100,50);
 }
