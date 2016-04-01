@@ -5,6 +5,7 @@ open Printf
 open AbstractMIPS 
 open Ustring.Op
 
+
 (* -- Basic Block Identifiers -- *)
 
 let final_  = 0
@@ -39,24 +40,12 @@ let bblocks =
   
 (* -- Start of Analysis -- *)
 
-(*let main =
-    analyze exper_ bblocks
-*)  
-
-
-      
-let testmain =
-  let ms =
-    init_mstate 0 bblocks  |>
-    lii  t1 (-7) 100  |>
-    addi v0 zero 77   |>
-    add  t0 v0 v0     |>
-    add  t2 t1 v0     |>
-    add  t3 t1 t2            
-                              
-    in  
-      uprint_endline (pprint_pstate ms.pstate 32) 
-  
+let main =
+  let args = (Array.to_list Sys.argv |> List.tl) in
+  analyze exper_ bblocks
+    (if args = [] then ["a0=[10,100]"]
+                  else args)
+  |> print_mstate
 
 
 
