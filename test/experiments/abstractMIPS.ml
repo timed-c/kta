@@ -344,10 +344,19 @@ let addi rt rs imm ms  =
     let ps = ms.pstate in
     setreg rt (aint32_add (reg rs ps) (aint32_const imm)) ps |> to_mstate ms
 
+let beq rs rt label ms =
+    let ps = ms.pstate in    
+    let bi = ms.bbtable.(ms.cblock) in
+    let (tbranch,fbranch) = aint32_test_equal (reg rs ps) (reg rt ps) in
+    let enq blabel ms (rs,rt) = enqueue_block blabel ps ms in
+    let ms = List.fold_left (enq label) ms tbranch in
+    let ms = List.fold_left (enq bi.nextid) ms fbranch in
+    continue ms
+
 let bne rs rt label ms =
-    ms 
-
-
+    beq rt rs label ms
+  
+      
 (* Go to next basic block *)
 let next ms =
   (* Get the block info for the current basic block *)
