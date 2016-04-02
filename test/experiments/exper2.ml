@@ -1,6 +1,4 @@
 
-
-
 open Printf
 open AbstractMIPS 
 open Ustring.Op
@@ -43,10 +41,20 @@ let bblocks =
 let main =
   let args = (Array.to_list Sys.argv |> List.tl) in
   analyze exper_ bblocks
-    (if args = [] then ["a0=[10,100]"]
+    (if args = [] then ["a0=100";"a1=50"]
                   else args)
   |> print_mstate
 
 
 
+
+
+
+
+
+
+
+
+
+      
 

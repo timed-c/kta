@@ -344,17 +344,22 @@ let addi rt rs imm ms  =
     let ps = ms.pstate in
     setreg rt (aint32_add (reg rs ps) (aint32_const imm)) ps |> to_mstate ms
 
-let beq rs rt label ms =
+        
+let branch_equality equal rs rt label ms =
     let ps = ms.pstate in    
     let bi = ms.bbtable.(ms.cblock) in
-    let (tbranch,fbranch) = aint32_test_equal (reg rs ps) (reg rt ps) in
+    let (tb,fb) = aint32_test_equal (reg rs ps) (reg rt ps) in
+    let (tbranch,fbranch) = if equal then (tb,fb) else (fb,tb) in
     let enq blabel ms (rs,rt) = enqueue_block blabel ps ms in
     let ms = List.fold_left (enq label) ms tbranch in
     let ms = List.fold_left (enq bi.nextid) ms fbranch in
     continue ms
 
+let beq rs rt label ms =
+    branch_equality true rt rs label ms
+      
 let bne rs rt label ms =
-    beq rt rs label ms
+    branch_equality false rs rt label ms
   
       
 (* Go to next basic block *)

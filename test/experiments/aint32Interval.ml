@@ -26,6 +26,7 @@ let aint32_join (l1,h1) (l2,h2) =
 (* Check for equality. Returns two lists,
    one when they are equal, one when they not *)    
 let aint32_test_equal (l1,h1) (l2,h2) =
+  
   if h1 < l2 || h2 < l1 then
     (* Not overlapping *)
     ([],                                             (* TRUE *)
