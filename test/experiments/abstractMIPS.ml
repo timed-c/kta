@@ -298,9 +298,10 @@ let dequeue queue =
   match queue with
   (* Have we finished (block id equal to 0)? *)
   | (_,0,_,ps::pss)::rest ->
-    (* Join all final program states *)
+    (* Join all final program states *)(
+    printf "**** %d\n" (List.length (ps::pss));
     let ps' = List.fold_left join_pstates ps pss in
-     (0,ps',rest) 
+     (0,ps',rest) )
   (* Dequeue the top program state *)  
   | (dist,blockid,lsize,ps::pss)::rest ->      
       let queue' = if lsize = 1 then rest 
@@ -321,7 +322,10 @@ let emptyqueue = []
 (* Continue and execute the next basic block in turn *)
 let continue ms =
   let (blockid,ps,queue') = dequeue ms.prio in
-  let ms' = {ms with cblock = blockid; prio = queue'} in
+  let ms' = {ms with cblock = blockid;
+                     pc = ms.bbtable.(blockid).addr;
+                     pstate = ps;
+                     prio = queue'} in
   let bi = ms.bbtable.(blockid) in
   bi.func ms' 
 
@@ -350,7 +354,9 @@ let branch_equality equal rs rt label ms =
     let bi = ms.bbtable.(ms.cblock) in
     let (tb,fb) = aint32_test_equal (reg rs ps) (reg rt ps) in
     let (tbranch,fbranch) = if equal then (tb,fb) else (fb,tb) in
-    let enq blabel ms (rs,rt) = enqueue_block blabel ps ms in
+    let enq blabel ms (rsval,rtval) =
+      let ps' = setreg rs rsval (setreg rt rtval ms.pstate) in
+      enqueue_block blabel ps' ms in
     let ms = List.fold_left (enq label) ms tbranch in
     let ms = List.fold_left (enq bi.nextid) ms fbranch in
     continue ms
