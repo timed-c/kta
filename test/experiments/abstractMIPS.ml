@@ -255,10 +255,11 @@ type pqueue = (distance * blockid * listsize * progstate list) list
     how basic blocks are related, which distances they have etc. *)  
 type bblock_info =
 {
-   func   : mstate -> mstate;  (* The function that represents the basic block *)
-   nextid : blockid;           (* The identifier that shows the next basic block *)
-   dist   : distance;          (* The distance to the exit, that is the number of edges *)
-   addr   : int;               (* Address to the first instruction in the basic block *)
+   func    : mstate -> mstate;  (* The function that represents the basic block *)
+   nextid  : blockid;           (* The identifier that shows the next basic block *)
+   dist    : distance;          (* The distance to the exit, that is the number of edges *)
+   addr    : int;               (* Address to the first instruction in the basic block *)
+   joinvar : registers list     (* List of registers that should be handled especially for join *) 
 }
 
 (** Main state of the analysis *)
@@ -270,23 +271,26 @@ and mstate = {
   bbtable : bblock_info array; (* Basic block info table *)
 }
 
-  
+(* This function inserts a new pstate into a list of pstates, and joins 
+   states if applicable using the join state list.  *)
+let rec insert_join joinvars ps pss =  ps::pss
 
+  
 (* Enqueue a basic block *)  
-let rec enqueue dist blockid ps queue =
+let rec enqueue dist blockid joinvars ps queue =
   match queue with
     (* Distance larger? Go to next *)
   | (d,bid,size,pss)::qs when d > dist ->
-      (d,bid,size,pss)::(enqueue dist blockid ps qs)
+      (d,bid,size,pss)::(enqueue dist blockid joinvars ps qs)
     (* Same dist?  *)
   | (d,bid,size,pss)::qs when dist = d ->
      (* Same block id? *)                          
      if bid = blockid then
-       (* Yes, enqueue *)                          
-       (d,bid,size+1, ps::pss)::qs       
+       (* Yes, enqueue and check for join variables *)       
+       (d,bid,size+1, insert_join joinvars ps pss)::qs       
      else
        (* No. Go to next *)
-       (d,bid,size,pss)::(enqueue dist blockid ps qs)
+       (d,bid,size,pss)::(enqueue dist blockid joinvars ps qs)
     (* Block not found. Enqueue *)
   | qs -> (dist,blockid,1,[ps])::qs
 
@@ -332,7 +336,7 @@ let continue ms =
 (* Enqueue a new program state using a block id. Returns a main state *)    
 let enqueue_block blockid ps ms =
   let bi = ms.bbtable.(blockid) in
-  let prio' = enqueue bi.dist blockid ps ms.prio in
+  let prio' = enqueue bi.dist blockid bi.joinvar ps ms.prio in
   {ms with prio = prio'}
 
 let to_mstate ms ps =
@@ -404,7 +408,7 @@ let analyze startblock bblocks args =
     exit 0; *)
   
   (* Add the start block to the priority queue *)
-  let pqueue = enqueue bi.dist startblock ps emptyqueue in
+  let pqueue = enqueue bi.dist startblock bi.joinvar ps emptyqueue in
 
   (* Create the main state *)
   let mstate = {

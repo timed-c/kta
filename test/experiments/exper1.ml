@@ -29,8 +29,8 @@ and exper ms = ms        |>
     
 let bblocks =
 [|
-  {func=final;  nextid=na_;    dist=0; addr=0x0};
-  {func=exper;  nextid=final_; dist=1; addr=0x00400000};
+  {func=final;  nextid=na_;    dist=0; addr=0x00000000; joinvar = []};
+  {func=exper;  nextid=final_; dist=1; addr=0x00400000; joinvar = []};
 |]
 
   

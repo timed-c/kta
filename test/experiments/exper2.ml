@@ -30,9 +30,9 @@ and loop ms = ms        |>
     
 let bblocks =
 [|
-  {func=final;  nextid=na_;    dist=0; addr=0x0};
-  {func=exper;  nextid=loop_;  dist=2; addr=0x00400000};
-  {func=loop;   nextid=final_; dist=1; addr=0x00400200};
+  {func=final;  nextid=na_;    dist=0; addr=0x00000000; joinvar = []};
+  {func=exper;  nextid=loop_;  dist=2; addr=0x00400000; joinvar = []};
+  {func=loop;   nextid=final_; dist=1; addr=0x00400200; joinvar = [a0;a1]};
 |]
 
   
