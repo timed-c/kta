@@ -281,9 +281,10 @@ let rec enqueue dist blockid ps queue =
     (* Same dist?  *)
   | (d,bid,size,pss)::qs when dist = d ->
      (* Same block id? *)                          
-     if bid = blockid then
+     if bid = blockid then (
+       (*printf "%d\n" (List.length pss);*)
        (* Yes, enqueue *)                          
-       (d,bid,size+1, ps::pss)::qs       
+       (d,bid,size+1, ps::pss)::qs       )
      else
        (* No. Go to next *)
        (d,bid,size,pss)::(enqueue dist blockid ps qs)

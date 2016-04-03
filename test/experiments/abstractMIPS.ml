@@ -12,6 +12,8 @@ open Scanf
 open Str
 
 
+let count = ref 0
+  
 (* ------------------------ REGISTERS ------------------------------*)
 
 type registers = |R0 |R1 |R2 |R3 |R4 |R5 |R6 |R7
@@ -204,7 +206,7 @@ let join_pstates ps1 ps2 =
    reg13 = aint32_join ps1.reg13 ps2.reg13; reg29 = aint32_join ps1.reg29 ps2.reg29;
    reg14 = aint32_join ps1.reg14 ps2.reg14; reg30 = aint32_join ps1.reg30 ps2.reg30;
    reg15 = aint32_join ps1.reg15 ps2.reg15; reg31 = aint32_join ps1.reg31 ps2.reg31;
-   reg16 = aint32_join ps1.reg16 ps2.reg16}
+   reg16 = aint32_join ps1.reg16 ps2.reg16 }
      
 (* ---------------  INPUT ARGUMENT HANDLING -----------------*)
 
@@ -242,13 +244,12 @@ let rec pstate_input ps args =
   
 type blockid = int     (* The block ID type *)
 type distance = int    (* The type for describing distances of blocks *)
-type listsize = int    (* Size of the list *)
 
 (** Basic block ID na_ means "not applicable". *)
 let  na_ = -1
 
 (** Priority queue type *)
-type pqueue = (distance * blockid * listsize * progstate list) list 
+type pqueue = (distance * blockid * progstate list) list 
 
 (** The basic block info entry type is one element in the
     basic block table. This table provides all information about
@@ -272,27 +273,72 @@ and mstate = {
 }
 
 (* This function inserts a new pstate into a list of pstates, and joins 
-   states if applicable using the join state list.  *)
-let rec insert_join joinvars ps pss =  ps::pss
+   states if applicable using the join variable list. *)
+let insert_join joinvars ps pss = 
+  let rec compare_joins vars ps p =
+    match vars with
+    | v::vs ->
+      let comp = aint32_compare (reg v ps) (reg v p) in
+      if comp = 0 then compare_joins vs ps p else comp
+    | [] -> 0
+  in
+  let rec work pss =
+    match pss with
+    | p::nextp ->
+      let comp = compare_joins joinvars ps p in
+      if comp = 0 then (
+  (*      printf "****************\n";
+  printf "Join:  ";
+  aint32_print (reg a0 ps);
+  printf "   ";
+  aint32_print (reg a1 ps);
+          printf "\n"; *)
+      (* Join states, values of join variables are equal *)
+       (join_pstates ps p)::nextp )
+      (* ps::p::nextp  *)
+      else if comp < 0 then
+        (* Insert new state. Nothing to join *)
+        ps::p::nextp
+      else
+        (* Check the next state in the list *)
+        p::(work nextp)
+    | [] ->
+        (* End of list. Just insert the new state *)
+      [ps]
+  in
+    if false then
+      ps::pss
+    else
+     if joinvars = [] then ps::pss  else work pss 
+    
+           
+      
 
   
 (* Enqueue a basic block *)  
 let rec enqueue dist blockid joinvars ps queue =
+(*  printf "Encode:  ";
+  aint32_print (reg a0 ps);
+  printf "   ";
+  aint32_print (reg a1 ps);
+    printf "\n"; *)
+  count := !count + 1;
   match queue with
     (* Distance larger? Go to next *)
-  | (d,bid,size,pss)::qs when d > dist ->
-      (d,bid,size,pss)::(enqueue dist blockid joinvars ps qs)
+  | (d,bid,pss)::qs when d > dist ->
+      (d,bid,pss)::(enqueue dist blockid joinvars ps qs)
     (* Same dist?  *)
-  | (d,bid,size,pss)::qs when dist = d ->
+  | (d,bid,pss)::qs when dist = d ->
      (* Same block id? *)                          
-     if bid = blockid then
+     if bid = blockid then(
+       (*  printf "%d\n" (List.length pss);    *)
        (* Yes, enqueue and check for join variables *)       
-       (d,bid,size+1, insert_join joinvars ps pss)::qs       
+       (d,bid, insert_join joinvars ps pss)::qs       )
      else
        (* No. Go to next *)
-       (d,bid,size,pss)::(enqueue dist blockid joinvars ps qs)
+       (d,bid,pss)::(enqueue dist blockid joinvars ps qs)
     (* Block not found. Enqueue *)
-  | qs -> (dist,blockid,1,[ps])::qs
+  | qs -> (dist,blockid,[ps])::qs
 
 
 (** Picks the block with highest priority.
@@ -301,15 +347,15 @@ let rec enqueue dist blockid joinvars ps queue =
 let dequeue queue =
   match queue with
   (* Have we finished (block id equal to 0)? *)
-  | (_,0,_,ps::pss)::rest ->
+  | (_,0,ps::pss)::rest ->
     (* Join all final program states *)(
     printf "Number of states before final merge: %d\n" (List.length (ps::pss));
     let ps' = List.fold_left join_pstates ps pss in
      (0,ps',rest) )
   (* Dequeue the top program state *)  
-  | (dist,blockid,lsize,ps::pss)::rest ->      
-      let queue' = if lsize = 1 then rest 
-                   else (dist,blockid,lsize-1,pss)::rest in 
+  | (dist,blockid,ps::pss)::rest ->      
+      let queue' = if pss = [] then rest 
+                   else (dist,blockid,pss)::rest in 
       (blockid,ps,queue')
   (* This should never happen. It should end with a terminating 
      block id zero block. *)    
@@ -425,6 +471,7 @@ let analyze startblock bblocks args =
 
 (** Print main state info *)
 let print_mstate ms =
+  printf "Count: %d\n" !count;
   uprint_endline (pprint_pstate ms.pstate 32)
     
   
