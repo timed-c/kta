@@ -35,11 +35,11 @@ let aint32_join (l1,h1) (l2,h2) =
   (min l1 l2, max h1 h2)
 
 let aint32_compare x y =
-(*  printf "***Compare ";
+  printf "***Compare ";
   aint32_print x;
   printf "   ";
   aint32_print y;
-    printf "\n"; *)
+    printf "\n"; 
   compare x y
     
 (* Check for equality. Returns two lists,

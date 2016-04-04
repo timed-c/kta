@@ -287,12 +287,12 @@ let insert_join joinvars ps pss =
     | p::nextp ->
       let comp = compare_joins joinvars ps p in
       if comp = 0 then (
-  (*      printf "****************\n";
+        printf "****************\n";
   printf "Join:  ";
   aint32_print (reg a0 ps);
   printf "   ";
   aint32_print (reg a1 ps);
-          printf "\n"; *)
+          printf "\n"; 
       (* Join states, values of join variables are equal *)
        (join_pstates ps p)::nextp )
       (* ps::p::nextp  *)
