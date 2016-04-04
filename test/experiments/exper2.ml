@@ -45,7 +45,9 @@ let main =
                   else args)
   |> print_mstate
 
-
+(* Comments
+  a0=[1000,5000] a1=[400,520] takes 5.4 seconds on my laptop
+   before optimized join *)
 
 
 

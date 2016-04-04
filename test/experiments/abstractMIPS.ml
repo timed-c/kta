@@ -303,59 +303,11 @@ let print_pqueue noregs pqueue =
     
 (* ---------------  BASIC BLOCKS AND PRIORITY QUEUE -----------------*)
   
-
-(* This function inserts a new pstate into a list of pstates, and joins 
-   states if applicable using the join variable list. *)
-let insert_join joinvars ps pss = 
-  let rec compare_joins vars ps p =
-    match vars with
-    | v::vs ->
-      let comp = aint32_compare (reg v ps) (reg v p) in
-      if comp = 0 then compare_joins vs ps p else comp
-    | [] -> 0
-  in
-  let rec work pss =
-    match pss with
-    | p::nextp ->
-      let comp = compare_joins joinvars ps p in
-      if comp = 0 then (
-(*
-         printf "****************\n";
-  printf "Join:  ";
-  aint32_print (reg a0 ps);
-  printf "   ";
-  aint32_print (reg a1 ps);
-          printf "\n"; 
-*)
-      (* Join states, values of join variables are equal *)
-       (join_pstates ps p)::nextp )
-      (* ps::p::nextp  *)
-      else if comp < 0 then
-        (* Insert new state. Nothing to join *)
-        ps::p::nextp
-      else
-        (* Check the next state in the list *)
-        p::(work nextp)
-    | [] ->
-        (* End of list. Just insert the new state *)
-      [ps]
-  in
-    if false then
-      ps::pss
-    else
-     if joinvars = [] then ps::pss  else work pss 
-    
            
       
-
   
 (* Enqueue a basic block *)  
 let enqueue dist blockid joinvars ps prioqueue =
-(*  printf "Encode:  ";
-  aint32_print (reg a0 ps);
-  printf "   ";
-  aint32_print (reg a1 ps);
-    printf "\n"; *)
   count := !count + 1;
   let rec work queue = 
     match queue with
@@ -368,7 +320,7 @@ let enqueue dist blockid joinvars ps prioqueue =
       if bid = blockid then(
        (*  printf "%d\n" (List.length pss);    *)
        (* Yes, enqueue and check for join variables *)       
-       (d,bid, insert_join joinvars ps pss)::qs       )
+        (d,bid, ps::pss)::qs       )
      else
        (* No. Go to next *)
        (d,bid,pss)::(work qs)
@@ -378,10 +330,31 @@ let enqueue dist blockid joinvars ps prioqueue =
     {prioqueue with curr_queue = work prioqueue.curr_queue}
 
 
+module JMap = Map.Make(
+  struct
+    type t = (int * int) list
+    let compare = compare
+  end)      
+  
+
+let strategic_joins ms pss = 
+  let bi = ms.bbtable.(ms.cblock) in   
+  let jmap = List.fold_left
+    (fun map ps ->
+      let key = List.map (fun v -> reg v ps) bi.joinvar in
+      let newval = try join_pstates ps (JMap.find key map)
+                   with Not_found -> ps in
+      JMap.add key newval map
+    )JMap.empty pss in
+  List.map (fun (k,v) -> v) (JMap.bindings jmap)
+  
+
+  
 (** Picks the block with highest priority.
     Returns the block id,
     the size of the program state list, and the program state list *)
-let dequeue prioqueue =
+let dequeue ms =
+  let prioqueue = ms.prio in
   (* Process the batch program states first *)
   match prioqueue.curr_batch with
   (* Found a batch state? *)
@@ -397,14 +370,15 @@ let dequeue prioqueue =
       let prioqueue' = {prioqueue with curr_queue = rest} in  
       (0,ps',prioqueue'))
     (* Dequeue the top program state *)  
-    | (dist,blockid,ps::pss)::rest ->
+    | (dist,blockid,pss)::rest ->
+      let pss' = strategic_joins ms pss in
       let prioqueue' = {
         curr_blockid = blockid;
-        curr_batch = pss;
+        curr_batch = List.tl pss';
         curr_queue = rest;
       }
       in
-        (blockid,ps,prioqueue')
+        (blockid,List.hd pss',prioqueue')
     (* This should never happen. It should end with a terminating 
        block id zero block. *)    
     | _ -> failwith "Should not happen"
@@ -426,7 +400,7 @@ let emptyqueue = {
 
 (* Continue and execute the next basic block in turn *)
 let continue ms =
-  let (blockid,ps,queue') = dequeue ms.prio in
+  let (blockid,ps,queue') = dequeue ms in
   let ms' = {ms with cblock = blockid;
                      pc = ms.bbtable.(blockid).addr;
                      pstate = ps;
