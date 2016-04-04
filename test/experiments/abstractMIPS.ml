@@ -45,8 +45,12 @@ type progstate = {
 let  na_ = -1
 
 (** Priority queue type *)
-type pqueue = (distance * blockid * progstate list) list 
-
+type pqueue = {
+  curr_batch   : progstate list;                       (* Current batch of states *)
+  curr_blockid : blockid;                              (* Current block id *)
+  curr_queue : (distance * blockid * progstate list) list;  (* Queue of next states *)
+}
+  
 (** The basic block info entry type is one element in the
     basic block table. This table provides all information about
     how basic blocks are related, which distances they have etc. *)  
@@ -346,53 +350,74 @@ let insert_join joinvars ps pss =
 
   
 (* Enqueue a basic block *)  
-let rec enqueue dist blockid joinvars ps queue =
+let enqueue dist blockid joinvars ps prioqueue =
 (*  printf "Encode:  ";
   aint32_print (reg a0 ps);
   printf "   ";
   aint32_print (reg a1 ps);
     printf "\n"; *)
   count := !count + 1;
-  match queue with
+  let rec work queue = 
+    match queue with
     (* Distance larger? Go to next *)
-  | (d,bid,pss)::qs when d > dist ->
-      (d,bid,pss)::(enqueue dist blockid joinvars ps qs)
+    | (d,bid,pss)::qs when d > dist ->
+      (d,bid,pss)::(work qs)
     (* Same dist?  *)
-  | (d,bid,pss)::qs when dist = d ->
+    | (d,bid,pss)::qs when dist = d ->
      (* Same block id? *)                          
-     if bid = blockid then(
+      if bid = blockid then(
        (*  printf "%d\n" (List.length pss);    *)
        (* Yes, enqueue and check for join variables *)       
        (d,bid, insert_join joinvars ps pss)::qs       )
      else
        (* No. Go to next *)
-       (d,bid,pss)::(enqueue dist blockid joinvars ps qs)
+       (d,bid,pss)::(work qs)
     (* Block not found. Enqueue *)
-  | qs -> (dist,blockid,[ps])::qs
+    | qs -> (dist,blockid,[ps])::qs
+  in
+    {prioqueue with curr_queue = work prioqueue.curr_queue}
 
 
 (** Picks the block with highest priority.
     Returns the block id,
     the size of the program state list, and the program state list *)
-let dequeue queue =
-  match queue with
-  (* Have we finished (block id equal to 0)? *)
-  | (_,0,ps::pss)::rest ->
-    (* Join all final program states *)(
-    printf "Number of states before final merge: %d\n" (List.length (ps::pss));
-    let ps' = List.fold_left join_pstates ps pss in
-     (0,ps',rest) )
-  (* Dequeue the top program state *)  
-  | (dist,blockid,ps::pss)::rest ->      
-      let queue' = if pss = [] then rest 
-                   else (dist,blockid,pss)::rest in 
-      (blockid,ps,queue')
-  (* This should never happen. It should end with a terminating 
-     block id zero block. *)    
-  | _ -> failwith "Should not happen"
+let dequeue prioqueue =
+  (* Process the batch program states first *)
+  match prioqueue.curr_batch with
+  (* Found a batch state? *)
+  | ps::pss -> (prioqueue.curr_blockid, ps, {prioqueue with curr_batch = pss})
+  (* No more batch states. Find the next in the priority queue *)
+  | [] -> (
+    match prioqueue.curr_queue with
+    (* Have we finished (block id equal to 0)? *)
+    | (_,0,ps::pss)::rest ->
+      (* Join all final program states *)(
+      printf "Number of states before final merge: %d\n" (List.length (ps::pss));
+      let ps' = List.fold_left join_pstates ps pss in
+      let prioqueue' = {prioqueue with curr_queue = rest} in  
+      (0,ps',prioqueue'))
+    (* Dequeue the top program state *)  
+    | (dist,blockid,ps::pss)::rest ->
+      let prioqueue' = {
+        curr_blockid = blockid;
+        curr_batch = pss;
+        curr_queue = rest;
+      }
+      in
+        (blockid,ps,prioqueue')
+    (* This should never happen. It should end with a terminating 
+       block id zero block. *)    
+    | _ -> failwith "Should not happen"
+  )
+
+
     
 (** Returns the empty queue *)
-let emptyqueue = []
+let emptyqueue = {
+  curr_blockid = 0;
+  curr_batch = [];
+  curr_queue = [];
+}
  
 
   
@@ -488,7 +513,6 @@ let analyze startblock bblocks args =
   let ps =
     try pstate_input init_pstate args
     with Failure s -> (printf "Error: %s\n" s; exit 1) in
-
   
   (* Add the start block to the priority queue *)
   let pqueue = enqueue bi.dist startblock bi.joinvar ps emptyqueue in

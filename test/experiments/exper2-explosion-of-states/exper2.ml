@@ -43,7 +43,7 @@ let bblocks =
 let main =
   let args = (Array.to_list Sys.argv |> List.tl) in
   analyze exper_ bblocks
-    (if args = [] then ["a0=[100,110]";"a1=[42,50]"]
+    (if args = [] then ["a0=[100,110]";"a1=[40,52]"]
                   else args)
   |> print_mstate
 

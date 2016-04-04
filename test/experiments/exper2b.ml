@@ -22,7 +22,7 @@ and exper ms = ms       |>
 
 and loop ms = ms        |>
     add  v0 v0 a0       |>
-    addi a0 a0 (-1)        |>	
+    addi a0 a0 1        |>	
     bne	 a0 a1 between_ 
 
 and between ms = ms |>
@@ -45,7 +45,7 @@ let bblocks =
 let main =
   let args = (Array.to_list Sys.argv |> List.tl) in
   analyze exper_ bblocks
-    (if args = [] then ["a0=100";"a1=50"]
+    (if args = [] then ["a0=10";"a1=50"]
                   else args)
   |> print_mstate
 
