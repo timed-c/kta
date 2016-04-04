@@ -13,13 +13,64 @@ open Str
 
 
 let count = ref 0
-  
-(* ------------------------ REGISTERS ------------------------------*)
 
+(* ------------------------ TYPES ------------------------------*)
+  
 type registers = |R0 |R1 |R2 |R3 |R4 |R5 |R6 |R7
                  |R8 |R9 |R10|R11|R12|R13|R14|R15
                  |R16|R17|R18|R19|R20|R21|R22|R23
                  |R24|R25|R26|R27|R28|R29|R30|R31
+  
+
+type blockid = int     (* The block ID type *)
+type distance = int    (* The type for describing distances of blocks *)
+
+  
+(** Abstract program state. Contains a concrete value
+    for the program counter and abstract values for 
+    registers and memory *)
+type progstate = {
+                 reg8  : aint32; reg16 : aint32; reg24 : aint32;
+  reg1 : aint32; reg9  : aint32; reg17 : aint32; reg25 : aint32;
+  reg2 : aint32; reg10 : aint32; reg18 : aint32; reg26 : aint32;
+  reg3 : aint32; reg11 : aint32; reg19 : aint32; reg27 : aint32;
+  reg4 : aint32; reg12 : aint32; reg20 : aint32; reg28 : aint32;
+  reg5 : aint32; reg13 : aint32; reg21 : aint32; reg29 : aint32;
+  reg6 : aint32; reg14 : aint32; reg22 : aint32; reg30 : aint32;
+  reg7 : aint32; reg15 : aint32; reg23 : aint32; reg31 : aint32;
+}
+
+  
+(** Basic block ID na_ means "not applicable". *)
+let  na_ = -1
+
+(** Priority queue type *)
+type pqueue = (distance * blockid * progstate list) list 
+
+(** The basic block info entry type is one element in the
+    basic block table. This table provides all information about
+    how basic blocks are related, which distances they have etc. *)  
+type bblock_info =
+{
+   func    : mstate -> mstate;  (* The function that represents the basic block *)
+   nextid  : blockid;           (* The identifier that shows the next basic block *)
+   dist    : distance;          (* The distance to the exit, that is the number of edges *)
+   addr    : int;               (* Address to the first instruction in the basic block *)
+   joinvar : registers list     (* List of registers that should be handled especially for join *) 
+}
+
+(** Main state of the analysis *)
+and mstate = {
+  cblock  : blockid;           (* Current basic block *)
+  pc      : int;               (* Current program counter *)
+  pstate  : progstate;         (* Current program state *)
+  prio    : pqueue;            (* Overall priority queue *)
+  bbtable : bblock_info array; (* Basic block info table *)
+}
+
+  
+(* ------------------------ REGISTERS ------------------------------*)
+
     
 
 let zero = R0
@@ -91,19 +142,6 @@ let str2reg str =
   | _ -> None
     
     
-(** Abstract program state. Contains a concrete value
-    for the program counter and abstract values for 
-    registers and memory *)
-type progstate = {
-                 reg8  : aint32; reg16 : aint32; reg24 : aint32;
-  reg1 : aint32; reg9  : aint32; reg17 : aint32; reg25 : aint32;
-  reg2 : aint32; reg10 : aint32; reg18 : aint32; reg26 : aint32;
-  reg3 : aint32; reg11 : aint32; reg19 : aint32; reg27 : aint32;
-  reg4 : aint32; reg12 : aint32; reg20 : aint32; reg28 : aint32;
-  reg5 : aint32; reg13 : aint32; reg21 : aint32; reg29 : aint32;
-  reg6 : aint32; reg14 : aint32; reg22 : aint32; reg30 : aint32;
-  reg7 : aint32; reg15 : aint32; reg23 : aint32; reg31 : aint32;
-}
 
 (** Creates an initial any state of the program state 
     ps = The program counter value *)
@@ -175,20 +213,8 @@ let setreg r v ps =
   | R15  -> {ps with reg15 = v}  | R31 -> {ps with reg31 = v}
 
     
-(** Pretty prints the entire program state 
-    ps = program state
-    noregs = number of registers to print *)
-let pprint_pstate ps noregs =
-  let rec pregs x s =
-    if x < noregs then
-      let r = int2reg x in
-      let n = pprint_reg r ^. us" = " ^. (aint32_pprint (reg r ps)) in      
-      let n' = Ustring.spaces_after n 18 ^. us(if x mod 4 = 0 then "\n" else "") in
-      pregs (x+1) (s ^. n')        
-    else s
-  in      
-    pregs 1 (us"") 
-   
+
+      
 (** Join two program states, assuming they have the same program counter value *)
 let join_pstates ps1 ps2 =
   {reg1  = aint32_join ps1.reg1  ps2.reg1;  reg17 = aint32_join ps1.reg17 ps2.reg17;
@@ -238,39 +264,41 @@ let rec pstate_input ps args =
           | None -> make_error a)
     | _ -> make_error a)
  
+
+(* ----------------------- DEBUG FUNCTIONS  -------------------------*)
+
+(** Pretty prints the entire program state 
+    ps = program state
+    noregs = number of registers to print *)
+let pprint_pstate noregs ps =
+  let rec pregs x s =
+    if x < noregs then
+      let r = int2reg x in
+      let n = pprint_reg r ^. us" = " ^. (aint32_pprint (reg r ps)) in      
+      let n' = Ustring.spaces_after n 18 ^. us(if x mod 4 = 0 then "\n" else "") in
+      pregs (x+1) (s ^. n')        
+    else s
+  in      
+    pregs 1 (us"") 
+
+(* Debug print a program queue element *)
+let print_pqueue_elem noregs elem =
+  let (dist,id,progs) = elem in
+  printf "ID: %d dist: %d\n" id dist;
+  List.iter (fun ps ->
+    uprint_endline (pprint_pstate noregs ps);
+    printf "------\n";
+  ) progs
   
+
+(* Debug print the program queue *)
+let print_pqueue noregs pqueue =
+  List.iter (print_pqueue_elem noregs) pqueue 
+      
+    
     
 (* ---------------  BASIC BLOCKS AND PRIORITY QUEUE -----------------*)
   
-type blockid = int     (* The block ID type *)
-type distance = int    (* The type for describing distances of blocks *)
-
-(** Basic block ID na_ means "not applicable". *)
-let  na_ = -1
-
-(** Priority queue type *)
-type pqueue = (distance * blockid * progstate list) list 
-
-(** The basic block info entry type is one element in the
-    basic block table. This table provides all information about
-    how basic blocks are related, which distances they have etc. *)  
-type bblock_info =
-{
-   func    : mstate -> mstate;  (* The function that represents the basic block *)
-   nextid  : blockid;           (* The identifier that shows the next basic block *)
-   dist    : distance;          (* The distance to the exit, that is the number of edges *)
-   addr    : int;               (* Address to the first instruction in the basic block *)
-   joinvar : registers list     (* List of registers that should be handled especially for join *) 
-}
-
-(** Main state of the analysis *)
-and mstate = {
-  cblock  : blockid;           (* Current basic block *)
-  pc      : int;               (* Current program counter *)
-  pstate  : progstate;         (* Current program state *)
-  prio    : pqueue;            (* Overall priority queue *)
-  bbtable : bblock_info array; (* Basic block info table *)
-}
 
 (* This function inserts a new pstate into a list of pstates, and joins 
    states if applicable using the join variable list. *)
@@ -287,12 +315,14 @@ let insert_join joinvars ps pss =
     | p::nextp ->
       let comp = compare_joins joinvars ps p in
       if comp = 0 then (
-        printf "****************\n";
+(*
+         printf "****************\n";
   printf "Join:  ";
   aint32_print (reg a0 ps);
   printf "   ";
   aint32_print (reg a1 ps);
           printf "\n"; 
+*)
       (* Join states, values of join variables are equal *)
        (join_pstates ps p)::nextp )
       (* ps::p::nextp  *)
@@ -403,12 +433,21 @@ let branch_equality equal rs rt label ms =
     let ps = ms.pstate in    
     let bi = ms.bbtable.(ms.cblock) in
     let (tb,fb) = aint32_test_equal (reg rs ps) (reg rt ps) in
+(*
+    printf "  True branch: ";    
+    List.iter (fun (x,y) -> aint32_print x; printf ","; aint32_print y; printf " ; ") tb;
+    printf "\n";
+    printf "  False branch: ";    
+    List.iter (fun (x,y) -> aint32_print x; printf ","; aint32_print y; printf " ; ") fb;
+    printf "\n";
+*)   
     let (tbranch,fbranch) = if equal then (tb,fb) else (fb,tb) in
     let enq blabel ms (rsval,rtval) =
       let ps' = setreg rs rsval (setreg rt rtval ms.pstate) in
       enqueue_block blabel ps' ms in
     let ms = List.fold_left (enq label) ms tbranch in
     let ms = List.fold_left (enq bi.nextid) ms fbranch in
+(*    print_pqueue 8 ms.prio; *)
     continue ms
 
 let beq rs rt label ms =
@@ -450,8 +489,6 @@ let analyze startblock bblocks args =
     try pstate_input init_pstate args
     with Failure s -> (printf "Error: %s\n" s; exit 1) in
 
- (* uprint_endline (pprint_pstate ps 16);
-    exit 0; *)
   
   (* Add the start block to the priority queue *)
   let pqueue = enqueue bi.dist startblock bi.joinvar ps emptyqueue in
@@ -472,7 +509,7 @@ let analyze startblock bblocks args =
 (** Print main state info *)
 let print_mstate ms =
   printf "Count: %d\n" !count;
-  uprint_endline (pprint_pstate ms.pstate 32)
+  uprint_endline (pprint_pstate 32 ms.pstate)
     
   
 

@@ -22,7 +22,9 @@ let aint32_print v =
   uprint_string (aint32_pprint v)
 
 let aint32_add (l1,h1) (l2,h2) =
+    (*    printf "add before: [%d,%d] [%d,%d]   after [%d,%d]\n" l1 h1 l2 h2  (l1+l2) (h1+h2); *)
     (l1+l2,h1+h2)
+    
 
 let aint32_const v =
     (v,v)
@@ -35,16 +37,18 @@ let aint32_join (l1,h1) (l2,h2) =
   (min l1 l2, max h1 h2)
 
 let aint32_compare x y =
-  printf "***Compare ";
+(*  printf "***Compare ";
   aint32_print x;
   printf "   ";
   aint32_print y;
     printf "\n"; 
+*)
   compare x y
     
 (* Check for equality. Returns two lists,
    one for cases when they are equal, one when they not *)    
 let aint32_test_equal (l1,h1) (l2,h2) =
+  (*    printf "test equal: [%d,%d] [%d,%d] \n" l1 h1 l2 h2; *)
   if h1 < l2 || h2 < l1 then
     (
      (* Not overlapping: 
