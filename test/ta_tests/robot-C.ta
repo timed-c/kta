@@ -1,0 +1,19 @@
+Function tick
+InitFunction reset
+State _GO
+State PRE_g1
+State PRE_g4
+GlobalVar bumper 0..1
+GlobalVar accelerator 0..1
+FunctionWCET errorLog 80
+FunctionWCET writeLog 180
+FunctionWCET getImage 200
+
+# Analysis Requests
+FWCET entry 1
+FWCET 1 2
+FWCET 2 3
+FWCET 3 4
+FWCET 4 5
+FWCET 5 exit
+WCP entry exit

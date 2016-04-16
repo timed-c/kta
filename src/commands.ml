@@ -50,6 +50,7 @@ type compOpTypes =
 (*| OpTa_Func  *)
 (*| OpTa_Args  *)
 | OpTa_Exhaustive
+| OpTa_OutputPathInputs    
 
 (* List of compiler options *)
 let extra_options = 
@@ -111,7 +112,10 @@ let ta_options =
        us"'-args'. The argument values need to be integers or integer intervals " ^.
        us"usbing the syntax l..u, where l is the lower bound and u the upper bound."); *)
    (OpTa_Exhaustive, Uargs.No,  us"-exhaustive",  us"",
-       us"Performs exhaustive search of all possible program paths.")]
+    us"Performs exhaustive search of all possible program paths.");
+   (OpTa_OutputPathInputs, Uargs.No,  us"-output-path-outputs",  us"",
+    us"For each of the visited pats, the input values are printed to stdout.")
+   ]
   @ extra_options
     
 
@@ -331,10 +335,10 @@ let ta_command args =
   (* Command short cut if the user writes "kta ta myfile.ta" *)
   let newargs = 
     match args with
-    | [s] when Ustring.ends_with (us".ta") (us s) -> 
+    | s::ss when Ustring.ends_with (us".ta") (us s) -> 
          let name = Ustring.to_utf8 
                 (Ustring.sub (us s) 0 ((String.length s) - 3)) in
-         [name ^ ".c"; "-compile"; "-tafile"; name ^ ".ta"]
+         [name ^ ".c"; "-compile"; "-tafile"; name ^ ".ta"] @ ss
     | _ -> args
   in                      
   
