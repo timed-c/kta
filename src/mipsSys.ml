@@ -195,7 +195,7 @@ let cycle_count_with_tpp tppmap func_assumptions
 
 
 (* ---------------------------------------------------------------------*)
-let get_eval_func ?(bigendian=false) prog =
+let get_eval_func ?(bigendian=false) prog statevarlist =
 
   (* Create the tpp map *)
   let tppmap = Array.make (Array.length prog.code) [] in
@@ -210,8 +210,9 @@ let get_eval_func ?(bigendian=false) prog =
       let address = (a - prog.text_sec.addr) / 4 in
       Array.set tppmap address (tpp::(Array.get tppmap address));
     ) prog.symbols;         
-  (* Change the order ofsymbols, making them  the same as original code *)
+  (* Change the order of symbols, making them the same as original code *)
   let tppmap' = Array.map List.rev tppmap in
+
 
   
   (* Create the timed eval function *)
@@ -231,15 +232,48 @@ let get_eval_func ?(bigendian=false) prog =
       MipsEval.eval ~bigendian:bigendian prog state 
         (cycle_count_with_tpp tppmap' func_assumptions) ((0,0,[]),None)  in 
 
+    (* Get the state variables *)
+    let statevarmap = List.map (fun x -> 
+      let a = MipsEval.getaddr prog x in
+      let v = MipsEval.getval bigendian state prog a in
+      (a,v)
+    ) statevarlist in
+
     (* TODO: Right now, there is no timeout. This means that
        a program with infinit loop will go on forever *)
-    ExhaustiveTA.TppTimedPath(wc_count,bc_count,List.rev tpp_path)  
+    (ExhaustiveTA.TppTimedPath(wc_count,bc_count,List.rev tpp_path), statevarmap)
   in
+
   
   (* Return the timed eval function *)
   timed_eval_func
   
+
   
   
-    
+(* ---------------------------------------------------------------------*)
+let get_init_state_vals ?(bigendian=false) prog initfunc statelist =
+
+  (* Initialize the state *)
+  let state = MipsEval.init prog initfunc [] in
+
+  (* Run init function, if it exists, to generate the new state *)
+  let state =
+    if initfunc <> "" then(
+      MipsEval.eval ~bigendian:bigendian prog state 
+        (fun _ _ _ _ _ _ _ -> (0,false)) 0 |> fst)
+    else state
+  in
+
+  (* Extract the state values *)
+  List.map (fun x ->    
+      let a = MipsEval.getaddr prog x in
+      let v = MipsEval.getval bigendian state prog a in
+      (a,v)
+  ) statelist
+
+
+
+
+
 

@@ -36,7 +36,24 @@ let getmemptr state prog addr size =
     raise (Out_of_Bound (sprintf 
     "%d bytes memory access at address 0x%x is outside memory." size addr))
   
+
+(* ---------------------------------------------------------------------*)
+let getaddr prog varid =
+  (* Get address from symbol using the symbol table *)
+  let addr = MipsAst.Sym2Addr.find (Ustring.to_utf8 (ustring_of_sid varid)) 
+     prog.sym2addr  in
+  addr
+
   
+(* ---------------------------------------------------------------------*)
+let getval bigendian state prog addr =
+  (* Get the memory pointer *)
+  let (mem,i,_) = getmemptr state prog addr 4 in
+
+  (* Load the value *)
+  MipsUtils.get_32_bits bigendian mem i 
+
+
 
 
 (* Functions not implemented 
@@ -348,9 +365,9 @@ let init prog func args =
   in 
 
   (* Set the PC address to the address given by the func parameter *)
-  (try state.pc <- List.assoc func prog.symbols 
-  with
-    Not_found -> raise (Function_not_found func));   
+  state.pc <- 
+    (try List.assoc func prog.symbols 
+     with Not_found -> 0);
 
   (* Set return address to 0. Used for checking termination. *)
   state.registers.(reg_ra) <- Int32.zero; 

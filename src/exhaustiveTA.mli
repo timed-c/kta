@@ -49,20 +49,23 @@ type tpp_timed_path =
                   ((sid * (wc_clock_cycles * bc_clock_cycles)) list)
 | TppTimedPathUnknown                          
 
-type assumed_func_timing = (sid * time) list    
-  
+type assumed_func_timing = (sid * time) list 
+
+type statevars = (int * int32) list   
+(* state vars maps an address to a state variable to the actual value *)  
+
 type timed_eval_func = string -> int32 list -> (int * int32) list ->
                 (sid * time) list -> (sid * time) list -> (string -> (int * int))
-                -> tpp_timed_path
+                -> (tpp_timed_path * statevars)
 (** [timed_eval_func funcname args meminitmap func_wcet func_bcet func_assumptions]. 
     The [meminitmap] is an assoicative list, where the
     keys are addresses and the values are the memory values at these
     positions. *)
   
 
-val analyze : timed_eval_func -> TaFileTypes.func_ta_req -> (sid -> int)
-              -> TaFileTypes.ta_res list
-(** [analyze evalfunc func_ta_req symtbl] analyze timing function
+val analyze : timed_eval_func -> TaFileTypes.func_ta_req -> (sid -> int) ->
+              (int * int32) list -> TaFileTypes.ta_res list
+(** [analyze evalfunc func_ta_req symtbl initstatevals] analyze timing function
     request [func_ta_req] using the evaluation function [evalfunc] and
     the symbol table [symtbl]. If the symbol table function is called,
     and the symbol does not exist, exception Not_found is raised. *)

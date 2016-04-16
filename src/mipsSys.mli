@@ -56,8 +56,27 @@ val assign_program_stack : MipsAst.program -> int -> int -> int -> MipsAst.progr
 *)
 
 
-val get_eval_func : ?bigendian:bool -> MipsAst.program -> ExhaustiveTA.timed_eval_func
-(** [get_timed_eval_func prog] returns the a timed eval function for
+val get_eval_func : ?bigendian:bool -> MipsAst.program -> sid list 
+                    -> ExhaustiveTA.timed_eval_func
+(** [get_timed_eval_func prog statevarlist] returns the a timed eval function for
     a specific MIPS executable and the symbol table. *)
+
+
+val get_init_state_vals : ?bigendian:bool -> MipsAst.program -> string ->
+                          sid list -> (int * int32) list
+(** [get_init_state_vals prog initfunc statelist] returns a list of init state values.
+    The selected variables that are returned are given in argument [statelist]. 
+    These init values depend both on global initializations in the original program,
+    as well as the assignments that are made by the [initfunc] function. *)
+
+
+
+
+
+
+
+
+
+
 
 

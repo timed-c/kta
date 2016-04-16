@@ -40,10 +40,12 @@ type tpp_timed_path =
 | TppTimedPathUnknown                          
 
 type assumed_func_timing = (sid * time) list    
+
+type statevars = (int * int32) list   
   
 type timed_eval_func = string -> int32 list -> (int * int32) list ->
                 (sid * time) list -> (sid * time) list -> (string -> (int * int))
-                -> tpp_timed_path
+                -> tpp_timed_path * statevars
 (** [timed_eval_func funcname args meminitmap func_wcet func_bcet]. The [meminitmap] is
     an assoicative list, where the keys are addresses and the values are the
     memory values at these positions. *)
@@ -54,6 +56,7 @@ type timing_info = {
    bcpath : tpp_timed_path;           (* Overall best-case path *)
    lwcet  : ((sid * sid) * int) list; (* Local WCET list *)  
    tcount : int;
+   statelst : statevars list;         (* Accumulated state results *)
 } 
 (** Internal timing info structure that is used by the analyze() function
     when computing timing responses. *)
@@ -85,7 +88,9 @@ let frac_time_from_path tpp1 tpp2 wc_c bc_c prepath =
  
      
 (* ---------------------------------------------------------------------*)
-let analyze evalfunc func_ta_req symtbl = 
+let analyze evalfunc func_ta_req symtbl initstatevals = 
+
+
   (* Extract out global variable assumptions *)  
   let (first,addrint) = 
     List.split (List.map (fun (id,VInt(l,u)) -> (l,(id,l,u))) func_ta_req.gvars) in
@@ -111,8 +116,6 @@ let analyze evalfunc func_ta_req symtbl =
   ) [] func_ta_req.ta_req |> List.rev in
 
 
-  List.iter (fun x -> uprint_endline (ustring_of_sid x)) func_ta_req.state;
-
   (* Exhaustively explore all possible input combinations *)
   let rec explore lst cur memmap tinfo =
     match lst,cur with
@@ -125,16 +128,8 @@ let analyze evalfunc func_ta_req symtbl =
            For MIPS, this function is defined in mipsSys.ml *)
         match evalfunc name [] memmap [] [] func_assumptions with
         (*** Return a new update tinfo record in the case of a valid evaluation  *)
-        | TppTimedPath(wc_cycles,bc_cycles,timedpath) as newpath ->           
+        | TppTimedPath(wc_cycles,bc_cycles,timedpath) as newpath, statevarvals ->           
           
-           (* (*Print out information about all program points  *)
-           printf "-----------\n";
-           List.iter (fun (s,c) -> 
-              uprint_endline ((ustring_of_sid s) ^. us": " ^. ustring_of_int c)) 
-              timedpath;
-           printf "final: %d\n" cycles;
-           *)
-
            {
            (* wcpath field *)
             wcpath = (
@@ -167,10 +162,13 @@ let analyze evalfunc func_ta_req symtbl =
              
            (* tocunt field: Update the test counter. *)
              tcount = tinfo.tcount + 1;
+
+           (* State list *)
+             statelst = statevarvals::tinfo.statelst;
            } 
                     
         (*** Return a new update tinfo record in the case of a invalid evaluation  *)
-        | TppTimedPathUnknown  -> 
+        | TppTimedPathUnknown, statevarvals  -> 
            {
            (* wcpath field *)
             wcpath = TppTimedPathUnknown;
@@ -183,6 +181,9 @@ let analyze evalfunc func_ta_req symtbl =
              
            (* tocunt field: Update the test counter. Should be removed. *)
              tcount = tinfo.tcount + 1;
+
+           (* State list *)
+             statelst = statevarvals::tinfo.statelst;
            } 
     )
     | _,_ -> failwith "should not happen."
@@ -194,12 +195,34 @@ let analyze evalfunc func_ta_req symtbl =
     bcpath = TppTimedPath(0,max_int,[]);    
     lwcet = lwcet_list;
     tcount = 0;
+    statelst = [];
   } 
   in
 
-  (* Start to explore all paths, calling the function above *)
-  let tinfo = explore addrint first [] init_timing_info in
+
+  (* Function that explores all state possibilities. Callsed, explore,
+     which explores all possible inputs for a specific state combination *)
+  let rec explore_states tinfo states_left states_done =    
+    match states_left with
+    | [] -> tinfo
+    | state_memmap::left -> (     
+      if List.mem state_memmap states_done then 
+        (* Already explored. Take next *)
+        explore_states tinfo left states_done
+      else
+        (* New state. Explore all inputs for this state *)
+        let local_tinfo = explore addrint first state_memmap tinfo in       
+        
+        (* Explore all new states *)
+        explore_states {local_tinfo with statelst = []} 
+                       (List.append states_left local_tinfo.statelst) 
+                       (state_memmap::states_done)
+    )    
+  in 
   
+  (* Start to explore all paths, calling the function above *)
+  let tinfo = explore_states init_timing_info [initstatevals] [] in
+
   (* Inform about explored paths.  *)
   printf "\nExhaustive search explored %d program paths.\n" tinfo.tcount;
 

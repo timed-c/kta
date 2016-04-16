@@ -357,8 +357,6 @@ let ta_command args =
     (* TODO: check that all symbols in the TA files actually exists in the binary
        and that "entry" and "exit" TPPs does not exist in the binary. *)
 
-    (* Get the eval function for the  functions for the MIPS binary *)
-    let eval_fun = MipsSys.get_eval_func prog in
 
     (* Not so fast symbol lookup function. TODO: redesign prog in MipsAST *)
     let symtbl id = 
@@ -378,8 +376,17 @@ let ta_command args =
 
         (* Iterate through ta func request *)
         let resps = List.map (fun func_ta_req -> 
+
+          (* Get the eval function for the  functions for the MIPS binary *)
+          let eval_fun = MipsSys.get_eval_func prog func_ta_req.state in
+
+          (* Get init states *)
+          let initstates = MipsSys.get_init_state_vals prog
+                           (Ustring.to_utf8 func_ta_req.initfunc) 
+                           func_ta_req.state in
+
           (* Perform the analysis for one function ta request *)
-          ExhaustiveTA.analyze eval_fun func_ta_req symtbl           
+          ExhaustiveTA.analyze eval_fun func_ta_req symtbl initstates           
         ) file_ta_req.func_ta_reqs in
         
         (* Currently, we only support one Function request 

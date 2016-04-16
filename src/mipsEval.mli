@@ -31,6 +31,16 @@ val getmemptr : machinestate -> program -> int -> int -> (bytes * int * int)
     [Out_of_bound] is raised if the accesses can be outside a
     section. *)
 
+
+
+val getaddr : program -> sid -> int
+(** [getaddr prog varid] returns the address for variable [varid] *)
+
+
+val getval : bool -> machinestate -> program -> int -> int32
+(** [getval bigendian state prog addr] returns the value for the 32-bit address [addr]. *)
+
+
 val pprint_state : machinestate -> ustring
 (** Pretty prints the machine state *)
 
@@ -63,7 +73,7 @@ val init : MipsAst.program -> string -> int32 list -> machinestate
 
 val eval : ?bigendian:bool -> MipsAst.program -> machinestate ->
                 (MipsAst.inst -> int -> MipsAst.program -> machinestate -> 
-                 bool -> string option -> 'a -> ('a * bool)) 
+                 bool -> string option -> 'a -> ('a * bool))
                 -> 'a 
                 -> (machinestate * 'a)
 (** [eval program state hookfunc hookinit] evaluates a program, starting
