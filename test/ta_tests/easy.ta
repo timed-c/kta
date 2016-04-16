@@ -1,0 +1,15 @@
+
+
+# Function name 
+function foo
+
+# Optional assumptions
+globalvar g1  10..12
+ globalvar g2  3..4
+# globalvar g3  10..11
+
+# Requested timing analysis
+#LWCET 1 2
+#LWCET entry exit
+FWCET entry exit
+FWCET 7 9
