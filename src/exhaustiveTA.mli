@@ -64,11 +64,12 @@ type timed_eval_func = string -> int32 list -> (int * int32) list ->
   
 
 val analyze : timed_eval_func -> TaFileTypes.func_ta_req -> (sid -> int) ->
-              (int * int32) list -> TaFileTypes.ta_res list
-(** [analyze evalfunc func_ta_req symtbl initstatevals] analyze timing function
-    request [func_ta_req] using the evaluation function [evalfunc] and
-    the symbol table [symtbl]. If the symbol table function is called,
-    and the symbol does not exist, exception Not_found is raised. *)
+              (int -> string) -> (int * int32) list -> bool -> TaFileTypes.ta_res list 
+(** [analyze evalfunc func_ta_req sym2addr add2str initstatevals outputPathInputs] 
+    analyze timing function request
+    [func_ta_req] using the evaluation function [evalfunc] and the
+    symbol table [symtbl]. If the symbol table function is called, and
+    the symbol does not exist, exception Not_found is raised. *)
 
 
 

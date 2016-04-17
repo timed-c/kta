@@ -363,9 +363,13 @@ let ta_command args =
 
 
     (* Not so fast symbol lookup function. TODO: redesign prog in MipsAST *)
-    let symtbl id = 
+    let sym2addr id = 
       MipsAst.Sym2Addr.find (id |> ustring_of_sid |> Ustring.to_utf8) prog.sym2addr  
     in
+    let addr2str addr = 
+      MipsAst.Addr2Sym.find addr prog.addr2sym 
+    in
+  
     
     (* The request comes from ta-files? *)
     if Uargs.has_op OpTa_Tafile ops then
@@ -390,7 +394,8 @@ let ta_command args =
                            func_ta_req.state in
 
           (* Perform the analysis for one function ta request *)
-          ExhaustiveTA.analyze eval_fun func_ta_req symtbl initstates           
+          let outputPathInputs = Uargs.has_op OpTa_OutputPathInputs ops in
+          ExhaustiveTA.analyze eval_fun func_ta_req sym2addr addr2str initstates outputPathInputs
         ) file_ta_req.func_ta_reqs in
         
         (* Currently, we only support one Function request 

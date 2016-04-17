@@ -88,7 +88,7 @@ let frac_time_from_path tpp1 tpp2 wc_c bc_c prepath =
  
      
 (* ---------------------------------------------------------------------*)
-let analyze evalfunc func_ta_req symtbl initstatevals = 
+let analyze evalfunc func_ta_req sym2addr addr2str initstatevals outputPathInputs = 
 
 
   (* Extract out global variable assumptions *)  
@@ -119,13 +119,18 @@ let analyze evalfunc func_ta_req symtbl initstatevals =
   (* Exhaustively explore all possible input combinations *)
   let rec explore lst cur memmap tinfo =
     match lst,cur with
-    | (id,l,u)::lres, c::cres -> ( 
-        let tinfo' = explore lres cres ((symtbl id,Int32.of_int c)::memmap) tinfo in
+    | (id,l,u)::lres, c::cres -> (
+        let tinfo' = explore lres cres ((sym2addr id,Int32.of_int c)::memmap) tinfo in
         if c = u then tinfo'
         else explore lst ((c+1)::cres) memmap tinfo')
     | [],[] -> (
         (* Perform the analysis by executing one configuration.
            For MIPS, this function is defined in mipsSys.ml *)
+
+        if outputPathInputs then (
+          List.iter (fun (addr,v) -> printf "%s %d\n" (addr2str addr) (Int32.to_int v)) memmap;
+          printf "\n");
+      
         match evalfunc name [] memmap [] [] func_assumptions with
         (*** Return a new update tinfo record in the case of a valid evaluation  *)
         | TppTimedPath(wc_cycles,bc_cycles,timedpath) as newpath, statevarvals ->           
