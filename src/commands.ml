@@ -113,7 +113,7 @@ let ta_options =
        us"usbing the syntax l..u, where l is the lower bound and u the upper bound."); *)
    (OpTa_Exhaustive, Uargs.No,  us"-exhaustive",  us"",
     us"Performs exhaustive search of all possible program paths.");
-   (OpTa_OutputPathInputs, Uargs.No,  us"-output-path-outputs",  us"",
+   (OpTa_OutputPathInputs, Uargs.No,  us"-output-path-inputs",  us"",
     us"For each of the visited pats, the input values are printed to stdout.")
    ]
   @ extra_options
