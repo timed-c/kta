@@ -38,6 +38,8 @@ type progstate = {
   reg5 : aint32; reg13 : aint32; reg21 : aint32; reg29 : aint32;
   reg6 : aint32; reg14 : aint32; reg22 : aint32; reg30 : aint32;
   reg7 : aint32; reg15 : aint32; reg23 : aint32; reg31 : aint32;
+  bcet : int;
+  wcet : int;
 }
 
   
@@ -166,7 +168,8 @@ let init_pstate =
     reg12 = aint32_any;  reg28 = aint32_any;
     reg13 = aint32_any;  reg29 = aint32_any;
     reg14 = aint32_any;  reg30 = aint32_any;
-    reg15 = aint32_any;  reg31 = aint32_any;
+    reg15 = aint32_any;  reg31 = aint32_any;    
+    bcet  = 0;           wcet = 0;    
 }
 
      
@@ -236,7 +239,10 @@ let join_pstates ps1 ps2 =
    reg13 = aint32_join ps1.reg13 ps2.reg13; reg29 = aint32_join ps1.reg29 ps2.reg29;
    reg14 = aint32_join ps1.reg14 ps2.reg14; reg30 = aint32_join ps1.reg30 ps2.reg30;
    reg15 = aint32_join ps1.reg15 ps2.reg15; reg31 = aint32_join ps1.reg31 ps2.reg31;
-   reg16 = aint32_join ps1.reg16 ps2.reg16 }
+   reg16 = aint32_join ps1.reg16 ps2.reg16;
+   bcet  = min ps1.bcet ps2.bcet;
+   wcet  = max ps1.wcet ps2.wcet;
+  }
      
 (* ---------------  INPUT ARGUMENT HANDLING -----------------*)
 
@@ -416,38 +422,33 @@ let enqueue_block blockid ps ms =
 
 let to_mstate ms ps =
   {ms with pstate = ps}
+
+let tick n ps =  
+  {ps with bcet = ps.bcet + n; wcet = ps.wcet + n} 
+
     
 (* ------------------------ INSTRUCTIONS -------------------------*)
 
 let add rd rs rt ms =
     let ps = ms.pstate in
-    setreg rd (aint32_add (reg rs ps) (reg rt ps)) ps |> to_mstate ms
+    setreg rd (aint32_add (reg rs ps) (reg rt ps)) ps |> tick 1 |> to_mstate ms
 
 let addi rt rs imm ms  =
     let ps = ms.pstate in
-    setreg rt (aint32_add (reg rs ps) (aint32_const imm)) ps |> to_mstate ms
+    setreg rt (aint32_add (reg rs ps) (aint32_const imm)) ps |> tick 1 |> to_mstate ms 
 
         
 let branch_equality equal rs rt label ms =
-    let ps = ms.pstate in    
+    let ps = tick 1 ms.pstate in    
     let bi = ms.bbtable.(ms.cblock) in
     let (tb,fb) = aint32_test_equal (reg rs ps) (reg rt ps) in
-(*
-    printf "  True branch: ";    
-    List.iter (fun (x,y) -> aint32_print x; printf ","; aint32_print y; printf " ; ") tb;
-    printf "\n";
-    printf "  False branch: ";    
-    List.iter (fun (x,y) -> aint32_print x; printf ","; aint32_print y; printf " ; ") fb;
-    printf "\n";
-*)   
     let (tbranch,fbranch) = if equal then (tb,fb) else (fb,tb) in
     let enq blabel ms (rsval,rtval) =
-      let ps' = setreg rs rsval (setreg rt rtval ms.pstate) in
+      let ps' = setreg rs rsval (setreg rt rtval ps) in
       enqueue_block blabel ps' ms in
     let ms = List.fold_left (enq label) ms tbranch in
     let ms = List.fold_left (enq bi.nextid) ms fbranch in
-(*    print_pqueue 8 ms.prio; *)
-    continue ms
+    continue ms 
 
 let beq rs rt label ms =
     branch_equality true rt rs label ms
@@ -507,6 +508,8 @@ let analyze startblock bblocks args =
 (** Print main state info *)
 let print_mstate ms =
   printf "Count: %d\n" !count;
+  printf "BCET:  %d cycles\n" ms.pstate.bcet;
+  printf "WCET:  %d cycles\n" ms.pstate.wcet;
   uprint_endline (pprint_pstate 32 ms.pstate)
     
   
