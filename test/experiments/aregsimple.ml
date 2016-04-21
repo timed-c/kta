@@ -20,8 +20,6 @@ type registers = |R0 |R1 |R2 |R3 |R4 |R5 |R6 |R7
                  |R24|R25|R26|R27|R28|R29|R30|R31
 
 
-
-
 let areg_init =
   {
                          reg16 = aint32_any;
@@ -42,9 +40,11 @@ let areg_init =
     reg15 = aint32_any;  reg31 = aint32_any;    
 }
 
-     
 
-let reg r areg =
+
+
+let getreg r areg = 
+  let reg r areg =
   match r with
   | R0  -> aint32_const(0) | R16 -> areg.reg16 
   | R1  -> areg.reg1         | R17 -> areg.reg17 
@@ -61,8 +61,11 @@ let reg r areg =
   | R12 -> areg.reg12        | R28 -> areg.reg28 
   | R13 -> areg.reg13        | R29 -> areg.reg29 
   | R14 -> areg.reg14        | R30 -> areg.reg30 
-  | R15 -> areg.reg15        | R31 -> areg.reg31 
+  | R15 -> areg.reg15        | R31 -> areg.reg31
+  in
+  (areg,reg r areg)
 
+    
 (** Sets the value of a register.
     r = register symbol, v = abstract value to be set
     areg = program state

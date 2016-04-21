@@ -27,7 +27,6 @@ type distance = int    (* The type for describing distances of blocks *)
     for the program counter and abstract values for 
     registers and memory *)
 type progstate = {
-
   reg  : aregister;
   bcet : int;
   wcet : int;
@@ -196,7 +195,8 @@ let pprint_pstate noregs ps =
   let rec pregs x s =
     if x < noregs then
       let r = int2reg x in
-      let n = pprint_reg r ^. us" = " ^. (aint32_pprint (reg r ps.reg)) in      
+      let (_,v) = getreg r ps.reg in
+      let n = pprint_reg r ^. us" = " ^. (aint32_pprint v) in      
       let n' = Ustring.spaces_after n 18 ^. us(if x mod 4 = 0 then "\n" else "") in
       pregs (x+1) (s ^. n')        
     else s
@@ -259,7 +259,7 @@ let strategic_joins ms pss =
   let bi = ms.bbtable.(ms.cblock) in   
   let jmap = List.fold_left
     (fun map ps ->
-      let key = List.map (fun v -> reg v ps.reg) bi.joinvar in
+      let key = List.map (fun v -> getreg v ps.reg |> snd) bi.joinvar in
       let newval = try join_pstates ps (JMap.find key map)
                    with Not_found -> ps in
       JMap.add key newval map
@@ -338,29 +338,37 @@ let to_mstate ms ps =
 let tick n ps =  
   {ps with bcet = ps.bcet + n; wcet = ps.wcet + n} 
 
+let update r ps =
+  {ps with reg = r}
     
 (* ------------------------ INSTRUCTIONS -------------------------*)
 
 let add rd rs rt ms =
-    let ps = ms.pstate in
-    let ps = {ps with reg =
-        setreg rd (aint32_add (reg rs ps.reg) (reg rt ps.reg)) ps.reg} in
-    ps |> tick 1 |> to_mstate ms
+  let ps = ms.pstate in
+  let r = ps.reg in
+  let (r,v_rs) = getreg rs r in
+  let (r,v_rt) = getreg rt r in
+  let r = setreg rd (aint32_add v_rs v_rt) r in
+  ps |> update r |> tick 1 |> to_mstate ms
 
 let addi rt rs imm ms  =
     let ps = ms.pstate in
-    let ps = {ps with reg =
-        setreg rt (aint32_add (reg rs ps.reg) (aint32_const imm)) ps.reg} in             
-    ps |> tick 1 |> to_mstate ms 
+    let r = ps.reg in
+    let (r,v_rs) = getreg rs r in
+    let r = setreg rt (aint32_add v_rs (aint32_const imm)) r in             
+    ps |> update r |> tick 1 |> to_mstate ms 
 
         
 let branch_equality equal rs rt label ms =
     let ps = tick 1 ms.pstate in    
+    let r = ps.reg in
+    let (r,v_rs) = getreg rs r in
+    let (r,v_rt) = getreg rt r in
     let bi = ms.bbtable.(ms.cblock) in
-    let (tb,fb) = aint32_test_equal (reg rs ps.reg) (reg rt ps.reg) in
+    let (tb,fb) = aint32_test_equal v_rs v_rt in
     let (tbranch,fbranch) = if equal then (tb,fb) else (fb,tb) in
     let enq blabel ms (rsval,rtval) =
-      let ps = {ps with reg = setreg rs rsval (setreg rt rtval ps.reg)} in
+      let ps = {ps with reg = setreg rs rsval (setreg rt rtval r)} in
       enqueue_block blabel ps ms in
     let ms = List.fold_left (enq label) ms tbranch in
     let ms = List.fold_left (enq bi.nextid) ms fbranch in
@@ -387,9 +395,11 @@ let next ms =
 
 (* load immediate interval *)
 let lii rd l h ms =
-  {ms.pstate with reg = setreg rd (aint32_interval l h) ms.pstate.reg} |> to_mstate ms
-
-
+  let ps = ms.pstate in
+  let r = ps.reg in
+  let r = setreg rd (aint32_interval l h) r in
+  ps |> update r |> to_mstate ms
+  
      
 
 (* ------------------- MAIN ANALYSIS FUNCTIONS ----------------------*)
