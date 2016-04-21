@@ -8,16 +8,14 @@
 open Ustring.Op
 open Printf
 open Aint32Interval
-open Aregsimple
+open Areglazy
 open Scanf
 open Str
 
 
 let count = ref 0
 
-(* ------------------------ TYPES ------------------------------*)
-  
-  
+(* ------------------------ TYPES ------------------------------*)  
 
 type blockid = int     (* The block ID type *)
 type distance = int    (* The type for describing distances of blocks *)
