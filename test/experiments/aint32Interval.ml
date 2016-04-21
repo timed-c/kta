@@ -9,6 +9,8 @@ type aint32 = high * low
 let aint32_any =
    (-2147483648,2147483647)  
 
+
+     
 let aint32_pprint v =
   let (l,h) = v in
   if v = aint32_any then us"ANY"
@@ -36,6 +38,8 @@ let aint32_interval l h =
 let aint32_join (l1,h1) (l2,h2) =
   (min l1 l2, max h1 h2)
 
+  
+    
 let aint32_compare x y =
 (*  printf "***Compare ";
   aint32_print x;

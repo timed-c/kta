@@ -8,6 +8,7 @@
 open Ustring.Op
 open Printf
 open Aint32Interval
+open Aregsimple
 open Scanf
 open Str
 
@@ -16,10 +17,6 @@ let count = ref 0
 
 (* ------------------------ TYPES ------------------------------*)
   
-type registers = |R0 |R1 |R2 |R3 |R4 |R5 |R6 |R7
-                 |R8 |R9 |R10|R11|R12|R13|R14|R15
-                 |R16|R17|R18|R19|R20|R21|R22|R23
-                 |R24|R25|R26|R27|R28|R29|R30|R31
   
 
 type blockid = int     (* The block ID type *)
@@ -30,14 +27,8 @@ type distance = int    (* The type for describing distances of blocks *)
     for the program counter and abstract values for 
     registers and memory *)
 type progstate = {
-                 reg8  : aint32; reg16 : aint32; reg24 : aint32;
-  reg1 : aint32; reg9  : aint32; reg17 : aint32; reg25 : aint32;
-  reg2 : aint32; reg10 : aint32; reg18 : aint32; reg26 : aint32;
-  reg3 : aint32; reg11 : aint32; reg19 : aint32; reg27 : aint32;
-  reg4 : aint32; reg12 : aint32; reg20 : aint32; reg28 : aint32;
-  reg5 : aint32; reg13 : aint32; reg21 : aint32; reg29 : aint32;
-  reg6 : aint32; reg14 : aint32; reg22 : aint32; reg30 : aint32;
-  reg7 : aint32; reg15 : aint32; reg23 : aint32; reg31 : aint32;
+
+  reg  : aregister;
   bcet : int;
   wcet : int;
 }
@@ -147,102 +138,23 @@ let str2reg str =
   | "a3"   -> Some R7 | "t7" -> Some R15 | "s7" -> Some R23 | "ra" -> Some R31
   | _ -> None
     
-    
-
 (** Creates an initial any state of the program state 
     ps = The program counter value *)
 let init_pstate =
   {
-                         reg16 = aint32_any;
-    reg1  = aint32_any;  reg17 = aint32_any;
-    reg2  = aint32_any;  reg18 = aint32_any;
-    reg3  = aint32_any;  reg19 = aint32_any;
-    reg4  = aint32_any;  reg20 = aint32_any;
-    reg5  = aint32_any;  reg21 = aint32_any;
-    reg6  = aint32_any;  reg22 = aint32_any;
-    reg7  = aint32_any;  reg23 = aint32_any;
-    reg8  = aint32_any;  reg24 = aint32_any;
-    reg9  = aint32_any;  reg25 = aint32_any;
-    reg10 = aint32_any;  reg26 = aint32_any;
-    reg11 = aint32_any;  reg27 = aint32_any;
-    reg12 = aint32_any;  reg28 = aint32_any;
-    reg13 = aint32_any;  reg29 = aint32_any;
-    reg14 = aint32_any;  reg30 = aint32_any;
-    reg15 = aint32_any;  reg31 = aint32_any;    
-    bcet  = 0;           wcet = 0;    
+    bcet  = 0;
+    wcet = 0;
+    reg = areg_init;
 }
 
-     
-
-(** Returns the abstract value for a specific register
-   r = register symbol, ps = program state
-   returns the abstract value for the register r *)
-let reg r ps =
-  match r with
-  | R0  -> aint32_const(0) | R16 -> ps.reg16 
-  | R1  -> ps.reg1         | R17 -> ps.reg17 
-  | R2  -> ps.reg2         | R18 -> ps.reg18 
-  | R3  -> ps.reg3         | R19 -> ps.reg19 
-  | R4  -> ps.reg4         | R20 -> ps.reg20 
-  | R5  -> ps.reg5         | R21 -> ps.reg21 
-  | R6  -> ps.reg6         | R22 -> ps.reg22 
-  | R7  -> ps.reg7         | R23 -> ps.reg23 
-  | R8  -> ps.reg8         | R24 -> ps.reg24 
-  | R9  -> ps.reg9         | R25 -> ps.reg25 
-  | R10 -> ps.reg10        | R26 -> ps.reg26 
-  | R11 -> ps.reg11        | R27 -> ps.reg27 
-  | R12 -> ps.reg12        | R28 -> ps.reg28 
-  | R13 -> ps.reg13        | R29 -> ps.reg29 
-  | R14 -> ps.reg14        | R30 -> ps.reg30 
-  | R15 -> ps.reg15        | R31 -> ps.reg31 
-
-(** Sets the value of a register.
-    r = register symbol, v = abstract value to be set
-    ps = program state
-    returns the new abstract program state. *)
-let setreg r v ps =
-  match r with
-  | R0   -> ps                   | R16 -> {ps with reg16 = v}
-  | R1   -> {ps with reg1 = v}   | R17 -> {ps with reg17 = v}
-  | R2   -> {ps with reg2 = v}   | R18 -> {ps with reg18 = v}
-  | R3   -> {ps with reg3 = v}   | R19 -> {ps with reg19 = v}
-  | R4   -> {ps with reg4 = v}   | R20 -> {ps with reg20 = v}
-  | R5   -> {ps with reg5 = v}   | R21 -> {ps with reg21 = v}
-  | R6   -> {ps with reg6 = v}   | R22 -> {ps with reg22 = v}
-  | R7   -> {ps with reg7 = v}   | R23 -> {ps with reg23 = v}
-  | R8   -> {ps with reg8 = v}   | R24 -> {ps with reg24 = v}
-  | R9   -> {ps with reg9 = v}   | R25 -> {ps with reg25 = v}
-  | R10  -> {ps with reg10 = v}  | R26 -> {ps with reg26 = v}
-  | R11  -> {ps with reg11 = v}  | R27 -> {ps with reg27 = v}
-  | R12  -> {ps with reg12 = v}  | R28 -> {ps with reg28 = v}
-  | R13  -> {ps with reg13 = v}  | R29 -> {ps with reg29 = v}
-  | R14  -> {ps with reg14 = v}  | R30 -> {ps with reg30 = v}
-  | R15  -> {ps with reg15 = v}  | R31 -> {ps with reg31 = v}
-
-    
-
-      
 (** Join two program states, assuming they have the same program counter value *)
 let join_pstates ps1 ps2 =
-  {reg1  = aint32_join ps1.reg1  ps2.reg1;  reg17 = aint32_join ps1.reg17 ps2.reg17;
-   reg2  = aint32_join ps1.reg2  ps2.reg2;  reg18 = aint32_join ps1.reg18 ps2.reg18;
-   reg3  = aint32_join ps1.reg3  ps2.reg3;  reg19 = aint32_join ps1.reg19 ps2.reg19;
-   reg4  = aint32_join ps1.reg4  ps2.reg4;  reg20 = aint32_join ps1.reg20 ps2.reg20;
-   reg5  = aint32_join ps1.reg5  ps2.reg5;  reg21 = aint32_join ps1.reg21 ps2.reg21;
-   reg6  = aint32_join ps1.reg6  ps2.reg6;  reg22 = aint32_join ps1.reg22 ps2.reg22;
-   reg7  = aint32_join ps1.reg7  ps2.reg7;  reg23 = aint32_join ps1.reg23 ps2.reg23;
-   reg8  = aint32_join ps1.reg8  ps2.reg8;  reg24 = aint32_join ps1.reg24 ps2.reg24;
-   reg9  = aint32_join ps1.reg9  ps2.reg9;  reg25 = aint32_join ps1.reg25 ps2.reg25;
-   reg10 = aint32_join ps1.reg10 ps2.reg10; reg26 = aint32_join ps1.reg26 ps2.reg26;
-   reg11 = aint32_join ps1.reg11 ps2.reg11; reg27 = aint32_join ps1.reg27 ps2.reg27;
-   reg12 = aint32_join ps1.reg12 ps2.reg12; reg28 = aint32_join ps1.reg28 ps2.reg28;
-   reg13 = aint32_join ps1.reg13 ps2.reg13; reg29 = aint32_join ps1.reg29 ps2.reg29;
-   reg14 = aint32_join ps1.reg14 ps2.reg14; reg30 = aint32_join ps1.reg30 ps2.reg30;
-   reg15 = aint32_join ps1.reg15 ps2.reg15; reg31 = aint32_join ps1.reg31 ps2.reg31;
-   reg16 = aint32_join ps1.reg16 ps2.reg16;
+{
    bcet  = min ps1.bcet ps2.bcet;
    wcet  = max ps1.wcet ps2.wcet;
-  }
+   reg   = areg_join [ps1.reg;ps2.reg]
+}
+    
      
 (* ---------------  INPUT ARGUMENT HANDLING -----------------*)
 
@@ -261,7 +173,7 @@ let rec pstate_input ps args =
          | Some(regval) ->
              (* Is concrete value? *)
             (try (let aval = aint32_const (int_of_string value) in
-                  pstate_input (setreg regval aval ps) next_args)
+                  pstate_input {ps with reg = (setreg regval aval ps.reg)} next_args)
              with _ -> (
                (* Is abstract interval value? *)
                (match (try bscanf (Scanning.from_string value) "[%d,%d]" (fun x y -> Some(x,y))
@@ -269,7 +181,7 @@ let rec pstate_input ps args =
                with
                | Some(l,h) ->
                    let aval = aint32_interval l h in
-                   pstate_input (setreg regval aval ps) next_args
+                   pstate_input {ps with reg = (setreg regval aval ps.reg)} next_args
                | None -> make_error a)))
           | None -> make_error a)
     | _ -> make_error a)
@@ -284,7 +196,7 @@ let pprint_pstate noregs ps =
   let rec pregs x s =
     if x < noregs then
       let r = int2reg x in
-      let n = pprint_reg r ^. us" = " ^. (aint32_pprint (reg r ps)) in      
+      let n = pprint_reg r ^. us" = " ^. (aint32_pprint (reg r ps.reg)) in      
       let n' = Ustring.spaces_after n 18 ^. us(if x mod 4 = 0 then "\n" else "") in
       pregs (x+1) (s ^. n')        
     else s
@@ -347,7 +259,7 @@ let strategic_joins ms pss =
   let bi = ms.bbtable.(ms.cblock) in   
   let jmap = List.fold_left
     (fun map ps ->
-      let key = List.map (fun v -> reg v ps) bi.joinvar in
+      let key = List.map (fun v -> reg v ps.reg) bi.joinvar in
       let newval = try join_pstates ps (JMap.find key map)
                    with Not_found -> ps in
       JMap.add key newval map
@@ -431,21 +343,25 @@ let tick n ps =
 
 let add rd rs rt ms =
     let ps = ms.pstate in
-    setreg rd (aint32_add (reg rs ps) (reg rt ps)) ps |> tick 1 |> to_mstate ms
+    let ps = {ps with reg =
+        setreg rd (aint32_add (reg rs ps.reg) (reg rt ps.reg)) ps.reg} in
+    ps |> tick 1 |> to_mstate ms
 
 let addi rt rs imm ms  =
     let ps = ms.pstate in
-    setreg rt (aint32_add (reg rs ps) (aint32_const imm)) ps |> tick 1 |> to_mstate ms 
+    let ps = {ps with reg =
+        setreg rt (aint32_add (reg rs ps.reg) (aint32_const imm)) ps.reg} in             
+    ps |> tick 1 |> to_mstate ms 
 
         
 let branch_equality equal rs rt label ms =
     let ps = tick 1 ms.pstate in    
     let bi = ms.bbtable.(ms.cblock) in
-    let (tb,fb) = aint32_test_equal (reg rs ps) (reg rt ps) in
+    let (tb,fb) = aint32_test_equal (reg rs ps.reg) (reg rt ps.reg) in
     let (tbranch,fbranch) = if equal then (tb,fb) else (fb,tb) in
     let enq blabel ms (rsval,rtval) =
-      let ps' = setreg rs rsval (setreg rt rtval ps) in
-      enqueue_block blabel ps' ms in
+      let ps = {ps with reg = setreg rs rsval (setreg rt rtval ps.reg)} in
+      enqueue_block blabel ps ms in
     let ms = List.fold_left (enq label) ms tbranch in
     let ms = List.fold_left (enq bi.nextid) ms fbranch in
     continue ms 
@@ -471,7 +387,7 @@ let next ms =
 
 (* load immediate interval *)
 let lii rd l h ms =
-  setreg rd (aint32_interval l h) ms.pstate |> to_mstate ms
+  {ms.pstate with reg = setreg rd (aint32_interval l h) ms.pstate.reg} |> to_mstate ms
 
 
      
