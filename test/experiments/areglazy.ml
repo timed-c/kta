@@ -136,16 +136,10 @@ let rec getreg r areg =
       let areg = set_aregval r (Some aint32_any) areg in
       (areg, aint32_any)        
     | a::rest ->
-      let (a',v) = getreg r a in        
-      let (ajoins',v) =
-        List.fold_left (fun (acc,v1) areg ->
-          let (areg',v2) = getreg r areg in
-          let v' = aint32_join v1 v2 in
-          (areg::acc,v')
-        ) ([a'],v) rest 
-      in
+      let (_,v) = getreg r a in        
+      let v = List.fold_left
+        (fun v1 areg -> aint32_join v1 (getreg r areg |> snd)) v rest in
       let areg = set_aregval r (Some v) areg in
-      let areg = {areg with ajoins = ajoins'} in
       (areg, v))
 
 
