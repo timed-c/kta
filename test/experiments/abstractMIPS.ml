@@ -8,7 +8,7 @@
 open Ustring.Op
 open Printf
 open Aint32Interval
-open Areglazy
+open Aregsimple
 open Scanf
 open Str
 
