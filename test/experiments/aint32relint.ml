@@ -84,12 +84,14 @@ let aint32_join v1 v2 =
   match v1, v2 with
   | BaseAddr,BaseAddr -> BaseAddr
   | BaseAddr,_ | _,BaseAddr -> baseaddr_fail()
-  | Interval(v1),Interval(v2) ->  IntervalList([v1;v2],nopair)
+  | Interval(v1),Interval(v2) ->
+    Interval(interval_merge v1 v2)
   | Interval(v1),IntervalList(lst,_) | IntervalList(lst,_),Interval(v1) ->
-    IntervalList(v1::lst,nopair)
+    Interval(interval_merge_list (v1::lst))
   | IntervalList(l1,_),IntervalList(l2,_) ->
-    IntervalList(l1@l2,nopair)
-   (* TODO: Limit this expansion *)
+    printf "Merge B:  %d  %d\n" (List.length l1) (List.length l2);
+    Interval(interval_merge (interval_merge_list l1) (interval_merge_list l2)) 
+
              
 let aint32_compare x y =
   compare x y
@@ -218,9 +220,7 @@ let rec aint32_test_equal v1 v2 =
          | _,_ -> fail_aint32()
        in let (t,f) = newlists l1 l2 [] [] in
        (* Remove duplicates *)
-       printf "Before: t %d  f %d\n" (List.length t) (List.length f);
        let (t,f) = (List.sort_uniq compare t, List.sort_uniq compare f) in
-       printf "After:  t %d  f %d\n" (List.length t) (List.length f);
        (* Split into the two variable alternatives *)
        let (t1,t2) = split_rev t in
        let (f1,f2) = split_rev f in
