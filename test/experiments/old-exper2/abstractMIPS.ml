@@ -7,7 +7,7 @@
 
 open Ustring.Op
 open Printf
-open Aint32relint
+open Aint32Interval
 open Aregsimple
 open Scanf
 open Str
@@ -182,8 +182,7 @@ let rec pstate_input ps args =
                | None -> make_error a)))
           | None -> make_error a)
     | _ -> make_error a)
-
-let fail_should_not_happen no = failwith (sprintf "ERROR: Should not happen ID = %d" no)
+ 
 
 (* ----------------------- DEBUG FUNCTIONS  -------------------------*)
 
@@ -195,7 +194,7 @@ let pprint_pstate noregs ps =
     if x < noregs then
       let r = int2reg x in
       let (_,v) = getreg r ps.reg in
-      let n = pprint_reg r ^. us" = " ^. (aint32_pprint false v) in      
+      let n = pprint_reg r ^. us" = " ^. (aint32_pprint v) in      
       let n' = Ustring.spaces_after n 18 ^. us(if x mod 4 = 0 then "\n" else "") in
       pregs (x+1) (s ^. n')        
     else s
@@ -218,10 +217,13 @@ let print_pqueue noregs pqueue =
       
     
     
-(* ---------------  BASIC BLOCKS AND PRIORITY QUEUE -----------------*)           
+(* ---------------  BASIC BLOCKS AND PRIORITY QUEUE -----------------*)
+  
+           
+      
   
 (* Enqueue a basic block *)  
-let enqueue dist blockid ps prioqueue =
+let enqueue dist blockid joinvars ps prioqueue =
   count := !count + 1;
   let rec work queue = 
     match queue with
@@ -232,8 +234,9 @@ let enqueue dist blockid ps prioqueue =
     | (d,bid,pss)::qs when dist = d ->
      (* Same block id? *)                          
       if bid = blockid then(
-       (* Yes, enqueue *)       
-        (d,bid,ps::pss)::qs)
+       (*  printf "%d\n" (List.length pss);    *)
+       (* Yes, enqueue and check for join variables *)       
+        (d,bid, ps::pss)::qs       )
      else
        (* No. Go to next *)
        (d,bid,pss)::(work qs)
@@ -242,6 +245,25 @@ let enqueue dist blockid ps prioqueue =
   in
     {prioqueue with curr_queue = work prioqueue.curr_queue}
 
+
+module JMap = Map.Make(
+  struct
+    type t = (int * int) list
+    let compare = compare
+  end)      
+  
+
+let strategic_joins ms pss = 
+  let bi = ms.bbtable.(ms.cblock) in   
+  let jmap = List.fold_left
+    (fun map ps ->
+      let key = List.map (fun v -> getreg v ps.reg |> snd) bi.joinvar in
+      let newval = try join_pstates ps (JMap.find key map)
+                   with Not_found -> ps in
+      JMap.add key newval map
+    )JMap.empty pss in
+  List.map (fun (k,v) -> v) (JMap.bindings jmap)
+  
 
   
 (** Picks the block with highest priority.
@@ -265,17 +287,20 @@ let dequeue ms =
       (0,ps',prioqueue'))
     (* Dequeue the top program state *)  
     | (dist,blockid,pss)::rest ->
+      let pss' = strategic_joins ms pss in
       let prioqueue' = {
         curr_blockid = blockid;
-        curr_batch = List.tl pss;
+        curr_batch = List.tl pss';
         curr_queue = rest;
       }
       in
-        (blockid,List.hd pss,prioqueue')
+        (blockid,List.hd pss',prioqueue')
     (* This should never happen. It should end with a terminating 
        block id zero block. *)    
     | _ -> failwith "Should not happen"
   )
+
+
     
 (** Returns the empty queue *)
 let emptyqueue = {
@@ -302,7 +327,7 @@ let continue ms =
 (* Enqueue a new program state using a block id. Returns a main state *)    
 let enqueue_block blockid ps ms =
   let bi = ms.bbtable.(blockid) in
-  let prio' = enqueue bi.dist blockid ps ms.prio in
+  let prio' = enqueue bi.dist blockid bi.joinvar ps ms.prio in
   {ms with prio = prio'}
 
 let to_mstate ms ps =
@@ -331,7 +356,6 @@ let addi rt rs imm ms  =
     let r = setreg rt (aint32_add v_rs (aint32_const imm)) r in             
     ps |> update r |> tick 1 |> to_mstate ms 
 
-
         
 let branch_equality equal rs rt label ms =
     let ps = tick 1 ms.pstate in    
@@ -341,19 +365,15 @@ let branch_equality equal rs rt label ms =
     let bi = ms.bbtable.(ms.cblock) in
     let (tb,fb) = aint32_test_equal v_rs v_rt in
     let (tbranch,fbranch) = if equal then (tb,fb) else (fb,tb) in
-    let enq blabel bval ms =
-      match bval with
-      | Some(rsval,rtval) ->
-        (* printf "rs: "; aint32_print_debug rsval; printf "  ";
-           printf "rt: "; aint32_print_debug rtval; printf "\n"; *)
-        let ps = {ps with reg = setreg rs rsval (setreg rt rtval r)} in
-        enqueue_block blabel ps ms
-      | None -> ms
-    in
-      continue (ms |> enq label tbranch |> enq bi.nextid fbranch)
+    let enq blabel ms (rsval,rtval) =
+      let ps = {ps with reg = setreg rs rsval (setreg rt rtval r)} in
+      enqueue_block blabel ps ms in
+    let ms = List.fold_left (enq label) ms tbranch in
+    let ms = List.fold_left (enq bi.nextid) ms fbranch in
+    continue ms 
 
 let beq rs rt label ms =
-    branch_equality true rs rt label ms
+    branch_equality true rt rs label ms
       
 let bne rs rt label ms =
     branch_equality false rs rt label ms
@@ -394,7 +414,7 @@ let analyze startblock bblocks args =
     with Failure s -> (printf "Error: %s\n" s; exit 1) in
   
   (* Add the start block to the priority queue *)
-  let pqueue = enqueue bi.dist startblock ps emptyqueue in
+  let pqueue = enqueue bi.dist startblock bi.joinvar ps emptyqueue in
 
   (* Create the main state *)
   let mstate = {

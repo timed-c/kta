@@ -19,24 +19,36 @@ type aint32 =
 
 let baseaddr_fail() = failwith "Error: cannot perform operations on base addresses"     
 let fail_aint32() = failwith "Error: aint32 error that should not happen."
-    
 
-let aint32_any = Interval(-2147483648,2147483647)  
+let anyvals = (-2147483648,2147483647)  
 
+let aint32_any = Interval anyvals
+
+let interval_merge (l1,h1) (l2,h2) =
+  (min l1 l2, max h1 h2)
+
+let interval_merge_list lst =
+  match lst with
+  | [] -> fail_aint32()
+  | l::ls -> List.fold_left interval_merge l ls 
+        
 
      
 let aint32_pprint debug v =
-  let prn (l,h) = 
-    if l = h then us (sprintf "%d" l)
+  let prn (l,h) =
+    if (l,h) = anyvals then us"Any" 
+    else if l = h then us (sprintf "%d" l)
     else us (sprintf "[%d,%d]" l h)
   in  
   match v with
   | BaseAddr -> us"BaseAddress"
   | Interval(l,h) -> prn (l,h)
   | IntervalList(lst,sp) ->
-      us(if debug && sp != nopair then sprintf "{%d}" sp else "") ^.
-      us"[" ^. Ustring.concat (us", ") (List.map prn lst) ^. us"]" 
-
+    us(if debug && sp != nopair then sprintf "{%d}" sp else "") ^.
+    (if debug then
+      us"[" ^. Ustring.concat (us", ") (List.map prn lst) ^. us"]"
+    else 
+      prn (interval_merge_list lst))
         
 
 let aint32_print_debug v =
@@ -83,14 +95,6 @@ let aint32_join v1 v2 =
   | IntervalList(l1,_),IntervalList(l2,_) -> IntervalList(l1@l2,nopair)
    (* TODO: Limit this expansion *)
              
-let interval_merge (l1,h1) (l2,h2) =
-  (min l1 l2, max h1 h2)
-
-let interval_merge_list lst =
-  match lst with
-  | [] -> fail_aint32()
-  | l::ls -> List.fold_left interval_merge l ls 
-        
 let aint32_compare x y =
   compare x y
     
@@ -184,6 +188,10 @@ let split_rev lst =
    elements are options for if there is a "true" branch or a "false" 
    branch *)
 let rec aint32_test_equal v1 v2 =
+  printf "TEST EQUAL!\n";
+  aint32_print_debug v1; printf "\n";
+  aint32_print_debug v2; printf "\n";
+  
   match v1,v2 with
   | BaseAddr,BaseAddr -> (Some (v1,v2), None)
   | BaseAddr,_ | _,BaseAddr -> baseaddr_fail()
@@ -207,8 +215,9 @@ let rec aint32_test_equal v1 v2 =
       
   (* Case when we have two paired interval lists *)
   | IntervalList(l1,sp1), IntervalList(l2,sp2)
-    when sp1=sp2      
+    when sp1=sp2       
     -> (* Tail-recursive test of interval lists *)
+   printf "Length: %d  %d\n" (List.length l1) (List.length l2);
        let rec newlists list1 list2 acc1 acc2 =
          match list1,list2 with
          | v1::ls1,v2::ls2 ->
