@@ -259,8 +259,7 @@ let dequeue ms =
     (* Have we finished (block id equal to 0)? *)
     | (_,0,ps::pss)::rest ->
       (* Join all final program states *)(
-      printf "Number of states before final merge: %d\n" (List.length (ps::pss));
-      let ps' = List.fold_left join_pstates ps pss in
+        let ps' = List.fold_left join_pstates ps pss in
       let prioqueue' = {prioqueue with curr_queue = rest} in  
       (0,ps',prioqueue'))
     (* Dequeue the top program state *)  
@@ -344,8 +343,6 @@ let branch_equality equal rs rt label ms =
     let enq blabel bval ms =
       match bval with
       | Some(rsval,rtval) ->
-        (* printf "rs: "; aint32_print_debug rsval; printf "  ";
-           printf "rt: "; aint32_print_debug rtval; printf "\n"; *)
         let ps = {ps with reg = setreg rs rsval (setreg rt rtval r)} in
         enqueue_block blabel ps ms
       | None -> ms
@@ -385,6 +382,8 @@ let lii rd l h ms =
 (** Main function for analyzing an assembly function *)
 let analyze startblock bblocks args =
 
+  printf "START!\n";
+  
   (* Get the block info of the first basic block *)  
   let bi = bblocks.(startblock) in
 

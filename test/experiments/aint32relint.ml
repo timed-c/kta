@@ -52,26 +52,21 @@ let aint32_pprint debug v =
         
 
 let aint32_print_debug v =
-  uprint_string (aint32_pprint true v)
+  uprint_endline (aint32_pprint true v)
 
 
   
 let aint32_binop op v1 v2 =
   match v1,v2 with
   | BaseAddr, _ | _, BaseAddr -> baseaddr_fail()
-  | Interval(v1), Interval(v2) ->  Interval (op v1 v2)
-  | Interval(v1),IntervalList(lst,sp) | IntervalList(lst,sp), Interval(v1)
-    -> IntervalList(List.map (fun v2 -> op v1 v2) lst, sp)
-  | IntervalList(l1,sp1), IntervalList(l2,sp2)
-    when sp1 = sp2
-    -> IntervalList(List.map2 (fun v1 v2 -> op v1 v2) l1 l2, sp1)
-  | IntervalList(l1,_), IntervalList(l2,_)
-    -> IntervalList((List.fold_left (fun a1 v1 ->
-         List.fold_left (fun a2 v2 ->
-           (op v1 v2)::a2
-         ) a1 l2
-    ) [] l1), nopair)
-   (* TODO: Limit this expansion *)
+  | Interval(vv1), Interval(vv2) ->
+    Interval (op vv1 vv2)
+  | Interval(vv1),IntervalList(lst,sp) | IntervalList(lst,sp), Interval(vv1) ->
+    IntervalList(List.map (fun vv2 -> op vv1 vv2) lst, sp)
+  | IntervalList(l1,sp1), IntervalList(l2,sp2) when sp1 = sp2 ->
+    IntervalList(List.rev (List.rev_map2 (fun v1 v2 -> op v1 v2) l1 l2), sp1)     
+  | IntervalList(l1,_), IntervalList(l2,_) ->
+    Interval (op (interval_merge_list l1) (interval_merge_list l2))
     
           
 let aint32_add v1 v2 =
@@ -89,10 +84,11 @@ let aint32_join v1 v2 =
   match v1, v2 with
   | BaseAddr,BaseAddr -> BaseAddr
   | BaseAddr,_ | _,BaseAddr -> baseaddr_fail()
-  | Interval(v1),Interval(v2) -> IntervalList([v1;v2],nopair)
-  | Interval(v1),IntervalList(lst,_) | IntervalList(lst,_),Interval(v1)
-    -> IntervalList(v1::lst,nopair)
-  | IntervalList(l1,_),IntervalList(l2,_) -> IntervalList(l1@l2,nopair)
+  | Interval(v1),Interval(v2) ->  IntervalList([v1;v2],nopair)
+  | Interval(v1),IntervalList(lst,_) | IntervalList(lst,_),Interval(v1) ->
+    IntervalList(v1::lst,nopair)
+  | IntervalList(l1,_),IntervalList(l2,_) ->
+    IntervalList(l1@l2,nopair)
    (* TODO: Limit this expansion *)
              
 let aint32_compare x y =
@@ -188,10 +184,6 @@ let split_rev lst =
    elements are options for if there is a "true" branch or a "false" 
    branch *)
 let rec aint32_test_equal v1 v2 =
-  printf "TEST EQUAL!\n";
-  aint32_print_debug v1; printf "\n";
-  aint32_print_debug v2; printf "\n";
-  
   match v1,v2 with
   | BaseAddr,BaseAddr -> (Some (v1,v2), None)
   | BaseAddr,_ | _,BaseAddr -> baseaddr_fail()
@@ -217,7 +209,6 @@ let rec aint32_test_equal v1 v2 =
   | IntervalList(l1,sp1), IntervalList(l2,sp2)
     when sp1=sp2       
     -> (* Tail-recursive test of interval lists *)
-   printf "Length: %d  %d\n" (List.length l1) (List.length l2);
        let rec newlists list1 list2 acc1 acc2 =
          match list1,list2 with
          | v1::ls1,v2::ls2 ->
@@ -227,7 +218,9 @@ let rec aint32_test_equal v1 v2 =
          | _,_ -> fail_aint32()
        in let (t,f) = newlists l1 l2 [] [] in
        (* Remove duplicates *)
+       printf "Before: t %d  f %d\n" (List.length t) (List.length f);
        let (t,f) = (List.sort_uniq compare t, List.sort_uniq compare f) in
+       printf "After:  t %d  f %d\n" (List.length t) (List.length f);
        (* Split into the two variable alternatives *)
        let (t1,t2) = split_rev t in
        let (f1,f2) = split_rev f in
@@ -241,10 +234,10 @@ let rec aint32_test_equal v1 v2 =
 
   (* Cases where there a no safe pairs. We then collaps the structure 
      and perform interval test for equality *)
-  | Interval(v1),IntervalList(l1,_) | IntervalList(l1,_), Interval(v1)
-    -> aint32_test_equal (Interval(v1)) (Interval(interval_merge_list l1))
-  | IntervalList(l1,_), IntervalList(l2,_)
-    -> aint32_test_equal (Interval(interval_merge_list l1))
+  | Interval(v1),IntervalList(l1,_) | IntervalList(l1,_), Interval(v1) ->
+    aint32_test_equal (Interval(v1)) (Interval(interval_merge_list l1))
+  | IntervalList(l1,_), IntervalList(l2,_) ->
+    aint32_test_equal (Interval(interval_merge_list l1))
                          (Interval(interval_merge_list l2))
 
      
