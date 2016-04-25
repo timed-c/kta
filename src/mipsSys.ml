@@ -45,7 +45,7 @@ let pic32_compile filenames only_compile optimization outputname =
 (* NOTE:  -march=mips32r2  and -mips32 -mips2  are not the same. *)
   let command = (gcc ^ cflags ^ (String.concat " " filenames) ^ " " ^
                    (if only_compile then "-c " else "") ^ 
-                   (if optimization then "-O0 " else "-O0 ") ^ 
+                   (if optimization then "-O3 " else "-O0 ") ^ 
                    "-o " ^ outputname) in 
   if !enable_verbose then print_endline (command ^ "\n");
   let (code,stdout,stderr) = USys.shellcmd command in

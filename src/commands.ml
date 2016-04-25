@@ -1,3 +1,4 @@
+
 (* 
 Copyright (c) 2015, David Broman
 All rights reserved.
@@ -38,6 +39,7 @@ type compOpTypes =
   (* General compiler options used by all commands *)
 | OpCompile
 | OpVerbose
+| OpOptimize
 | OpDisasm_Addr
 | OpExec_Func
 | OpExec_Args
@@ -57,6 +59,8 @@ let extra_options =
   [(OpCompile,     Uargs.No, us"-compile",     us"",
        us"Assume that the input files are C files. These files are then " ^.
        us"compiled and used as input instead of a binary ELF executable." );
+   (OpOptimize,   Uargs.No, us"-optimize",     us"",
+       us"Compile the C program with optimization enabled.");
    (OpVerbose,     Uargs.No, us"-verbose",     us"",
        us"Print out extra information, such as invocation of external compilers.")]
 
@@ -168,7 +172,7 @@ let getBinFileName ops args =
   let sargs = List.map Ustring.to_utf8 args in
  if Uargs.has_op OpCompile ops then   
     try   
-      MipsSys.pic32_compile sargs false true tmpfile; tmpfile
+      MipsSys.pic32_compile sargs false (Uargs.has_op OpOptimize ops) tmpfile; tmpfile
     with Sys_error m -> raise (Uargs.Error (us"Compilation error: " ^. us m))
  else 
   (match sargs with 

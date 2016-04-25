@@ -1,6 +1,6 @@
 
 open Aint32relint
-
+open Printf
 
 type registers = |R0 |R1 |R2 |R3 |R4 |R5 |R6 |R7
                  |R8 |R9 |R10|R11|R12|R13|R14|R15
@@ -126,21 +126,24 @@ let set_aregval r v areg =
   | R14  -> {areg with reg14 = v}  | R30 -> {areg with reg30 = v}
   | R15  -> {areg with reg15 = v}  | R31 -> {areg with reg31 = v}
     
-    
-let rec getreg r areg =      
-  match get_aregval r areg with
-  | Some v -> (areg,v)
-  | None ->
-    (match areg.ajoins with
-    | [] ->
-      let areg = set_aregval r (Some aint32_any) areg in
-      (areg, aint32_any)        
-    | a::rest ->
-      let (_,v) = getreg r a in        
-      let v = List.fold_left
-        (fun v1 areg -> aint32_join v1 (getreg r areg |> snd)) v rest in
-      let areg = set_aregval r (Some v) areg in
-      (areg, v))
+
+let getreg r areg =        
+  let rec getreg_internal r areg =      
+    match get_aregval r areg with
+    | Some v ->
+      printf "** Getreg SOME\n";      
+      v
+    | None ->
+      printf "** Getreg JOIN\n";
+      (match areg.ajoins with
+      | [] -> aint32_any        
+      | a::rest ->
+        List.fold_left (fun v1 areg -> aint32_join v1 (getreg_internal r areg))
+                       (getreg_internal r a) rest)
+  in
+  let v = getreg_internal r areg in
+  let areg' = set_aregval r (Some v) areg in
+  (areg',v)
 
 
 let setreg r v areg =

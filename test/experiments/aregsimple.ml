@@ -45,7 +45,7 @@ let areg_init =
 let getreg r areg = 
   let reg r areg =
   match r with
-  | R0  -> aint32_const(0) | R16 -> areg.reg16 
+  | R0  -> aint32_const(0)   | R16 -> areg.reg16 
   | R1  -> areg.reg1         | R17 -> areg.reg17 
   | R2  -> areg.reg2         | R18 -> areg.reg18 
   | R3  -> areg.reg3         | R19 -> areg.reg19 
@@ -111,6 +111,8 @@ let areg_two_join areg1 areg2 =
 }
 
 
+
+    
 let areg_join lst =
   match lst with
   | [] -> areg_init
@@ -118,6 +120,18 @@ let areg_join lst =
     
   
 
+
+
+
+
+
+
+
+
+
+
+
+    
 
 
 
