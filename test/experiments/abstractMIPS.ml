@@ -50,7 +50,6 @@ type bblock_info =
    nextid  : blockid;           (* The identifier that shows the next basic block *)
    dist    : distance;          (* The distance to the exit, that is the number of edges *)
    addr    : int;               (* Address to the first instruction in the basic block *)
-   joinvar : registers list     (* List of registers that should be handled especially for join *) 
 }
 
 (** Main state of the analysis *)

@@ -15,7 +15,7 @@ let loop_   = 2
     
 let rec final ms = ms
     
-and exper ms = ms       |>   
+and main ms = ms        |>   
     addi  v0 zero 0     |>
     next  
 
