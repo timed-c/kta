@@ -34,8 +34,6 @@ type progstate = {
 (** Basic block ID na_ means "not applicable". *)
 let  na_ = -1
 
-type returnid = int
-  
 (** Priority queue type *)
 type pqueue = (distance * blockid * progstate list) list
   
@@ -52,12 +50,14 @@ type bblock_info =
 
 (** Main state of the analysis *)
 and mstate = {
-  cblock  : blockid;                  (* Current basic block *)
-  pc      : int;                      (* Current program counter *)
-  pstate  : progstate;                (* Current program state *)
-  batch   : progstate list;           (* Current batch of program states *)
-  bbtable : bblock_info array;        (* Basic block info table *)
-  prio    : pqueue list;              (* Overall list of priority queue *)
+  cblock   : blockid;                  (* Current basic block *)
+  pc       : int;                      (* Current program counter *)
+  pstate   : progstate;                (* Current program state *)
+  batch    : progstate list;           (* Current batch of program states *)
+  bbtable  : bblock_info array;        (* Basic block info table *)
+  prio     : pqueue;                   (* Overall priority queue *)
+  returnid : blockid;                  (* Block id when returning from a call *)
+  cstack   : (blockid * pqueue) list;  (* Call stack *)
 }
 
   
@@ -223,27 +223,24 @@ let print_pqueue noregs pqueue =
 let enqueue blockid ps ms =  
   let bi = ms.bbtable.(blockid) in
   let dist = bi.dist in
-  match ms.prio with
-  | prioqueue::priorest ->
-    let rec work queue = 
+  let rec work queue = 
     (match queue with
-      (* Distance larger? Go to next *)
-      | (d,bid,pss)::qs when d > dist ->
-        (d,bid,pss)::(work qs)
-      (* Same dist?  *)
-      | (d,bid,pss)::qs when dist = d ->
+    (* Distance larger? Go to next *)
+    | (d,bid,pss)::qs when d > dist ->
+      (d,bid,pss)::(work qs)
+    (* Same dist?  *)
+    | (d,bid,pss)::qs when dist = d ->
       (* Same block id, or final node (distance = 0)? *)                          
-        if bid = blockid || dist = 0 then(
+      if bid = blockid || dist = 0 then(
           (* Yes, enqueue *)       
-          (d,bid,ps::pss)::qs)
-        else
-          (* No. Go to next *)
-          (d,bid,pss)::(work qs)
-      (* Block not found. Enqueue *)
-      | qs -> (dist,blockid,[ps])::qs)
-    in
-    {ms with prio = (work prioqueue)::priorest}
-  | [] -> failwith "Should not happen"
+        (d,bid,ps::pss)::qs)
+      else
+        (* No. Go to next *)
+        (d,bid,pss)::(work qs)
+    (* Block not found. Enqueue *)
+    | qs -> (dist,blockid,[ps])::qs)
+  in
+    {ms with prio = work ms.prio}
   
 
 
@@ -258,21 +255,18 @@ let dequeue ms =
   | ps::pss -> {ms with pstate=ps; batch = pss}
   (* No more batch states. Find the next in the priority queue *)
   | [] -> 
-     (match ms.prio with
-     | prioqueue::priorest -> 
-       (match prioqueue with
-       (* Have we finished (block id equal to 0)? *)
-       | (_,0,ps::pss)::rest ->
-         (* Join all final program states *)
-         let ps' = List.fold_left join_pstates ps pss in
-         {ms with cblock = 0; pstate=ps'; prio=rest::priorest}
-       (* Dequeue the top program state *)  
-       | (dist,blockid,ps::pss)::rest ->
-         {ms with cblock=blockid; pstate=ps; batch=pss; prio=rest::priorest}
-       (* This should never happen. It should end with a terminating 
-          block id zero block. *)    
-       | _ -> failwith "Should not happen")
-     | [] ->failwith "Should not happen")
+    (match ms.prio with
+    (* Have we finished (block id equal to 0)? *)
+    | (_,0,ps::pss)::rest ->
+       (* Join all final program states *)
+       let ps' = List.fold_left join_pstates ps pss in
+       {ms with cblock = 0; pstate=ps'; prio=rest}
+    (* Dequeue the top program state *)  
+    | (dist,blockid,ps::pss)::rest ->
+       {ms with cblock=blockid; pstate=ps; batch=pss; prio=rest}
+    (* This should never happen. It should end with a terminating 
+           block id zero block. *)    
+    | _ -> failwith "Should not happen")
   
     
   
@@ -377,9 +371,11 @@ let analyze startblock bblocks args =
     pstate = ps;          (* New program state *)
     batch = [];
     bbtable = bblocks;    (* Stores a reference to the basic block info table *)
-    prio = [[]];          (* Starts with an empty priority queue *)
+    prio = [];            (* Starts with an empty priority queue *)
+    returnid = 0;         (* Should finish by returning to the final block *)
+    cstack = [];          (* Current callstack is empty *)
   } in
-
+  
   let mstate = enqueue startblock ps mstate in
 
   (* Continue the process and execute the next basic block from the queue *)
