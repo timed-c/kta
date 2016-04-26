@@ -131,10 +131,8 @@ let getreg r areg =
   let rec getreg_internal r areg =      
     match get_aregval r areg with
     | Some v ->
-      printf "** Getreg SOME\n";      
       v
     | None ->
-      printf "** Getreg JOIN\n";
       (match areg.ajoins with
       | [] -> aint32_any        
       | a::rest ->

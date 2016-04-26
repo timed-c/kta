@@ -9,6 +9,7 @@ open Ustring.Op
 open Printf
 open Aint32relint
 open Aregsimple
+open Amemory
 open Scanf
 open Str
 
@@ -26,6 +27,7 @@ type distance = int    (* The type for describing distances of blocks *)
     registers and memory *)
 type progstate = {
   reg  : aregister;
+  mem  : amemory;
   bcet : int;
   wcet : int;
 }
@@ -139,17 +141,19 @@ let str2reg str =
     ps = The program counter value *)
 let init_pstate =
   {
+    reg = areg_init;
+    mem = mem_init;
     bcet  = 0;
     wcet = 0;
-    reg = areg_init;
 }
 
 (** Join two program states, assuming they have the same program counter value *)
 let join_pstates ps1 ps2 =
 {
+   reg   = areg_join [ps1.reg;ps2.reg];
+   mem   = mem_join [ps1.mem;ps2.mem];
    bcet  = min ps1.bcet ps2.bcet;
    wcet  = max ps1.wcet ps2.wcet;
-   reg   = areg_join [ps1.reg;ps2.reg]
 }
     
      
@@ -309,6 +313,9 @@ let tick n ps =
 
 let update r ps =
   {ps with reg = r}
+
+let updatemem r m ps =
+  {ps with reg = r; mem = m}
     
 (* ------------------------ INSTRUCTIONS -------------------------*)
 
@@ -358,6 +365,26 @@ let jr rs ms =
 let jal label ms =
   continue (enqueue label ms.pstate ms)
 
+let sw rt imm rs ms =
+  let ps = ms.pstate in
+  let r = ps.reg in
+  let (r,v_rt) = getreg rt r in
+  let (r,v_rs) = getreg rs r in
+  let con_v_rs = aint32_to_int32 v_rs in
+  let m = set_memval (imm + con_v_rs) v_rt ps.mem in
+  ps |> updatemem r m |> tick 1 |> to_mstate ms 
+
+
+let lw rt imm rs ms =
+  let ps = ms.pstate in
+  let r = ps.reg in
+  let (r,v_rt) = getreg rt r in
+  let (r,v_rs) = getreg rs r in
+  let con_v_rs = aint32_to_int32 v_rs in
+  let (m,v) = get_memval (imm + con_v_rs) ps.mem in
+  let r = setreg rt v r in
+  ps |> updatemem r m |> tick 1 |> to_mstate ms 
+      
         
 (* Go to next basic block *)
 let next ms =

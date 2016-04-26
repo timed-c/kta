@@ -4,6 +4,8 @@ open Printf
 type high = int
 type low = int
 
+exception Exception_aint32
+  
 type safepair = int
 let pairSym = ref 0  
 let nopair = 0
@@ -32,9 +34,15 @@ let interval_merge_list lst =
   match lst with
   | [] -> fail_aint32()
   | l::ls -> List.fold_left interval_merge l ls 
-        
 
-     
+    
+let aint32_to_int32 v =
+  match v with
+  | Any | IntervalList(_,_) -> raise Exception_aint32
+  | Interval(l,h) when l <> h -> raise Exception_aint32
+  | Interval(l,_) -> l
+
+    
 let aint32_pprint debug v =
   let prn (l,h) =
     if l = h then us (sprintf "%d" l)
