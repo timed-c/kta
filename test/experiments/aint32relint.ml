@@ -13,6 +13,7 @@ let getPairSym() =
 
 type interval = (low * high)
 type aint32 =
+| Any 
 | Interval of interval
 | IntervalList of interval list * safepair
 
@@ -21,10 +22,9 @@ let fail_aint32() = failwith "Error: aint32 error that should not happen."
 
 let lowval = -2147483648
 let highval = 2147483647
-let anyvals = (lowval,highval)  
-
-let aint32_any = Interval anyvals
-
+let aint32_any = Any
+exception AnyException
+  
 let interval_merge (l1,h1) (l2,h2) =
   (min l1 l2, max h1 h2)
 
@@ -37,11 +37,11 @@ let interval_merge_list lst =
      
 let aint32_pprint debug v =
   let prn (l,h) =
-    if (l,h) = anyvals then us"Any" 
-    else if l = h then us (sprintf "%d" l)
+    if l = h then us (sprintf "%d" l)
     else us (sprintf "[%d,%d]" l h)
   in  
   match v with
+  | Any -> us"Any"
   | Interval(l,h) -> prn (l,h)
   | IntervalList(lst,sp) ->
     us(if debug && sp != nopair then sprintf "{%d}" sp else "") ^.
@@ -57,20 +57,25 @@ let aint32_print_debug v =
 
   
 let aint32_binop op v1 v2 =
-  match v1,v2 with
-  | Interval(vv1), Interval(vv2) ->
-    Interval (op vv1 vv2)
-  | Interval(vv1),IntervalList(lst,sp) | IntervalList(lst,sp), Interval(vv1) ->
-    IntervalList(List.map (fun vv2 -> op vv1 vv2) lst, sp)
-  | IntervalList(l1,sp1), IntervalList(l2,sp2) when sp1 = sp2 ->
-    IntervalList(List.rev (List.rev_map2 (fun v1 v2 -> op v1 v2) l1 l2), sp1)     
-  | IntervalList(l1,_), IntervalList(l2,_) ->
-    Interval (op (interval_merge_list l1) (interval_merge_list l2))
-    
+  try 
+    match v1,v2 with
+    | Any,_|_,Any -> Any
+    | Interval(vv1), Interval(vv2) ->
+      Interval (op vv1 vv2)
+    | Interval(vv1),IntervalList(lst,sp) | IntervalList(lst,sp), Interval(vv1) ->
+      IntervalList(List.map (fun vv2 -> op vv1 vv2) lst, sp)
+    | IntervalList(l1,sp1), IntervalList(l2,sp2) when sp1 = sp2 ->
+      IntervalList(List.rev (List.rev_map2 (fun v1 v2 -> op v1 v2) l1 l2), sp1)     
+    | IntervalList(l1,_), IntervalList(l2,_) ->
+      Interval (op (interval_merge_list l1) (interval_merge_list l2))
+  with AnyException -> Any
           
 let aint32_add v1 v2 =
   aint32_binop (fun (l1,h1) (l2,h2) ->
-    (max lowval (l1+l2), min highval (h1+h2))   
+    let l = l1+l2 in
+    let h = h1+h2 in
+    if l<lowval || h>highval then raise AnyException
+    else (l,h)
   ) v1 v2
     
     
@@ -83,6 +88,7 @@ let aint32_interval l h =
 
 let aint32_join v1 v2 =
   match v1, v2 with
+  | Any,_|_,Any -> Any
   | Interval(v1),Interval(v2) ->
     Interval(interval_merge v1 v2)
   | Interval(v1),IntervalList(lst,_) | IntervalList(lst,_),Interval(v1) ->
@@ -186,6 +192,7 @@ let split_rev lst =
    branch *)
 let rec aint32_test_equal v1 v2 =
   match v1,v2 with
+  | Any,_|_,Any -> (Some(Any,Any),Some(Any,Any))
   (* Case when we just compare two intervals. May generate safe pair lists *)
   | Interval(v1),Interval(v2) ->
     let mkval vlst =
