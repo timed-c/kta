@@ -34,6 +34,8 @@ type progstate = {
 (** Basic block ID na_ means "not applicable". *)
 let  na_ = -1
 
+type returnid = int
+  
 (** Priority queue type *)
 type pqueue = (distance * blockid * progstate list) list
   
@@ -50,12 +52,12 @@ type bblock_info =
 
 (** Main state of the analysis *)
 and mstate = {
-  cblock  : blockid;           (* Current basic block *)
-  pc      : int;               (* Current program counter *)
-  pstate  : progstate;         (* Current program state *)
-  batch   : progstate list;    (* Current batch of program states to be processed *)
-  bbtable : bblock_info array; (* Basic block info table *)
-  prio    : pqueue list;       (* Overall list of priority queue *)
+  cblock  : blockid;                  (* Current basic block *)
+  pc      : int;                      (* Current program counter *)
+  pstate  : progstate;                (* Current program state *)
+  batch   : progstate list;           (* Current batch of program states *)
+  bbtable : bblock_info array;        (* Basic block info table *)
+  prio    : pqueue list;              (* Overall list of priority queue *)
 }
 
   
@@ -230,8 +232,8 @@ let enqueue blockid ps ms =
         (d,bid,pss)::(work qs)
       (* Same dist?  *)
       | (d,bid,pss)::qs when dist = d ->
-      (* Same block id? *)                          
-        if bid = blockid then(
+      (* Same block id, or final node (distance = 0)? *)                          
+        if bid = blockid || dist = 0 then(
           (* Yes, enqueue *)       
           (d,bid,ps::pss)::qs)
         else
@@ -274,7 +276,6 @@ let dequeue ms =
   
     
   
-  
 (* ------------------------ CONTINUATION  -------------------------*)
 
 (* Continue and execute the next basic block in turn *)
@@ -283,7 +284,8 @@ let continue ms =
   let ms = {ms with pc = ms.bbtable.(ms.cblock).addr} in 
   let bi = ms.bbtable.(ms.cblock) in
   bi.func ms 
-   
+
+    
 let to_mstate ms ps =
   {ms with pstate = ps}
 

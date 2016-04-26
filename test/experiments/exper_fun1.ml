@@ -16,21 +16,21 @@ let double_  = 4
 (* -- Program Code -- *)
     
 let rec final ms = ms
-
-and start ms = ms       |>
-    call foo_
   
 and foo ms = ms         |>   
     addi v0 zero 10     |>
     jal  double_
  
-and foo_ret ms = ms     |>
+and extra1 ms = ms      |>
     jr   ra
+
+and foo_ret ms = ms     
     
 and double ms = ms      |>
-    add  v0 a0 a0       |>
+    add  v0 a0 a0
     jr   ra             	
 
+and double_ret ms = ms
 
   
 (* -- Basic Block Info -- *)
