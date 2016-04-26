@@ -17,14 +17,14 @@ let double_  = 3
 let rec final ms = ms
   
 and foo ms = ms         |>   
-    addi v0 zero 10     |>
+    addi a0 zero 30     |>
     jal  double_
  
 and extra1 ms = ms      |>
     jr   ra
     
 and double ms = ms      |>
-    add  v0 a0 a0
+    add  v0 a0 a0       |>
     jr   ra             	
 
 
@@ -44,12 +44,9 @@ let bblocks =
 
 let main =
   let args = (Array.to_list Sys.argv |> List.tl) in
-  analyze exper_ bblocks args
+  analyze foo_ bblocks args
   |> print_mstate
 
-(* Comments
-  a0=[1000,5000] a1=[400,520] takes 5.4 seconds on my laptop
-   before optimized join *)
 
 
 

@@ -346,17 +346,19 @@ let branch_equality equal rs rt label ms =
   continue (ms |> enq label tbranch |> enq bi.nextid fbranch)
 
 let beq rs rt label ms =
-    branch_equality true rs rt label ms
+  branch_equality true rs rt label ms
       
 let bne rs rt label ms =
-    branch_equality false rs rt label ms
+  branch_equality false rs rt label ms
 
 let jr rs ms =
-    if rs = ra then
-      continue (enqueue ms.returnid ms.pstate ms)
-    else
-      failwith "Not yet implemented."
-      
+  if rs = ra then continue (enqueue ms.returnid ms.pstate ms)
+  else failwith "Not yet implemented."
+
+let jal label ms =
+  continue (enqueue label ms.pstate ms)
+
+        
 (* Go to next basic block *)
 let next ms =
   (* Get the block info for the current basic block *)
