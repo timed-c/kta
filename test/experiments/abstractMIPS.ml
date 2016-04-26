@@ -46,6 +46,7 @@ type bblock_info =
   nextid  : blockid;           (* The identifier that shows the next basic block *)
   dist    : distance;          (* The distance to the exit (the number of edges) *)
   addr    : int;               (* Address to the first instruction in the basic block *)
+  caller  : bool;              (* true if the node is a function call node *)
 }
 
 (** Main state of the analysis *)
@@ -59,6 +60,7 @@ and mstate = {
   returnid : blockid;                  (* Block id when returning from a call *)
   cstack   : (blockid * pqueue) list;  (* Call stack *)
 }
+
 
   
 (* ------------------------ REGISTERS ------------------------------*)
@@ -181,10 +183,11 @@ let rec pstate_input ps args =
           | None -> make_error a)
     | _ -> make_error a)
 
-let fail_should_not_happen no = failwith (sprintf "ERROR: Should not happen ID = %d" no)
 
 (* ----------------------- DEBUG FUNCTIONS  -------------------------*)
+let should_not_happen no = failwith (sprintf "ERROR: Should not happen ID = %d" no)
 
+    
 (** Pretty prints the entire program state 
     ps = program state
     noregs = number of registers to print *)
@@ -217,7 +220,6 @@ let print_pqueue noregs pqueue =
     
     
 (* ---------------  BASIC BLOCKS AND PRIORITY QUEUE -----------------*)           
-
     
 (* Enqueue a basic block *)  
 let enqueue blockid ps ms =  
@@ -230,8 +232,8 @@ let enqueue blockid ps ms =
       (d,bid,pss)::(work qs)
     (* Same dist?  *)
     | (d,bid,pss)::qs when dist = d ->
-      (* Same block id, or final node (distance = 0)? *)                          
-      if bid = blockid || dist = 0 then(
+      (* Same block id *)                          
+      if bid = blockid  then(
           (* Yes, enqueue *)       
         (d,bid,ps::pss)::qs)
       else
@@ -256,17 +258,36 @@ let dequeue ms =
   (* No more batch states. Find the next in the priority queue *)
   | [] -> 
     (match ms.prio with
-    (* Have we finished (block id equal to 0)? *)
-    | (_,0,ps::pss)::rest ->
-       (* Join all final program states *)
-       let ps' = List.fold_left join_pstates ps pss in
-       {ms with cblock = 0; pstate=ps'; prio=rest}
+    (* Have we finished a call? Dist = 0? *)
+    | (0,blockid,ps::pss)::rest ->
+       (* Is it the final node? *)
+       if blockid=0 then 
+         (* Join all final program states *)
+         let ps' = List.fold_left join_pstates ps pss in
+         {ms with cblock = 0; pstate=ps'; prio=rest}
+       else
+         (* No, just pop from the call stack *)
+         (match ms.cstack with
+          | (retid,prio')::cstackrest ->  
+             {ms with cblock=blockid; pstate=ps; batch=pss;
+               prio=prio'; returnid = retid; cstack=cstackrest;}
+          | [] -> should_not_happen 1)
+         
     (* Dequeue the top program state *)  
     | (dist,blockid,ps::pss)::rest ->
-       {ms with cblock=blockid; pstate=ps; batch=pss; prio=rest}
+       (* Is this a calling node? *)
+       let bs = ms.bbtable.(blockid) in
+       if bs.caller then
+         (* Yes, add to the call stack *)
+         {ms with
+           cblock=blockid; pstate=ps; batch=pss; prio=[];
+           cstack = (ms.returnid,rest)::ms.cstack}
+       else
+         (* No, just get the last batch *)
+         {ms with cblock=blockid; pstate=ps; batch=pss; prio=rest;}
     (* This should never happen. It should end with a terminating 
            block id zero block. *)    
-    | _ -> failwith "Should not happen")
+    | _ -> should_not_happen 2)
   
     
   
@@ -329,7 +350,12 @@ let beq rs rt label ms =
       
 let bne rs rt label ms =
     branch_equality false rs rt label ms
-  
+
+let jr rs ms =
+    if rs = ra then
+      continue (enqueue ms.returnid ms.pstate ms)
+    else
+      failwith "Not yet implemented."
       
 (* Go to next basic block *)
 let next ms =
@@ -373,7 +399,7 @@ let analyze startblock bblocks args =
     bbtable = bblocks;    (* Stores a reference to the basic block info table *)
     prio = [];            (* Starts with an empty priority queue *)
     returnid = 0;         (* Should finish by returning to the final block *)
-    cstack = [];          (* Current callstack is empty *)
+    cstack = [(0,[])];    (* The final state *)
   } in
   
   let mstate = enqueue startblock ps mstate in

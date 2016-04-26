@@ -9,6 +9,7 @@ open Ustring.Op
 let final_  = 0
 let exper_  = 1
 let loop_   = 2
+let ret_    = 3
 
   
 (* -- Program Code -- *)
@@ -24,15 +25,18 @@ and loop ms = ms        |>
     addi a0 a0 (-1)     |>	
     bne	 a0 a1 loop_ 
 
+and ret  ms = ms         |>
+    jr   ra
 
   
 (* -- Basic Block Info -- *)
     
 let bblocks =
 [|
-  {func=final;  nextid=na_;    dist=0; addr=0x00000000};
-  {func=exper;  nextid=loop_;  dist=2; addr=0x00400000};
-  {func=loop;   nextid=final_; dist=1; addr=0x00400200};
+  {func=final;  nextid=na_;    dist=0; addr=0x00000000; caller=false};
+  {func=exper;  nextid=loop_;  dist=2; addr=0x00400000; caller=false};
+  {func=loop;   nextid=ret_;   dist=1; addr=0x00400200; caller=false};
+  {func=ret;    nextid=na_;    dist=0; addr=0x00400200; caller=false};
 |]
 
   

@@ -7,10 +7,9 @@ open Ustring.Op
 (* -- Basic Block Identifiers -- *)
 
 let final_   = 0
-let start_   = 1
-let foo_     = 2
-let foo_ret_ = 3
-let double_  = 4
+let foo_     = 1
+let extra1_  = 2
+let double_  = 3
   
   
 (* -- Program Code -- *)
@@ -23,25 +22,21 @@ and foo ms = ms         |>
  
 and extra1 ms = ms      |>
     jr   ra
-
-and foo_ret ms = ms     
     
 and double ms = ms      |>
     add  v0 a0 a0
     jr   ra             	
 
-and double_ret ms = ms
 
   
 (* -- Basic Block Info -- *)
     
 let bblocks =
 [|
-  {func=final;   nextid=na_;      dist=0; addr=0x00000000};
-  {func=start;   nextid=final_;   dist=1; addr=0x00400000};
-  {func=foo;     nextid=foo_ret_; dist=1; addr=0x00400200};
-  {func=foo_ret; nextid=na_;      dist=0; addr=0x00400200};
-  {func=double;  nextid=na_;      dist=0; addr=0x00400200};
+  {func=final;   nextid=na_;     dist=0; addr=0x00000000; caller=false};
+  {func=foo;     nextid=extra1_; dist=1; addr=0x00400200; caller=true };
+  {func=extra1;  nextid=na_;     dist=0; addr=0x00400200; caller=false};
+  {func=double;  nextid=na_;     dist=0; addr=0x00400200; caller=false};
 |]
 
   
