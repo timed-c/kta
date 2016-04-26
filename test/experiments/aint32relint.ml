@@ -13,14 +13,15 @@ let getPairSym() =
 
 type interval = (low * high)
 type aint32 =
-| BaseAddr
 | Interval of interval
 | IntervalList of interval list * safepair
 
 let baseaddr_fail() = failwith "Error: cannot perform operations on base addresses"     
 let fail_aint32() = failwith "Error: aint32 error that should not happen."
 
-let anyvals = (-2147483648,2147483647)  
+let lowval = -2147483648
+let highval = 2147483647
+let anyvals = (lowval,highval)  
 
 let aint32_any = Interval anyvals
 
@@ -41,7 +42,6 @@ let aint32_pprint debug v =
     else us (sprintf "[%d,%d]" l h)
   in  
   match v with
-  | BaseAddr -> us"BaseAddress"
   | Interval(l,h) -> prn (l,h)
   | IntervalList(lst,sp) ->
     us(if debug && sp != nopair then sprintf "{%d}" sp else "") ^.
@@ -58,7 +58,6 @@ let aint32_print_debug v =
   
 let aint32_binop op v1 v2 =
   match v1,v2 with
-  | BaseAddr, _ | _, BaseAddr -> baseaddr_fail()
   | Interval(vv1), Interval(vv2) ->
     Interval (op vv1 vv2)
   | Interval(vv1),IntervalList(lst,sp) | IntervalList(lst,sp), Interval(vv1) ->
@@ -70,7 +69,9 @@ let aint32_binop op v1 v2 =
     
           
 let aint32_add v1 v2 =
-    aint32_binop (fun (l1,h1) (l2,h2) -> (l1+l2,h1+h2)) v1 v2
+  aint32_binop (fun (l1,h1) (l2,h2) ->
+    (max lowval (l1+l2), min highval (h1+h2))   
+  ) v1 v2
     
     
 let aint32_const v =
@@ -82,8 +83,6 @@ let aint32_interval l h =
 
 let aint32_join v1 v2 =
   match v1, v2 with
-  | BaseAddr,BaseAddr -> BaseAddr
-  | BaseAddr,_ | _,BaseAddr -> baseaddr_fail()
   | Interval(v1),Interval(v2) ->
     Interval(interval_merge v1 v2)
   | Interval(v1),IntervalList(lst,_) | IntervalList(lst,_),Interval(v1) ->
@@ -187,9 +186,6 @@ let split_rev lst =
    branch *)
 let rec aint32_test_equal v1 v2 =
   match v1,v2 with
-  | BaseAddr,BaseAddr -> (Some (v1,v2), None)
-  | BaseAddr,_ | _,BaseAddr -> baseaddr_fail()
-    
   (* Case when we just compare two intervals. May generate safe pair lists *)
   | Interval(v1),Interval(v2) ->
     let mkval vlst =
