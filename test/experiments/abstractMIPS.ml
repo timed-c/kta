@@ -57,7 +57,7 @@ and mstate = {
   cblock  : blockid;           (* Current basic block *)
   pc      : int;               (* Current program counter *)
   pstate  : progstate;         (* Current program state *)
-  prio    : pqueue;            (* Overall priority queue *)
+  prio    : pqueue;       (* Overall list of priority queue *)
   bbtable : bblock_info array; (* Basic block info table *)
 }
 
@@ -218,9 +218,13 @@ let print_pqueue noregs pqueue =
     
     
 (* ---------------  BASIC BLOCKS AND PRIORITY QUEUE -----------------*)           
-  
+
+    
 (* Enqueue a basic block *)  
-let enqueue dist blockid ps prioqueue =
+let enqueue blockid ps ms =  
+  let bi = ms.bbtable.(blockid) in
+  let dist = bi.dist in
+  let prioqueue = ms.prio in
   count := !count + 1;
   let rec work queue = 
     match queue with
@@ -239,7 +243,9 @@ let enqueue dist blockid ps prioqueue =
     (* Block not found. Enqueue *)
     | qs -> (dist,blockid,[ps])::qs
   in
-    {prioqueue with curr_queue = work prioqueue.curr_queue}
+  let prio = {prioqueue with curr_queue = work prioqueue.curr_queue} in
+  {ms with prio = prio}
+  
 
 
   
@@ -297,11 +303,6 @@ let continue ms =
   let bi = ms.bbtable.(blockid) in
   bi.func ms' 
 
-(* Enqueue a new program state using a block id. Returns a main state *)    
-let enqueue_block blockid ps ms =
-  let bi = ms.bbtable.(blockid) in
-  let prio' = enqueue bi.dist blockid ps ms.prio in
-  {ms with prio = prio'}
 
 let to_mstate ms ps =
   {ms with pstate = ps}
@@ -323,30 +324,29 @@ let add rd rs rt ms =
   ps |> update r |> tick 1 |> to_mstate ms
 
 let addi rt rs imm ms  =
-    let ps = ms.pstate in
-    let r = ps.reg in
-    let (r,v_rs) = getreg rs r in
-    let r = setreg rt (aint32_add v_rs (aint32_const imm)) r in             
-    ps |> update r |> tick 1 |> to_mstate ms 
+  let ps = ms.pstate in
+  let r = ps.reg in
+  let (r,v_rs) = getreg rs r in
+  let r = setreg rt (aint32_add v_rs (aint32_const imm)) r in             
+  ps |> update r |> tick 1 |> to_mstate ms 
 
-
-        
+      
 let branch_equality equal rs rt label ms =
-    let ps = tick 1 ms.pstate in    
-    let r = ps.reg in
-    let (r,v_rs) = getreg rs r in
-    let (r,v_rt) = getreg rt r in
-    let bi = ms.bbtable.(ms.cblock) in
-    let (tb,fb) = aint32_test_equal v_rs v_rt in
-    let (tbranch,fbranch) = if equal then (tb,fb) else (fb,tb) in
-    let enq blabel bval ms =
-      match bval with
-      | Some(rsval,rtval) ->
-        let ps = {ps with reg = setreg rs rsval (setreg rt rtval r)} in
-        enqueue_block blabel ps ms
-      | None -> ms
-    in
-      continue (ms |> enq label tbranch |> enq bi.nextid fbranch)
+  let ps = tick 1 ms.pstate in    
+  let r = ps.reg in
+  let (r,v_rs) = getreg rs r in
+  let (r,v_rt) = getreg rt r in
+  let bi = ms.bbtable.(ms.cblock) in
+  let (tb,fb) = aint32_test_equal v_rs v_rt in
+  let (tbranch,fbranch) = if equal then (tb,fb) else (fb,tb) in
+  let enq blabel bval ms =
+    match bval with
+    | Some(rsval,rtval) ->
+      let ps = {ps with reg = setreg rs rsval (setreg rt rtval r)} in
+      enqueue blabel ps ms
+    | None -> ms
+  in
+  continue (ms |> enq label tbranch |> enq bi.nextid fbranch)
 
 let beq rs rt label ms =
     branch_equality true rs rt label ms
@@ -360,7 +360,7 @@ let next ms =
   (* Get the block info for the current basic block *)
   let bi = ms.bbtable.(ms.cblock) in
   (* Enqueue the current program state with the next basic block *)
-  let ms' = enqueue_block bi.nextid ms.pstate ms in
+  let ms' = enqueue bi.nextid ms.pstate ms in
   (* Continue and process next block *)
   continue ms'
 
@@ -374,14 +374,15 @@ let lii rd l h ms =
   let r = setreg rd (aint32_interval l h) r in
   ps |> update r |> to_mstate ms
   
-     
+(* Call a function without any cost *)
+(* let call label ms = *)
+  
+      
 
 (* ------------------- MAIN ANALYSIS FUNCTIONS ----------------------*)
     
 (** Main function for analyzing an assembly function *)
 let analyze startblock bblocks args =
-
-  printf "START!\n";
   
   (* Get the block info of the first basic block *)  
   let bi = bblocks.(startblock) in
@@ -391,17 +392,16 @@ let analyze startblock bblocks args =
     try pstate_input init_pstate args
     with Failure s -> (printf "Error: %s\n" s; exit 1) in
   
-  (* Add the start block to the priority queue *)
-  let pqueue = enqueue bi.dist startblock ps emptyqueue in
-
   (* Create the main state *)
   let mstate = {
     pc = bi.addr;
     cblock= startblock;   (* N/A, since the process has not yet started *)    
     pstate = ps;          (* New program state *)
-    prio = pqueue;        (* Starts with a queue with just one element, the entry *)
+    prio = emptyqueue;        (* Starts with a queue with just one element, the entry *)
     bbtable = bblocks;    (* Stores a reference to the basic block info table *)
   } in
+
+  let mstate = enqueue startblock ps mstate in
 
   (* Continue the process and execute the next basic block from the queue *)
   continue mstate 

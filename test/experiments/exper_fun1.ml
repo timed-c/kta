@@ -6,23 +6,30 @@ open Ustring.Op
 
 (* -- Basic Block Identifiers -- *)
 
-let final_  = 0
-let exper_  = 1
-let loop_   = 2
-
+let final_   = 0
+let start_   = 1
+let foo_     = 2
+let foo_ret_ = 3
+let double_  = 4
+  
   
 (* -- Program Code -- *)
     
 let rec final ms = ms
-    
-and main ms = ms        |>   
-    addi  v0 zero 0     |>
-    next  
 
-and loop ms = ms        |>
-    add  v0 v0 a0       |>
-    addi a0 a0 (-1)     |>	
-    bne	 a0 a1 loop_ 
+and start ms = ms       |>
+    call foo_
+  
+and foo ms = ms         |>   
+    addi v0 zero 10     |>
+    jal  double_
+ 
+and foo_ret ms = ms     |>
+    jr   ra
+    
+and double ms = ms      |>
+    add  v0 a0 a0       |>
+    jr   ra             	
 
 
   
@@ -30,9 +37,11 @@ and loop ms = ms        |>
     
 let bblocks =
 [|
-  {func=final;  nextid=na_;    dist=0; addr=0x00000000};
-  {func=exper;  nextid=loop_;  dist=2; addr=0x00400000};
-  {func=loop;   nextid=final_; dist=1; addr=0x00400200};
+  {func=final;   nextid=na_;      dist=0; addr=0x00000000};
+  {func=start;   nextid=final_;   dist=1; addr=0x00400000};
+  {func=foo;     nextid=foo_ret_; dist=1; addr=0x00400200};
+  {func=foo_ret; nextid=na_;      dist=0; addr=0x00400200};
+  {func=double;  nextid=na_;      dist=0; addr=0x00400200};
 |]
 
   
@@ -40,9 +49,7 @@ let bblocks =
 
 let main =
   let args = (Array.to_list Sys.argv |> List.tl) in
-  analyze exper_ bblocks
-    (if args = [] then ["a0=[500,2000]";"a1=[10,300]"]
-                  else args)
+  analyze exper_ bblocks args
   |> print_mstate
 
 (* Comments
