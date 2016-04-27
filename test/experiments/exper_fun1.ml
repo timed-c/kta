@@ -6,10 +6,12 @@ open Ustring.Op
 
 (* -- Basic Block Identifiers -- *)
 
-let final_   = 0
-let foo_     = 1
-let extra1_  = 2
-let double_  = 3
+let final_      = 0
+let foo_        = 1
+let ex1_        = 2
+let ex1_ret_    = 3
+let double_     = 4
+let double_ret_ = 5
   
   
 (* -- Program Code -- *)
@@ -20,23 +22,30 @@ and foo ms = ms         |>
     addi a0 zero 30     |>
     jal  double_
  
-and extra1 ms = ms      |>
-    jr   ra
+and ex1 ms = ms         |>
+    jr   ra             
+
+and ex1_ret ms = ms     |>
+    ret
     
 and double ms = ms      |>
     add  v0 a0 a0       |>
-    jr   ra             	
+    jr   ra             
 
+and double_ret ms = ms  |>
+    ret
 
   
 (* -- Basic Block Info -- *)
     
 let bblocks =
 [|
-  {func=final;   nextid=na_;     dist=0; addr=0x00000000; caller=false};
-  {func=foo;     nextid=extra1_; dist=1; addr=0x00400200; caller=true };
-  {func=extra1;  nextid=na_;     dist=0; addr=0x00400200; caller=false};
-  {func=double;  nextid=na_;     dist=0; addr=0x00400200; caller=false};
+  {func=final;      nextid=na_;         dist=0; addr=0x00000000; caller=false};
+  {func=foo;        nextid=ex1_;        dist=1; addr=0x00400200; caller=true };
+  {func=ex1;        nextid=ex1_ret_;    dist=0; addr=0x00400200; caller=false};
+  {func=ex1_ret;    nextid=na_;         dist=0; addr=0x00400200; caller=false};
+  {func=double;     nextid=double_ret_; dist=0; addr=0x00400200; caller=false};
+  {func=double_ret; nextid=na_;         dist=0; addr=0x00400200; caller=false};
 |]
 
   

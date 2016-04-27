@@ -358,8 +358,13 @@ let beq rs rt label ms =
 let bne rs rt label ms =
   branch_equality false rs rt label ms
 
+(* Count cycles for the return. The actual jump is performed
+   by the pseudo instruction 'ret'. The reason is that
+   all functions should only have one final basic block node *)    
 let jr rs ms =
-  if rs = ra then continue (enqueue ms.returnid ms.pstate ms)
+  if rs = ra then
+    let nextid = ms.bbtable.(ms.cblock).nextid in
+    continue (enqueue nextid (tick 2 ms.pstate) ms)
   else failwith "Not yet implemented."
 
 let jal label ms =
@@ -384,6 +389,8 @@ let lw rt imm rs ms =
   let (m,v) = get_memval (imm + con_v_rs) ps.mem in
   let r = setreg rt v r in
   ps |> updatemem r m |> tick 1 |> to_mstate ms 
+
+(* -------------------- PSEUDO INSTRUCTIONS -------------------------*)
       
         
 (* Go to next basic block *)
@@ -395,8 +402,9 @@ let next ms =
   (* Continue and process next block *)
   continue ms'
 
-
-(* -------------------- PSEUDO INSTRUCTIONS -------------------------*)
+(* Return from a function. Pseudo-instruction that does not take time *)    
+let ret ms =
+  continue (enqueue ms.returnid ms.pstate ms)
 
 (* load immediate interval *)
 let lii rd l h ms =
