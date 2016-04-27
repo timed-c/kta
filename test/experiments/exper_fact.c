@@ -9,6 +9,14 @@ unsigned fact(n) {
 }
 
 
+unsigned testcomp(unsigned x, unsigned y, unsigned z){
+  if(x < 100 || y >= 300 && x < z)
+    return x;
+  else
+    return y;
+}
+
+
 int main(){
   unsigned v = fact(8);  //fact(4) = 24  (0x18)  fact(24)=40320
   //  printf("%d\n",v);
