@@ -256,8 +256,68 @@ let rec aint32_test_less_than v1 v2 =
     aint32_test_less_than (Interval(interval_merge_list l1))
                           (Interval(interval_merge_list l2))
                           
-                          
+(*  We can divide into 6 different cases when checking
+      if x < y
 
+      #1  CASE          TRUE          FALSE
+          xxxxx         xxxxx         .....
+                yyy            yyy          ...  
+
+
+      #2  CASE          TRUE          FALSE
+          xxxxx         xxxxx         ..xxx
+            yyyyy         yyyyy         yyy..  
+
+
+      #3  CASE          TRUE          FALSE
+          xxxxxxx       xxxxx..       ...xxxx
+            yyy           yyy           yyy     
+
+
+      #4  CASE          TRUE          FALSE
+            xxx           xxx           xxx 
+          yyyyyyyy      ...yyyyy      yyyy....  
+
+        
+      #5  CASE          TRUE          FALSE
+            xxxxx         xxx..         xxxxx 
+          yyyyy         ...yy         yyyyy     
+        
+
+      #6  CASE          TRUE          FALSE
+              xxx           ...           xxx 
+          yyy           ...           yyy      
+
+    
+      This can be generalized to the following two cases:
+
+     TRUE CASE:  if l1 <= h2  then                (cases #1-#5)
+                     for X: [l1,min(h1,h2)]
+                     for Y: [max(l1,l2),h2]
+                 else None           
+
+     FALSE CASE: if h1 > l2 then                 (cases #2-#6)
+                     for X: [max(l1,l2+1),h1]
+                     for Y: [l2,min(h2,h1-1)]
+                 else None
+  *)        
+let rec aint32_test_less_than_equal v1 v2 =
+  match v1,v2 with
+  | Any,_|_,Any -> (Some(Any,Any),Some(Any,Any))
+  | Interval((l1,h1)), Interval((l2,h2)) ->
+    ((if l1 <= h2 then
+         Some(Interval(l1,min h1 (h2)), Interval(max (l1) l2,h2))
+      else None),
+     (if h1 > l2 then
+         Some(Interval(max l1 (l2+1),h1), Interval(l2,min h2 (h1-1)))        
+      else None))
+  | Interval(v1),IntervalList(l1,_) | IntervalList(l1,_), Interval(v1) ->
+    aint32_test_less_than_equal (Interval(v1)) (Interval(interval_merge_list l1))
+  | IntervalList(l1,_), IntervalList(l2,_) ->
+    aint32_test_less_than_equal (Interval(interval_merge_list l1))
+                          (Interval(interval_merge_list l2))
+                          
+    
       
 (* Test if two abstract integers are equal. Returns a tuple where the
    elements are options for if there is a "true" branch or a "false" 
