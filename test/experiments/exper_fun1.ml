@@ -23,14 +23,16 @@ and foo ms = ms         |>
     jal  double_
  
 and ex1 ms = ms         |>
-    jr   ra             
+    jr   ra             |>
+    next
 
 and ex1_ret ms = ms     |>
     ret
     
 and double ms = ms      |>
     add  v0 a0 a0       |>
-    jr   ra             
+    jr   ra             |>
+    next        
 
 and double_ret ms = ms  |>
     ret

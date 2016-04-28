@@ -85,6 +85,15 @@ let aint32_add v1 v2 =
     if l<lowval || h>highval then raise AnyException
     else (l,h)
   ) v1 v2
+
+
+let aint32_mul v1 v2 =
+  aint32_binop (fun (l1,h1) (l2,h2) ->
+    let l = min (min (l1*l2) (l1*h2)) (min (h1*l2) (h1*h2)) in
+    let h = max (max (l1*l2) (l1*h2)) (max (h1*l2) (h1*h2)) in
+    if l<lowval || h>highval then raise AnyException
+    else (l,h)
+  ) v1 v2
     
     
 let aint32_const v =

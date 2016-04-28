@@ -37,7 +37,7 @@ and elsebr ms = ms       |>
 and ex2 ms = ms          |>
     lw	  ra 0(sp)       |>
     lw 	  a0 4(sp)	 |>
-    addi  sp sp 8        |>
+    addi  sp sp 8        |> 
     mul	  v0 a0 v0       |>
     jr	  ra
 

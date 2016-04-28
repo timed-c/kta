@@ -228,7 +228,7 @@ let print_pqueue noregs pqueue =
   List.iter (print_pqueue_elem noregs) pqueue 
       
     
-    
+     
 (* ---------------  BASIC BLOCKS AND PRIORITY QUEUE -----------------*)           
     
 (* Enqueue a basic block *)  
@@ -325,6 +325,19 @@ let updatemem r m ps =
     
 (* ------------------------ INSTRUCTIONS -------------------------*)
 
+let r_instruction binop rd rs rt ms =
+  let ps = ms.pstate in
+  let r = ps.reg in
+  let (r,v_rs) = getreg rs r in
+  let (r,v_rt) = getreg rt r in
+  let r = setreg rd (binop v_rs v_rt) r in
+  ps |> update r |> tick 1 |> to_mstate ms
+    
+let add = r_instruction aint32_add
+
+let mul = r_instruction aint32_mul
+
+(*  
 let add rd rs rt ms =
   let ps = ms.pstate in
   let r = ps.reg in
@@ -332,7 +345,8 @@ let add rd rs rt ms =
   let (r,v_rt) = getreg rt r in
   let r = setreg rd (aint32_add v_rs v_rt) r in
   ps |> update r |> tick 1 |> to_mstate ms
-
+*)  
+      
 let addi rt rs imm ms  =
   let ps = ms.pstate in
   let r = ps.reg in
@@ -342,15 +356,14 @@ let addi rt rs imm ms  =
 
       
 let branch_equality equal rs rt label ms =
-  let enq blabel bval regt regf ms =
+  let enq blabel regt regf bval ms =
     match bval with
     | Some(tval,fval) ->
-      let ps = {ps with reg = setreg regt tval
+      let ps = {ms.pstate with reg = setreg regt tval
                 (setreg regf fval ms.pstate.reg)} in
       enqueue blabel ps ms
       | None -> ms
   in
-
   match  ms.sbranch with
   (* Ordinary branch equality check *)
   | None -> (  
@@ -358,24 +371,20 @@ let branch_equality equal rs rt label ms =
     let r = ps.reg in
     let (r,v_rs) = getreg rs r in
     let (r,v_rt) = getreg rt r in
+    let ms = update r ps |> to_mstate ms in
     let bi = ms.bbtable.(ms.cblock) in
     let (tb,fb) = aint32_test_equal v_rs v_rt in
     let (tbranch,fbranch) = if equal then (tb,fb) else (fb,tb) in
-    continue (ms |> enq label rs rt tbranch |> enq bi.nextid fbranch))
+    continue (ms |> enq label rs rt tbranch |> enq bi.nextid rs rt fbranch))
   (* Special branch handling when beq or bne is checking with $0 and  
      there is another instruction such as slt that has written 
      information in ms.sbranch *)      
-  | Some(r1,r2,tbranch,fbranch) -> (
-     
-
-  )
+  | Some(r1,r2,tb,fb) -> (
+    let (tbranch,fbranch) = if equal then (fb,tb) else (tb,fb) in
+    let ms = {ms with sbranch = None} in
+    let bi = ms.bbtable.(ms.cblock) in
+    continue (ms |> enq label r1 r2 tbranch |> enq bi.nextid r1 r2 fbranch))
     
-
-
-  (registers * registers *
-  (aint32 * aint32) option *
-  (aint32 * aint32) option)
-  
     
 let beq rs rt label ms =  
   branch_equality true rs rt label ms
@@ -388,9 +397,9 @@ let bne rs rt label ms =
    by the pseudo instruction 'ret'. The reason is that
    all functions should only have one final basic block node *)    
 let jr rs ms =
-  if rs = ra then
-    let nextid = ms.bbtable.(ms.cblock).nextid in
-    continue (enqueue nextid (tick 2 ms.pstate) ms)
+  if rs = ra then ms
+(*    let nextid = ms.bbtable.(ms.cblock).nextid in
+      continue (enqueue nextid (tick 2 ms.pstate) ms) *)
   else failwith "Not yet implemented."
 
 let jal label ms =
@@ -436,6 +445,7 @@ let slt rd rs rt specialbranch ms =
   ps |> update r |> tick 1 |> to_mstate ms
 
 
+  
 
 
 
