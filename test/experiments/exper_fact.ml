@@ -17,13 +17,13 @@ let fact_ret_ = 5
     
 let rec final ms = ms
 
-and fact ms = ms         |>
-    addi  sp sp (-8)     |>
-    sw 	  a0 4(sp)       |>
-    sw    ra 0(sp)       |>
-    addi  t0 zero 2      |>
-    slt   t0 a0 t0       |>
-    beq   t0 zero elsebr_
+and fact ms = ms                    |>
+    addi  sp sp (-8)                |>
+    sw 	  a0 4(sp)                  |>
+    sw    ra 0(sp)                  |>
+    addi  t0 zero 2                 |>
+    slt   t0 a0 t0            true  |>
+    beq   t0 zero elsebr_        
 
 and ex1 ms = ms          |>
     addi  v0 zero 1      |>

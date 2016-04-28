@@ -38,6 +38,11 @@ let  na_ = -1
 
 (** Priority queue type *)
 type pqueue = (distance * blockid * progstate list) list
+
+type specialbranch =
+  (registers * registers *
+  (aint32 * aint32) option *
+  (aint32 * aint32) option)
   
 (** The basic block info entry type is one element in the
     basic block table. This table provides all information about
@@ -61,6 +66,7 @@ and mstate = {
   prio     : pqueue;                   (* Overall priority queue *)
   returnid : blockid;                  (* Block id when returning from a call *)
   cstack   : (blockid * pqueue) list;  (* Call stack *)
+  sbranch  : specialbranch option;     (* special branch. Used between slt and beq *)
 }
 
 
@@ -336,28 +342,48 @@ let addi rt rs imm ms  =
 
       
 let branch_equality equal rs rt label ms =
-  let ps = tick 1 ms.pstate in    
-  let r = ps.reg in
-  let (r,v_rs) = getreg rs r in
-  let (r,v_rt) = getreg rt r in
-  let bi = ms.bbtable.(ms.cblock) in
-  let (tb,fb) = aint32_test_equal v_rs v_rt in
-  let (tbranch,fbranch) = if equal then (tb,fb) else (fb,tb) in
-  let enq blabel bval ms =
+  let enq blabel bval regt regf ms =
     match bval with
-    | Some(rsval,rtval) ->
-      let ps = {ps with reg = setreg rs rsval (setreg rt rtval r)} in
+    | Some(tval,fval) ->
+      let ps = {ps with reg = setreg regt tval
+                (setreg regf fval ms.pstate.reg)} in
       enqueue blabel ps ms
-    | None -> ms
+      | None -> ms
   in
-  continue (ms |> enq label tbranch |> enq bi.nextid fbranch)
 
-let beq rs rt label ms =
+  match  ms.sbranch with
+  (* Ordinary branch equality check *)
+  | None -> (  
+    let ps = tick 1 ms.pstate in    
+    let r = ps.reg in
+    let (r,v_rs) = getreg rs r in
+    let (r,v_rt) = getreg rt r in
+    let bi = ms.bbtable.(ms.cblock) in
+    let (tb,fb) = aint32_test_equal v_rs v_rt in
+    let (tbranch,fbranch) = if equal then (tb,fb) else (fb,tb) in
+    continue (ms |> enq label rs rt tbranch |> enq bi.nextid fbranch))
+  (* Special branch handling when beq or bne is checking with $0 and  
+     there is another instruction such as slt that has written 
+     information in ms.sbranch *)      
+  | Some(r1,r2,tbranch,fbranch) -> (
+     
+
+  )
+    
+
+
+  (registers * registers *
+  (aint32 * aint32) option *
+  (aint32 * aint32) option)
+  
+    
+let beq rs rt label ms =  
   branch_equality true rs rt label ms
       
 let bne rs rt label ms =
   branch_equality false rs rt label ms
 
+    
 (* Count cycles for the return. The actual jump is performed
    by the pseudo instruction 'ret'. The reason is that
    all functions should only have one final basic block node *)    
@@ -390,6 +416,30 @@ let lw rt imm rs ms =
   let r = setreg rt v r in
   ps |> updatemem r m |> tick 1 |> to_mstate ms 
 
+let slt rd rs rt specialbranch ms =
+  let ps = ms.pstate in    
+  let r = ps.reg in
+  let (r,v_rs) = getreg rs r in
+  let (r,v_rt) = getreg rt r in
+  let (t,f) = aint32_test_less_than v_rs v_rt in
+  let ms =
+    if specialbranch
+    then {ms with sbranch = Some (rs,rt,t,f)}
+    else ms
+  in
+  let rd_v = match t,f with
+    | _,None -> aint32_const 1
+    | None,_ -> aint32_const 0
+    | _,_ -> aint32_interval 0 1
+  in
+  let r = setreg rd rd_v r in
+  ps |> update r |> tick 1 |> to_mstate ms
+
+
+
+
+
+      
 (* -------------------- PSEUDO INSTRUCTIONS -------------------------*)
       
         
@@ -437,6 +487,7 @@ let analyze startblock bblocks args =
     prio = [];            (* Starts with an empty priority queue *)
     returnid = 0;         (* Should finish by returning to the final block *)
     cstack = [(0,[])];    (* The final state *)
+    sbranch = None;       (* Special branch. Just dummy values *)
   } in
   
   let mstate = enqueue startblock ps mstate in
