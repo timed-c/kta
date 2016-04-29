@@ -348,6 +348,7 @@ let add rd rs rt ms =
 *)  
       
 let addi rt rs imm ms  =
+  printf "addi\n";
   let ps = ms.pstate in
   let r = ps.reg in
   let (r,v_rs) = getreg rs r in
@@ -406,11 +407,15 @@ let jal label ms =
   continue (enqueue label ms.pstate ms)
 
 let sw rt imm rs ms =
+  printf "sw:\n";
   let ps = ms.pstate in
   let r = ps.reg in
   let (r,v_rt) = getreg rt r in
   let (r,v_rs) = getreg rs r in
+  aint32_print_debug v_rt;
+  aint32_print_debug v_rs;
   let con_v_rs = aint32_to_int32 v_rs in
+  printf "0x%x\n\n" (imm + con_v_rs);
   let m = set_memval (imm + con_v_rs) v_rt ps.mem in
   ps |> updatemem r m |> tick 1 |> to_mstate ms 
 
@@ -426,6 +431,7 @@ let lw rt imm rs ms =
   ps |> updatemem r m |> tick 1 |> to_mstate ms 
 
 let slt rd rs rt specialbranch ms =
+  printf "slt\n";
   let ps = ms.pstate in    
   let r = ps.reg in
   let (r,v_rs) = getreg rs r in
@@ -486,6 +492,11 @@ let analyze startblock bblocks args =
   let ps =
     try pstate_input init_pstate args
     with Failure s -> (printf "Error: %s\n" s; exit 1) in
+
+  (* Initiate the stack pointer *)
+  let stack_addr = 0x80000000 - 8 in
+  let ps = {ps with reg = (setreg sp (aint32_const stack_addr) ps.reg)} in
+       
   
   (* Create the main state *)
   let mstate = {
