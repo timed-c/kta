@@ -18,7 +18,7 @@ unsigned testcomp(unsigned x, unsigned y, unsigned z){
 
 
 int main(){
-  unsigned v = fact(8);  //fact(4) = 24  (0x18)  fact(24)=40320
+  unsigned v = fact(8);  //fact(4) = 24  (0x18)  fact(8)=40320
   //  printf("%d\n",v);
 }
 

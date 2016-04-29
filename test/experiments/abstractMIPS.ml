@@ -112,8 +112,8 @@ let sp = R29
 let fp = R30
 let ra = R31
 
-let pprint_reg r =
-  us(match r with
+let reg2str r =
+  match r with
   | R0 -> "zero" | R8  -> "t0" | R16 -> "s0" | R24 -> "t8"
   | R1 -> "at"   | R9  -> "t1" | R17 -> "s1" | R25 -> "t9"
   | R2 -> "v0"   | R10 -> "t2" | R18 -> "s2" | R26 -> "k0"
@@ -121,8 +121,10 @@ let pprint_reg r =
   | R4 -> "a0"   | R12 -> "t4" | R20 -> "s4" | R28 -> "gp"
   | R5 -> "a1"   | R13 -> "t5" | R21 -> "s5" | R29 -> "sp"
   | R6 -> "a2"   | R14 -> "t6" | R22 -> "s6" | R30 -> "fp"
-  | R7 -> "a3"   | R15 -> "t7" | R23 -> "s7" | R31 -> "ra")
-      
+  | R7 -> "a3"   | R15 -> "t7" | R23 -> "s7" | R31 -> "ra"
+
+let reg2ustr r = reg2str r |> us
+    
 let int2reg x =
   match x with
   | 0 -> R0 | 8  -> R8  | 16 -> R16 | 24 -> R24
@@ -210,7 +212,7 @@ let pprint_pstate noregs ps =
     if x < noregs then
       let r = int2reg x in
       let (_,v) = getreg r ps.reg in
-      let n = pprint_reg r ^. us" = " ^. (aint32_pprint false v) in      
+      let n = reg2ustr r ^. us" = " ^. (aint32_pprint false v) in      
       let n' = Ustring.spaces_after n 18 ^. us(if x mod 4 = 0 then "\n" else "") in
       pregs (x+1) (s ^. n')        
     else s
@@ -232,11 +234,21 @@ let print_pqueue noregs pqueue =
   List.iter (print_pqueue_elem noregs) pqueue 
       
 let prn_inst ms str =
-  if dbg_inst then printf "%10s | %s\n" ms.bbtable.(ms.cblock).name str else ()
+  if dbg_inst then printf "%10s | %s\n" ms.bbtable.(ms.cblock).name (Ustring.to_utf8 str) else ()
 
 let preg rt r =
-    aint32_pprint dbg_debug_intervals (getreg rt r |> snd) |> Ustring.to_utf8
-    
+    aint32_pprint dbg_debug_intervals (getreg rt r |> snd) 
+
+let pprint_true_false_choice t f =
+  let prn v =
+    match v with
+    | None -> us"none"
+    | Some(v1,v2) -> us"(" ^. (aint32_pprint false v1) ^. us"," ^.
+                     (aint32_pprint false v2) ^. us")"
+  in
+    us"T:" ^. prn t ^. us" F:" ^. prn f 
+  
+        
 (* ---------------  BASIC BLOCKS AND PRIORITY QUEUE -----------------*)           
     
 (* Enqueue a basic block *)  
@@ -279,7 +291,7 @@ let dequeue ms =
     (* Have we finished a call? Dist = 0? *)
     | (0,blockid,ps::pss)::rest ->
        (* Is it the final node? *)
-       if blockid=0 then 
+      if blockid=0 then
          (* Join all final program states *)
          let ps' = List.fold_left join_pstates ps pss in
          {ms with cblock = 0; pstate=ps'; prio=rest}
@@ -290,7 +302,7 @@ let dequeue ms =
              {ms with cblock=blockid; pstate=ps; batch=pss;
                prio=prio'; returnid = retid; cstack=cstackrest;}
           | [] -> should_not_happen 1)
-         
+        
     (* Dequeue the top program state *)  
     | (dist,blockid,ps::pss)::rest ->
        (* Is this a calling node? *)
@@ -299,7 +311,7 @@ let dequeue ms =
          (* Yes, add to the call stack *)
          {ms with
            cblock=blockid; pstate=ps; batch=pss; prio=[];
-           cstack = (ms.returnid,rest)::ms.cstack}
+           cstack = (ms.bbtable.(blockid).nextid,rest)::ms.cstack}
        else
          (* No, just get the last batch *)
          {ms with cblock=blockid; pstate=ps; batch=pss; prio=rest;}
@@ -346,31 +358,25 @@ let debug_r_instruction str binop rd rs rt ms =
   r_instruction binop rd rs rt ms
       
 let add =
-  if dbg then debug_r_instruction "add" aint32_add
+  if dbg then debug_r_instruction (us"add") aint32_add
   else r_instruction aint32_add
 
 let mul =
-  if dbg then debug_r_instruction "mul" aint32_mul
+  if dbg then debug_r_instruction (us"mul") aint32_mul
   else r_instruction aint32_mul
 
 
-(*  
-let add rd rs rt ms =
-  let ps = ms.pstate in
-  let r = ps.reg in
-  let (r,v_rs) = getreg rs r in
-  let (r,v_rt) = getreg rt r in
-  let r = setreg rd (aint32_add v_rs v_rt) r in
-  ps |> update r |> tick 1 |> to_mstate ms
-*)  
       
 let addi rt rs imm ms  =
   let ps = ms.pstate in
   let r = ps.reg in
   let (r,v_rs) = getreg rs r in
-  let r = setreg rt (aint32_add v_rs (aint32_const imm)) r in             
-  if dbg then prn_inst ms ("addi  result: " ^ (preg rt r));
-  ps |> update r |> tick 1 |> to_mstate ms 
+  let r' = setreg rt (aint32_add v_rs (aint32_const imm)) r in             
+  if dbg then prn_inst ms (us"addi " ^. 
+        (reg2ustr rt) ^. us"=" ^. (preg rt r') ^. us" " ^.
+        (reg2ustr rs) ^. us"=" ^. (preg rs r) ^. us" " ^.
+         us(sprintf "imm=%d" imm));
+  ps |> update r' |> tick 1 |> to_mstate ms 
 
       
 let branch_equality equal rs rt label ms =
@@ -384,7 +390,7 @@ let branch_equality equal rs rt label ms =
   in
   match  ms.sbranch with
   (* Ordinary branch equality check *)
-  | None -> (  
+  | None -> (
     let ps = tick 1 ms.pstate in    
     let r = ps.reg in
     let (r,v_rs) = getreg rs r in
@@ -393,6 +399,7 @@ let branch_equality equal rs rt label ms =
     let bi = ms.bbtable.(ms.cblock) in
     let (tb,fb) = aint32_test_equal v_rs v_rt in
     let (tbranch,fbranch) = if equal then (tb,fb) else (fb,tb) in
+    if dbg then (prn_inst ms ((if equal then us"beq " else us"bne ")));
     continue (ms |> enq label rs rt tbranch |> enq bi.nextid rs rt fbranch))
   (* Special branch handling when beq or bne is checking with $0 and  
      there is another instruction such as slt that has written 
@@ -401,15 +408,20 @@ let branch_equality equal rs rt label ms =
     let (tbranch,fbranch) = if equal then (fb,tb) else (tb,fb) in
     let ms = {ms with sbranch = None} in
     let bi = ms.bbtable.(ms.cblock) in
+    if dbg then (
+        let r = ms.pstate.reg in
+        prn_inst ms ((if equal then us"beq " else us"bne ") ^.
+        (reg2ustr rs) ^. us"=" ^. (preg rs r) ^. us" " ^.
+        (reg2ustr rt) ^. us"=" ^. (preg rt r) ^. us" " ^.
+        us(ms.bbtable.(label).name) ^. us" " ^. us(ms.bbtable.(bi.nextid).name) ^.
+        us" " ^. pprint_true_false_choice tbranch fbranch ^. us" (sbranch)"));
     continue (ms |> enq label r1 r2 tbranch |> enq bi.nextid r1 r2 fbranch))
     
     
 let beq rs rt label ms =  
-  if dbg then prn_inst ms "beq ";
   branch_equality true rs rt label ms
-      
+   
 let bne rs rt label ms =
-  if dbg then prn_inst ms "bne ";
   branch_equality false rs rt label ms
 
     
@@ -417,40 +429,48 @@ let bne rs rt label ms =
    by the pseudo instruction 'ret'. The reason is that
    all functions should only have one final basic block node *)    
 let jr rs ms =
-  if dbg then prn_inst ms "jr";
+  if dbg then prn_inst ms (us"jr " ^. (reg2ustr rs));
   if rs = ra then ms
 (*    let nextid = ms.bbtable.(ms.cblock).nextid in
       continue (enqueue nextid (tick 2 ms.pstate) ms) *)
   else failwith "Not yet implemented."
 
 let jal label ms =
-  if dbg then prn_inst ms "jal";
+  if dbg then prn_inst ms (us"jal " ^. us(ms.bbtable.(label).name));
   continue (enqueue label ms.pstate ms)
 
 let sw rt imm rs ms =
-  if dbg then prn_inst ms "sw";
   let ps = ms.pstate in
   let r = ps.reg in
   let (r,v_rt) = getreg rt r in
   let (r,v_rs) = getreg rs r in
   let con_v_rs = aint32_to_int32 v_rs in
   let m = set_memval (imm + con_v_rs) v_rt ps.mem in
+  if dbg then(
+    prn_inst ms (us"sw " ^. 
+         (reg2ustr rt) ^. us"=" ^. (preg rt r) ^.
+         us(sprintf " imm=%d(" imm) ^.
+         (reg2ustr rs) ^. us"=" ^. (preg rs r) ^. us")"));
   ps |> updatemem r m |> tick 1 |> to_mstate ms 
 
 
 let lw rt imm rs ms =
-  if dbg then prn_inst ms "lw";
   let ps = ms.pstate in
   let r = ps.reg in
   let (r,v_rt) = getreg rt r in
   let (r,v_rs) = getreg rs r in
   let con_v_rs = aint32_to_int32 v_rs in
   let (m,v) = get_memval (imm + con_v_rs) ps.mem in
-  let r = setreg rt v r in
-  ps |> updatemem r m |> tick 1 |> to_mstate ms 
+  let r' = setreg rt v r in
+  if dbg then(
+    prn_inst ms (us"lw " ^. 
+         (reg2ustr rt) ^. us"=" ^. (preg rt r') ^.
+         us(sprintf " imm=%d(" imm) ^.
+         (reg2ustr rs) ^. us"=" ^. (preg rs r) ^. us")"));
+  ps |> updatemem r' m |> tick 1 |> to_mstate ms 
 
+      
 let slt rd rs rt specialbranch ms =
-  if dbg then prn_inst ms "slt";
   let ps = ms.pstate in    
   let r = ps.reg in
   let (r,v_rs) = getreg rs r in
@@ -466,8 +486,13 @@ let slt rd rs rt specialbranch ms =
     | None,_ -> aint32_const 0
     | _,_ -> aint32_interval 0 1
   in
-  let r = setreg rd rd_v r in
-  ps |> update r |> tick 1 |> to_mstate ms
+  let r' = setreg rd rd_v r in
+  if dbg then
+    prn_inst ms (us"slt " ^. (reg2ustr rd) ^. us"=" ^. (preg rd r') ^. us" " ^.
+      (reg2ustr rs) ^. us"=" ^. (preg rs r) ^. us" " ^. (reg2ustr rt) ^. us"=" ^. (preg rt r) ^.
+      us" " ^. pprint_true_false_choice t f ^. 
+      us(if specialbranch then " (sbranch) " else ""));
+  ps |> update r' |> tick 1 |> to_mstate ms
 
 
   
@@ -480,7 +505,7 @@ let slt rd rs rt specialbranch ms =
         
 (* Go to next basic block *)
 let next ms =
-  if dbg then prn_inst ms "next";
+  if dbg then prn_inst ms (us"next");
   (* Get the block info for the current basic block *)
   let bi = ms.bbtable.(ms.cblock) in
   (* Enqueue the current program state with the next basic block *)
@@ -490,12 +515,12 @@ let next ms =
 
 (* Return from a function. Pseudo-instruction that does not take time *)    
 let ret ms =
-  if dbg then prn_inst ms "ret";
+  if dbg then prn_inst ms (us"ret");
   continue (enqueue ms.returnid ms.pstate ms)
 
 (* load immediate interval *)
 let lii rd l h ms =
-  if dbg then prn_inst ms "lii";
+  if dbg then prn_inst ms (us"lii");
   let ps = ms.pstate in
   let r = ps.reg in
   let r = setreg rd (aint32_interval l h) r in
