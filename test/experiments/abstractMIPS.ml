@@ -13,7 +13,10 @@ open Amemory
 open Scanf
 open Str
 
-
+let dbg = false
+let dbg_inst = true
+let dbg_debug_intervals = false
+  
 let count = ref 0
 
 (* ------------------------ TYPES ------------------------------*)  
@@ -50,6 +53,7 @@ type specialbranch =
 type bblock_info =
 {
   func    : mstate -> mstate;  (* The function that represents the basic block *)
+  name    : string;            (* String used for debugging *)
   nextid  : blockid;           (* The identifier that shows the next basic block *)
   dist    : distance;          (* The distance to the exit (the number of edges) *)
   addr    : int;               (* Address to the first instruction in the basic block *)
@@ -227,8 +231,12 @@ let print_pqueue_elem noregs elem =
 let print_pqueue noregs pqueue =
   List.iter (print_pqueue_elem noregs) pqueue 
       
+let prn_inst ms str =
+  if dbg_inst then printf "%10s | %s\n" ms.bbtable.(ms.cblock).name str else ()
+
+let preg rt r =
+    aint32_pprint dbg_debug_intervals (getreg rt r |> snd) |> Ustring.to_utf8
     
-     
 (* ---------------  BASIC BLOCKS AND PRIORITY QUEUE -----------------*)           
     
 (* Enqueue a basic block *)  
@@ -332,10 +340,19 @@ let r_instruction binop rd rs rt ms =
   let (r,v_rt) = getreg rt r in
   let r = setreg rd (binop v_rs v_rt) r in
   ps |> update r |> tick 1 |> to_mstate ms
-    
-let add = r_instruction aint32_add
 
-let mul = r_instruction aint32_mul
+let debug_r_instruction str binop rd rs rt ms =
+  prn_inst ms str;
+  r_instruction binop rd rs rt ms
+      
+let add =
+  if dbg then debug_r_instruction "add" aint32_add
+  else r_instruction aint32_add
+
+let mul =
+  if dbg then debug_r_instruction "mul" aint32_mul
+  else r_instruction aint32_mul
+
 
 (*  
 let add rd rs rt ms =
@@ -348,11 +365,11 @@ let add rd rs rt ms =
 *)  
       
 let addi rt rs imm ms  =
-  printf "addi\n";
   let ps = ms.pstate in
   let r = ps.reg in
   let (r,v_rs) = getreg rs r in
   let r = setreg rt (aint32_add v_rs (aint32_const imm)) r in             
+  if dbg then prn_inst ms ("addi  result: " ^ (preg rt r));
   ps |> update r |> tick 1 |> to_mstate ms 
 
       
@@ -388,9 +405,11 @@ let branch_equality equal rs rt label ms =
     
     
 let beq rs rt label ms =  
+  if dbg then prn_inst ms "beq ";
   branch_equality true rs rt label ms
       
 let bne rs rt label ms =
+  if dbg then prn_inst ms "bne ";
   branch_equality false rs rt label ms
 
     
@@ -398,29 +417,29 @@ let bne rs rt label ms =
    by the pseudo instruction 'ret'. The reason is that
    all functions should only have one final basic block node *)    
 let jr rs ms =
+  if dbg then prn_inst ms "jr";
   if rs = ra then ms
 (*    let nextid = ms.bbtable.(ms.cblock).nextid in
       continue (enqueue nextid (tick 2 ms.pstate) ms) *)
   else failwith "Not yet implemented."
 
 let jal label ms =
+  if dbg then prn_inst ms "jal";
   continue (enqueue label ms.pstate ms)
 
 let sw rt imm rs ms =
-  printf "sw:\n";
+  if dbg then prn_inst ms "sw";
   let ps = ms.pstate in
   let r = ps.reg in
   let (r,v_rt) = getreg rt r in
   let (r,v_rs) = getreg rs r in
-  aint32_print_debug v_rt;
-  aint32_print_debug v_rs;
   let con_v_rs = aint32_to_int32 v_rs in
-  printf "0x%x\n\n" (imm + con_v_rs);
   let m = set_memval (imm + con_v_rs) v_rt ps.mem in
   ps |> updatemem r m |> tick 1 |> to_mstate ms 
 
 
 let lw rt imm rs ms =
+  if dbg then prn_inst ms "lw";
   let ps = ms.pstate in
   let r = ps.reg in
   let (r,v_rt) = getreg rt r in
@@ -431,7 +450,7 @@ let lw rt imm rs ms =
   ps |> updatemem r m |> tick 1 |> to_mstate ms 
 
 let slt rd rs rt specialbranch ms =
-  printf "slt\n";
+  if dbg then prn_inst ms "slt";
   let ps = ms.pstate in    
   let r = ps.reg in
   let (r,v_rs) = getreg rs r in
@@ -461,6 +480,7 @@ let slt rd rs rt specialbranch ms =
         
 (* Go to next basic block *)
 let next ms =
+  if dbg then prn_inst ms "next";
   (* Get the block info for the current basic block *)
   let bi = ms.bbtable.(ms.cblock) in
   (* Enqueue the current program state with the next basic block *)
@@ -470,10 +490,12 @@ let next ms =
 
 (* Return from a function. Pseudo-instruction that does not take time *)    
 let ret ms =
+  if dbg then prn_inst ms "ret";
   continue (enqueue ms.returnid ms.pstate ms)
 
 (* load immediate interval *)
 let lii rd l h ms =
+  if dbg then prn_inst ms "lii";
   let ps = ms.pstate in
   let r = ps.reg in
   let r = setreg rd (aint32_interval l h) r in

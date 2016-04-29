@@ -33,10 +33,10 @@ and exper_ret  ms = ms  |>
     
 let bblocks =
 [|
-  {func=final;    nextid=na_;         dist=0; addr=0x00000000; caller=false};
-  {func=exper;    nextid=loop_;       dist=2; addr=0x00400000; caller=false};
-  {func=loop;     nextid=exper_ret_;  dist=1; addr=0x00400200; caller=false};
-  {func=exper_ret;nextid=na_;         dist=0; addr=0x00400200; caller=false};
+  {func=final;    name="final";     nextid=na_;         dist=0; addr=0x00000000; caller=false};
+  {func=exper;    name="exper";     nextid=loop_;       dist=2; addr=0x00400000; caller=false};
+  {func=loop;     name="loop";      nextid=exper_ret_;  dist=1; addr=0x00400200; caller=false};
+  {func=exper_ret;name="exper_ret"; nextid=na_;         dist=0; addr=0x00400200; caller=false};
 |]
 
   

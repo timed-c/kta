@@ -42,12 +42,12 @@ and double_ret ms = ms  |>
     
 let bblocks =
 [|
-  {func=final;      nextid=na_;         dist=0; addr=0x00000000; caller=false};
-  {func=foo;        nextid=ex1_;        dist=1; addr=0x00400200; caller=true };
-  {func=ex1;        nextid=ex1_ret_;    dist=0; addr=0x00400200; caller=false};
-  {func=ex1_ret;    nextid=na_;         dist=0; addr=0x00400200; caller=false};
-  {func=double;     nextid=double_ret_; dist=0; addr=0x00400200; caller=false};
-  {func=double_ret; nextid=na_;         dist=0; addr=0x00400200; caller=false};
+  {func=final;      name="final";       nextid=na_;         dist=0; addr=0x00000000; caller=false};
+  {func=foo;        name="foo";         nextid=ex1_;        dist=1; addr=0x00400200; caller=true };
+  {func=ex1;        name="ex1";         nextid=ex1_ret_;    dist=0; addr=0x00400200; caller=false};
+  {func=ex1_ret;    name="ex1_ret";     nextid=na_;         dist=0; addr=0x00400200; caller=false};
+  {func=double;     name="double";      nextid=double_ret_; dist=0; addr=0x00400200; caller=false};
+  {func=double_ret; name="double_rert"; nextid=na_;         dist=0; addr=0x00400200; caller=false};
 |]
 
   

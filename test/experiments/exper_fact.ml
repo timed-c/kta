@@ -49,12 +49,12 @@ and fact_ret ms = ms     |>
     
 let bblocks =
 [|
-  {func=final;    nextid=na_;       dist=0; addr=0x00000000; caller=false};
-  {func=fact;     nextid=ex1_;      dist=1; addr=0x00400200; caller=false};
-  {func=ex1;      nextid=fact_ret_; dist=0; addr=0x00400200; caller=false};
-  {func=elsebr;   nextid=ex2_;      dist=0; addr=0x00400200; caller=true};
-  {func=ex2;      nextid=fact_ret_; dist=0; addr=0x00400200; caller=false};
-  {func=fact_ret; nextid=na_;       dist=0; addr=0x00400200; caller=false};
+  {func=final;    name="final";    nextid=na_;       dist=0; addr=0x00000000; caller=false;};
+  {func=fact;     name="fact";     nextid=ex1_;      dist=1; addr=0x00400200; caller=false};
+  {func=ex1;      name="ex1";      nextid=fact_ret_; dist=0; addr=0x00400200; caller=false};
+  {func=elsebr;   name="elsebr";   nextid=ex2_;      dist=0; addr=0x00400200; caller=true};
+  {func=ex2;      name="ex2";      nextid=fact_ret_; dist=0; addr=0x00400200; caller=false};
+  {func=fact_ret; name="fact_ret"; nextid=na_;       dist=0; addr=0x00400200; caller=false};
 |]
 
   
