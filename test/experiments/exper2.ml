@@ -23,7 +23,7 @@ and exper ms = ms       |>
 and loop ms = ms        |>
     add  v0 v0 a0       |>
     addi a0 a0 (-1)     |>	
-    bne	 a0 a1 loop_ 
+    bne	 a0 a1 loop_   
 
 and exper_ret  ms = ms  |>
     jr   ra             |>

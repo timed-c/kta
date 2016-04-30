@@ -383,8 +383,9 @@ let addi rt rs imm ms  =
          us(sprintf "imm=%d" imm));
   ps |> update r' |> tick 1 |> to_mstate ms 
 
+
       
-let branch_equality equal rs rt label ms =
+let branch_equality equal dslot rs rt label ms =
   let enq blabel regt regf bval ms =
     match bval with
     | Some(tval,fval) ->
@@ -393,9 +394,9 @@ let branch_equality equal rs rt label ms =
       enqueue blabel ps ms
       | None -> ms
   in
-  match  ms.sbranch with
-  (* Ordinary branch equality check *)
+  match ms.sbranch with
   | None -> (
+    (* Ordinary branch equality check *)
     let ps = tick 1 ms.pstate in    
     let r = ps.reg in
     let (r,v_rs) = getreg rs r in
@@ -404,12 +405,15 @@ let branch_equality equal rs rt label ms =
     let bi = ms.bbtable.(ms.cblock) in
     let (tb,fb) = aint32_test_equal v_rs v_rt in
     let (tbranch,fbranch) = if equal then (tb,fb) else (fb,tb) in
-    if dbg then (prn_inst ms ((if equal then us"beq " else us"bne ")));
-    continue (ms |> enq label rs rt tbranch |> enq bi.nextid rs rt fbranch))
-  (* Special branch handling when beq or bne is checking with $0 and  
-     there is another instruction such as slt that has written 
-     information in ms.sbranch *)      
+    if dslot then
+      {ms with sbranch = Some(rs,rt,tbranch,fbranch)}
+    else      
+      continue (ms |> enq label rs rt tbranch |> enq bi.nextid rs rt fbranch))
+
   | Some(r1,r2,tb,fb) -> (
+    (* Special branch handling when beq or bne is checking with $0 and  
+       there is another instruction such as slt that has written 
+       information in ms.sbranch *)      
     let (tbranch,fbranch) = if equal then (fb,tb) else (tb,fb) in
     let ms = {ms with sbranch = None} in
     let bi = ms.bbtable.(ms.cblock) in
@@ -420,15 +424,18 @@ let branch_equality equal rs rt label ms =
         (reg2ustr rt) ^. us"=" ^. (preg rt r) ^. us" " ^.
         us(ms.bbtable.(label).name) ^. us" " ^. us(ms.bbtable.(bi.nextid).name) ^.
         us" " ^. pprint_true_false_choice tbranch fbranch ^. us" (sbranch)"));
-    continue (ms |> enq label r1 r2 tbranch |> enq bi.nextid r1 r2 fbranch))
+    if dslot then 
+      {ms with sbranch = Some(r1,r2,tbranch,fbranch)}
+    else      
+      continue (ms |> enq label r1 r2 tbranch |> enq bi.nextid r1 r2 fbranch))
     
     
-let beq rs rt label ms =  
-  branch_equality true rs rt label ms
-   
-let bne rs rt label ms =
-  branch_equality false rs rt label ms
-
+let beq = branch_equality true false 
+let bne = branch_equality false false
+  
+let beqds = branch_equality true true
+let bneds = branch_equality false true 
+  
     
 (* Count cycles for the return. The actual jump is performed
    by the pseudo instruction 'ret'. The reason is that
@@ -475,17 +482,13 @@ let lw rt imm rs ms =
   ps |> updatemem r' m |> tick 1 |> to_mstate ms 
 
       
-let slt rd rs rt specialbranch ms =
+let slt rd rs rt ms =
   let ps = ms.pstate in    
   let r = ps.reg in
   let (r,v_rs) = getreg rs r in
   let (r,v_rt) = getreg rt r in
   let (t,f) = aint32_test_less_than v_rs v_rt in
-  let ms =
-    if specialbranch
-    then {ms with sbranch = Some (rs,rt,t,f)}
-    else ms
-  in
+  let ms = {ms with sbranch = Some (rs,rt,t,f)} in
   let rd_v = match t,f with
     | _,None -> aint32_const 1
     | None,_ -> aint32_const 0
@@ -495,12 +498,13 @@ let slt rd rs rt specialbranch ms =
   if dbg then
     prn_inst ms (us"slt " ^. (reg2ustr rd) ^. us"=" ^. (preg rd r') ^. us" " ^.
       (reg2ustr rs) ^. us"=" ^. (preg rs r) ^. us" " ^. (reg2ustr rt) ^. us"=" ^. (preg rt r) ^.
-      us" " ^. pprint_true_false_choice t f ^. 
-      us(if specialbranch then " (sbranch) " else ""));
+      us" " ^. pprint_true_false_choice t f);
   ps |> update r' |> tick 1 |> to_mstate ms
 
-
-  
+(* Removes special branch if variables are changed between set and 
+   jump. Should be inserted by the compiler  *)  
+let nosbranch ms =
+  {ms with sbranch = None}
 
 
 
@@ -517,6 +521,9 @@ let next ms =
   let ms' = enqueue bi.nextid ms.pstate ms in
   (* Continue and process next block *)
   continue ms'
+
+
+  
 
 (* Return from a function. Pseudo-instruction that does not take time *)    
 let ret ms =

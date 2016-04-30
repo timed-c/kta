@@ -16,9 +16,9 @@ let loop_   = 2
 let rec final ms = ms
 
 and exper ms = ms        |>
-  beq_ds  a0 zero l1_    |>
+  beqds   a0 zero l1_    |>
   addu    a2 zero zero   |>
-  next_ds
+  nextds  a0 zero l1_
 
 and extra1 ms = ms       |>
   addu    v0 zero zero   |>
@@ -31,7 +31,7 @@ and l3 ms = ms           |>
   next_ds 
 
 and l5 ms = ms           |>
-  blez_ds a2,l3_         |>
+  blezds a2,l3_         |>
   addu    v1 a2 zero     |>
   next_ds
   
