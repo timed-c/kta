@@ -14,7 +14,7 @@ open Scanf
 open Str
 open Config
 
-let dbg = false
+let dbg = true
 let dbg_inst = true
 let dbg_debug_intervals = false
   
@@ -44,7 +44,8 @@ let  na_ = -1
 type pqueue = (distance * blockid * progstate list) list
 
 type specialbranch =
-  (registers * registers *
+  (blockid *         
+   registers * registers *
   (aint32 * aint32) option *
   (aint32 * aint32) option)
   
@@ -234,9 +235,17 @@ let print_pqueue_elem noregs elem =
 let print_pqueue noregs pqueue =
   List.iter (print_pqueue_elem noregs) pqueue 
       
-let prn_inst ms str =
-  if dbg_inst then printf "%10s | %s\n" ms.bbtable.(ms.cblock).name (Ustring.to_utf8 str) else ()
+let prn_inst_main linebreak ms str =
+  if dbg_inst then
+    (printf "%10s | %s" ms.bbtable.(ms.cblock).name (Ustring.to_utf8 str);
+     if linebreak then printf "\n" else ())
+  else ()
+    
 
+let prn_inst = prn_inst_main true
+    
+let prn_inst_no_linebreak = prn_inst_main false
+    
 let preg rt r =
     aint32_pprint dbg_debug_intervals (getreg rt r |> snd) 
 
@@ -296,10 +305,26 @@ let dequeue ms =
     (* Have we finished a call? Dist = 0? *)
     | (0,blockid,ps::pss)::rest ->
        (* Is it the final node? *)
-      if blockid=0 then
+      if blockid=0 then (
+        printf "FINAL! cstack=%d pss=%d cblock=%d cbatch=%d returnid=%d\n" (List.length ms.cstack)
+            (List.length pss) ms.cblock (List.length ms.batch) ms.returnid;
+
+(*
+    
+  cblock   : blockid;                  (* Current basic block *)
+  pc       : int;                      (* Current program counter *)
+  pstate   : progstate;                (* Current program state *)
+  batch    : progstate list;           (* Current batch of program states *)
+  bbtable  : bblock_info array;        (* Basic block info table *)
+  prio     : pqueue;                   (* Overall priority queue *)
+  returnid : blockid;                  (* Block id when returning from a call *)
+  cstack   : (blockid * pqueue) list;  (* Call stack *)
+  sbranch  : specialbranch option;     (* special branch. Used between slt and beq *)
+*)
          (* Join all final program states *)
          let ps' = List.fold_left join_pstates ps pss in
-         {ms with cblock = 0; pstate=ps'; prio=rest}
+         let ms = {ms with cblock = 0; pstate=ps'; prio=rest} in
+          printf "FINISH!!!\n"; ms)
        else
          (* No, just pop from the call stack *)
          (match ms.cstack with
@@ -324,15 +349,18 @@ let dequeue ms =
            block id zero block. *)    
     | _ -> should_not_happen 2)
   
-    
   
 (* ------------------------ CONTINUATION  -------------------------*)
 
 (* Continue and execute the next basic block in turn *)
 let continue ms =
+  printf "*** A\n";
   let ms = dequeue ms in
+  printf "*** B\n";
   let ms = {ms with pc = ms.bbtable.(ms.cblock).addr} in 
+  printf "*** C\n";
   let bi = ms.bbtable.(ms.cblock) in
+  printf "*** D current %d  %s\n" ms.cblock bi.name;
   bi.func ms 
 
     
@@ -355,17 +383,25 @@ let r_instruction binop rd rs rt ms =
   let r = ps.reg in
   let (r,v_rs) = getreg rs r in
   let (r,v_rt) = getreg rt r in
-  let r = setreg rd (binop v_rs v_rt) r in
-  ps |> update r |> tick 1 |> to_mstate ms
+  let r' = setreg rd (binop v_rs v_rt) r in
+  if dbg then uprint_endline (us" " ^. 
+        (reg2ustr rd) ^. us"=" ^. (preg rd r') ^. us" " ^.
+        (reg2ustr rs) ^. us"=" ^. (preg rs r) ^. us" " ^.
+        (reg2ustr rt) ^. us"=" ^. (preg rt r) ) else ();
+  ps |> update r' |> tick 1 |> to_mstate ms
 
 let debug_r_instruction str binop rd rs rt ms =
-  prn_inst ms str;
+  prn_inst_no_linebreak ms str;
   r_instruction binop rd rs rt ms
       
 let add =
   if dbg then debug_r_instruction (us"add") aint32_add
   else r_instruction aint32_add
 
+let addu =
+  if dbg then debug_r_instruction (us"addu") aint32_add
+  else r_instruction aint32_add
+    
 let mul =
   if dbg then debug_r_instruction (us"mul") aint32_mul
   else r_instruction aint32_mul
@@ -383,17 +419,36 @@ let addi rt rs imm ms  =
          us(sprintf "imm=%d" imm));
   ps |> update r' |> tick 1 |> to_mstate ms 
 
+      
+let addiu = addi
+
+  
+let sll rd rt shamt ms =
+  let ps = ms.pstate in
+  let r = ps.reg in
+  let (r,v_rt) = getreg rt r in
+  let mval = aint32_const (1 lsl shamt) in
+  let r' = setreg rd (aint32_mul v_rt mval) r in
+  if dbg then prn_inst ms (us"sll " ^. 
+        (reg2ustr rd) ^. us"=" ^. (preg rd r') ^. us" " ^.
+        (reg2ustr rt) ^. us"=" ^. (preg rt r) ^. us" " ^.
+         us(sprintf "shamt=%d" shamt));
+  ps |> update r' |> tick 1 |> to_mstate ms 
 
       
-let branch_equality equal dslot rs rt label ms =
-  let enq blabel regt regf bval ms =
-    match bval with
-    | Some(tval,fval) ->
-      let ps = {ms.pstate with reg = setreg regt tval
-                (setreg regf fval ms.pstate.reg)} in
-      enqueue blabel ps ms
-      | None -> ms
-  in
+
+
+(* used by next and branch_equality *)
+let enq blabel regt regf bval ms =
+  match bval with
+  | Some(tval,fval) ->
+    let ps = {ms.pstate with reg = setreg regt tval
+        (setreg regf fval ms.pstate.reg)} in
+    enqueue blabel ps ms
+  | None -> ms
+
+    
+let branch_main equal dslot op rs rt label ms =
   match ms.sbranch with
   | None -> (
     (* Ordinary branch equality check *)
@@ -403,20 +458,19 @@ let branch_equality equal dslot rs rt label ms =
     let (r,v_rt) = getreg rt r in
     let ms = update r ps |> to_mstate ms in
     let bi = ms.bbtable.(ms.cblock) in
-    let (tb,fb) = aint32_test_equal v_rs v_rt in
+    let (tb,fb) = op v_rs v_rt in
     let (tbranch,fbranch) = if equal then (tb,fb) else (fb,tb) in
     if dslot then
-      {ms with sbranch = Some(rs,rt,tbranch,fbranch)}
+      {ms with sbranch = Some(label,rs,rt,tbranch,fbranch)}
     else      
       continue (ms |> enq label rs rt tbranch |> enq bi.nextid rs rt fbranch))
 
-  | Some(r1,r2,tb,fb) -> (
+  | Some(_,r1,r2,tb,fb) -> (
     (* Special branch handling when beq or bne is checking with $0 and  
        there is another instruction such as slt that has written 
        information in ms.sbranch *)      
-    let (tbranch,fbranch) = if equal then (fb,tb) else (tb,fb) in
-    let ms = {ms with sbranch = None} in
     let bi = ms.bbtable.(ms.cblock) in
+    let (tbranch,fbranch) = if equal then (fb,tb) else (tb,fb) in
     if dbg then (
         let r = ms.pstate.reg in
         prn_inst ms ((if equal then us"beq " else us"bne ") ^.
@@ -425,17 +479,80 @@ let branch_equality equal dslot rs rt label ms =
         us(ms.bbtable.(label).name) ^. us" " ^. us(ms.bbtable.(bi.nextid).name) ^.
         us" " ^. pprint_true_false_choice tbranch fbranch ^. us" (sbranch)"));
     if dslot then 
-      {ms with sbranch = Some(r1,r2,tbranch,fbranch)}
+      {ms with sbranch = Some(label,r1,r2,tbranch,fbranch)}
     else      
+      let ms = {ms with sbranch = None} in
       continue (ms |> enq label r1 r2 tbranch |> enq bi.nextid r1 r2 fbranch))
+
+let debug_branch str equal dslot op rs rt label ms =
+  prn_inst ms str;
+  branch_main equal dslot op rs rt label ms
+
+
+(* Instruction: beq
+   From official MIPS32 manual: 
+   "Branch on Equal
+   To compare GPRs then do a PC-relative conditional branch." *)
+let beq =
+  if dbg then debug_branch (us"beq")
+                   true false aint32_test_equal
+  else branch_main true false aint32_test_equal
+
+(* Same as above, but with branch delay slots enabled *)    
+let beqds =
+  if dbg then debug_branch (us"beqds")
+                   true true aint32_test_equal
+  else branch_main true true aint32_test_equal
+
+(* Instruction: bne
+   From official MIPS32 manual: 
+   "Branch on Not Equal
+   To compare GPRs then do a PC-relative conditional branch" *)
+let bne =
+  if dbg then debug_branch (us"bne")
+                   false false aint32_test_equal
+  else branch_main false false aint32_test_equal
+
     
+(* Same as above, but with branch delay slots enabled *)    
+let bneds =
+  if dbg then debug_branch (us"bneds")
+                   false true aint32_test_equal
+  else branch_main false true aint32_test_equal
+
+(* Instruction: blez
+   From official MIPS32 manual: 
+   "Branch on Less Than or Equal to Zero
+   To test a GPR then do a PC-relative conditional branch." *)
+let blez rs label ms =
+  if dbg then debug_branch (us"blez")
+                   true false aint32_test_less_than_equal rs zero label ms
+  else branch_main true false aint32_test_less_than_equal rs zero label ms
+
     
-let beq = branch_equality true false 
-let bne = branch_equality false false
-  
-let beqds = branch_equality true true
-let bneds = branch_equality false true 
-  
+(* Same as above, but with branch delay slots enabled *)    
+let blezds rs label ms =
+  if dbg then debug_branch (us"blezds")
+                   true true aint32_test_less_than_equal rs zero label ms
+  else branch_main true true aint32_test_less_than_equal rs zero label ms
+    
+(* Instruction: bnel
+   From official MIPS32 manual: 
+   "Branch on Not Equal Likely. 
+   To compare GPRs then do a PC-relative conditional branch; 
+   execute the delay slot only if the branch is taken." 
+   NOTE: the generated code need to insert a "likely" node
+   to make this correct. *)
+let bnel =
+  if dbg then debug_branch (us"bnel")
+                   false false aint32_test_equal
+  else branch_main false false aint32_test_equal
+
+
+
+
+
+    
     
 (* Count cycles for the return. The actual jump is performed
    by the pseudo instruction 'ret'. The reason is that
@@ -447,6 +564,14 @@ let jr rs ms =
       continue (enqueue nextid (tick 2 ms.pstate) ms) *)
   else failwith "Not yet implemented."
 
+let jrds rs ms =
+  if dbg then prn_inst ms (us"jrds " ^. (reg2ustr rs));
+  if rs = ra then ms
+(*    let nextid = ms.bbtable.(ms.cblock).nextid in
+      continue (enqueue nextid (tick 2 ms.pstate) ms) *)
+  else failwith "Not yet implemented."
+
+    
 let jal label ms =
   if dbg then prn_inst ms (us"jal " ^. us(ms.bbtable.(label).name));
   continue (enqueue label ms.pstate ms)
@@ -488,7 +613,7 @@ let slt rd rs rt ms =
   let (r,v_rs) = getreg rs r in
   let (r,v_rt) = getreg rt r in
   let (t,f) = aint32_test_less_than v_rs v_rt in
-  let ms = {ms with sbranch = Some (rs,rt,t,f)} in
+  let ms = {ms with sbranch = Some (0,rs,rt,t,f)} in
   let rd_v = match t,f with
     | _,None -> aint32_const 1
     | None,_ -> aint32_const 0
@@ -512,18 +637,34 @@ let nosbranch ms =
 (* -------------------- PSEUDO INSTRUCTIONS -------------------------*)
       
         
-(* Go to next basic block *)
+(* Go to next basic block. Special handling if branch delay slot. *)
 let next ms =
   if dbg then prn_inst ms (us"next");
   (* Get the block info for the current basic block *)
-  let bi = ms.bbtable.(ms.cblock) in
-  (* Enqueue the current program state with the next basic block *)
-  let ms' = enqueue bi.nextid ms.pstate ms in
-  (* Continue and process next block *)
-  continue ms'
-
+  printf "*** NEXT 1\n"; 
+ let bi = ms.bbtable.(ms.cblock) in
+  printf "*** NEXT 2\n";
+  (match ms.sbranch with
+  | None -> 
+  printf "*** NEXT 3\n";
+  printf "**** nextid=%d \n" bi.nextid;
+    (* Ordinary branch equality check *)
+    (* Enqueue the current program state with the next basic block *)
+    let ms' = enqueue bi.nextid ms.pstate ms in
+  printf "*** NEXT 4\n";
+    (* Continue and process next block *)
+    continue ms'
+    
+  | Some(label,r1,r2,tb,fb) -> 
+  printf "*** NEXT 5\n";
+    (* Special branch handling branch delay slots *)      
+    let ms = {ms with sbranch = None} in
+  printf "*** NEXT 6\n";
+    continue (ms |> enq label r1 r2 tb |> enq bi.nextid r1 r2 fb))
 
   
+
+    
 
 (* Return from a function. Pseudo-instruction that does not take time *)    
 let ret ms =
