@@ -14,7 +14,7 @@ open Scanf
 open Str
 open Config
 
-let dbg = true
+let dbg = false
 let dbg_inst = true
 let dbg_debug_intervals = false
   
@@ -305,26 +305,10 @@ let dequeue ms =
     (* Have we finished a call? Dist = 0? *)
     | (0,blockid,ps::pss)::rest ->
        (* Is it the final node? *)
-      if blockid=0 then (
-        printf "FINAL! cstack=%d pss=%d cblock=%d cbatch=%d returnid=%d\n" (List.length ms.cstack)
-            (List.length pss) ms.cblock (List.length ms.batch) ms.returnid;
-
-(*
-    
-  cblock   : blockid;                  (* Current basic block *)
-  pc       : int;                      (* Current program counter *)
-  pstate   : progstate;                (* Current program state *)
-  batch    : progstate list;           (* Current batch of program states *)
-  bbtable  : bblock_info array;        (* Basic block info table *)
-  prio     : pqueue;                   (* Overall priority queue *)
-  returnid : blockid;                  (* Block id when returning from a call *)
-  cstack   : (blockid * pqueue) list;  (* Call stack *)
-  sbranch  : specialbranch option;     (* special branch. Used between slt and beq *)
-*)
+      if blockid=0 then 
          (* Join all final program states *)
          let ps' = List.fold_left join_pstates ps pss in
-         let ms = {ms with cblock = 0; pstate=ps'; prio=rest} in
-          printf "FINISH!!!\n"; ms)
+         {ms with cblock = 0; pstate=ps'; prio=rest} 
        else
          (* No, just pop from the call stack *)
          (match ms.cstack with
@@ -354,13 +338,9 @@ let dequeue ms =
 
 (* Continue and execute the next basic block in turn *)
 let continue ms =
-  printf "*** A\n";
   let ms = dequeue ms in
-  printf "*** B\n";
   let ms = {ms with pc = ms.bbtable.(ms.cblock).addr} in 
-  printf "*** C\n";
   let bi = ms.bbtable.(ms.cblock) in
-  printf "*** D current %d  %s\n" ms.cblock bi.name;
   bi.func ms 
 
     
@@ -641,25 +621,18 @@ let nosbranch ms =
 let next ms =
   if dbg then prn_inst ms (us"next");
   (* Get the block info for the current basic block *)
-  printf "*** NEXT 1\n"; 
  let bi = ms.bbtable.(ms.cblock) in
-  printf "*** NEXT 2\n";
   (match ms.sbranch with
   | None -> 
-  printf "*** NEXT 3\n";
-  printf "**** nextid=%d \n" bi.nextid;
     (* Ordinary branch equality check *)
     (* Enqueue the current program state with the next basic block *)
     let ms' = enqueue bi.nextid ms.pstate ms in
-  printf "*** NEXT 4\n";
     (* Continue and process next block *)
     continue ms'
     
   | Some(label,r1,r2,tb,fb) -> 
-  printf "*** NEXT 5\n";
     (* Special branch handling branch delay slots *)      
     let ms = {ms with sbranch = None} in
-  printf "*** NEXT 6\n";
     continue (ms |> enq label r1 r2 tb |> enq bi.nextid r1 r2 fb))
 
   

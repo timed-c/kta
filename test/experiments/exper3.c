@@ -1,6 +1,6 @@
 
 
-//#include <stdio.h>
+#include <stdio.h>
 
 
 unsigned exper(unsigned len){
@@ -16,6 +16,6 @@ unsigned exper(unsigned len){
 
 
 int main(){
-  unsigned v = exper(3);  //Expected outout: exper(300) = 13410150 = 0xCC9F66
-  //  printf("%d\n",v);
+  unsigned v = exper(50);  //Expected outout: exper(300) = 13410150 = 0xCC9F66
+    printf("%d\n",v);
 }
