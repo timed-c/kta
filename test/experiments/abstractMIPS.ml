@@ -12,12 +12,13 @@ open Aregsimple
 open Amemory
 open Scanf
 open Str
+open Config
 
 let dbg = false
 let dbg_inst = true
 let dbg_debug_intervals = false
   
-let count = ref 0
+
 
 (* ------------------------ TYPES ------------------------------*)  
 
@@ -275,7 +276,11 @@ let enqueue blockid ps ms =
     {ms with prio = work ms.prio}
   
 
-
+let max_batch_size pss =
+  if List.length pss > !config_max_batch_size then
+    [List.fold_left join_pstates (List.hd pss) (List.tl pss)]
+  else
+    pss
   
 (** Picks the block with highest priority.
     Returns the block id,
@@ -299,7 +304,7 @@ let dequeue ms =
          (* No, just pop from the call stack *)
          (match ms.cstack with
           | (retid,prio')::cstackrest ->  
-             {ms with cblock=blockid; pstate=ps; batch=pss;
+             {ms with cblock=blockid; pstate=ps; batch=max_batch_size pss;
                prio=prio'; returnid = retid; cstack=cstackrest;}
           | [] -> should_not_happen 1)
         
@@ -308,13 +313,13 @@ let dequeue ms =
        (* Is this a calling node? *)
        let bs = ms.bbtable.(blockid) in
        if bs.caller then
-         (* Yes, add to the call stack *)
+         (* Yes, add to the call stack *)        
          {ms with
-           cblock=blockid; pstate=ps; batch=pss; prio=[];
+           cblock=blockid; pstate=ps; batch=max_batch_size pss; prio=[];
            cstack = (ms.bbtable.(blockid).nextid,rest)::ms.cstack}
        else
          (* No, just get the last batch *)
-         {ms with cblock=blockid; pstate=ps; batch=pss; prio=rest;}
+         {ms with cblock=blockid; pstate=ps; batch=max_batch_size pss; prio=rest;}
     (* This should never happen. It should end with a terminating 
            block id zero block. *)    
     | _ -> should_not_happen 2)
@@ -450,7 +455,7 @@ let sw rt imm rs ms =
     prn_inst ms (us"sw " ^. 
          (reg2ustr rt) ^. us"=" ^. (preg rt r) ^.
          us(sprintf " imm=%d(" imm) ^.
-         (reg2ustr rs) ^. us"=" ^. (preg rs r) ^. us")"));
+         (reg2ustr rs) ^. us"=" ^. (preg rs r) ^. us")")) else ();
   ps |> updatemem r m |> tick 1 |> to_mstate ms 
 
 
@@ -466,7 +471,7 @@ let lw rt imm rs ms =
     prn_inst ms (us"lw " ^. 
          (reg2ustr rt) ^. us"=" ^. (preg rt r') ^.
          us(sprintf " imm=%d(" imm) ^.
-         (reg2ustr rs) ^. us"=" ^. (preg rs r) ^. us")"));
+         (reg2ustr rs) ^. us"=" ^. (preg rs r) ^. us")")) else ();
   ps |> updatemem r' m |> tick 1 |> to_mstate ms 
 
       
