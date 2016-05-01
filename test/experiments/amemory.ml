@@ -6,7 +6,7 @@ open Config
 
 (* If true, the memory will not set anything and all memory requests will
    return Any *)
-let nomem = true
+let nomem = false
   
 module Mem = Map.Make(
   struct type t = int

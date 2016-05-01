@@ -700,24 +700,30 @@ let analyze_main startblock bblocks args =
   (* Continue the process and execute the next basic block from the queue *)
   continue mstate 
 
+
+
 let _ = if dbg && dbg_trace then Printexc.record_backtrace true else ()
 
-let analyze startblock bblocks args =
-  if dbg && dbg_trace then
-    let v =     
-      try analyze_main startblock bblocks args
-      with _ -> (Printexc.print_backtrace stdout; raise Not_found)
-    in v
-  else
-    analyze_main startblock bblocks args
-
-    
 (** Print main state info *)
 let print_mstate ms =
   printf "Counter: %d\n" !counter;
   printf "BCET:  %d cycles\n" ms.pstate.bcet;
   printf "WCET:  %d cycles\n" ms.pstate.wcet;
   uprint_endline (pprint_pstate 32 ms.pstate)
+
+    
+let analyze startblock bblocks defaultargs =
+  let args = (Array.to_list Sys.argv |> List.tl) in
+  let args = if args = [] then defaultargs else args in
+  if dbg && dbg_trace then
+    let v =     
+      try analyze_main startblock bblocks args |> print_mstate
+      with _ -> (Printexc.print_backtrace stdout; raise Not_found)
+    in v
+  else
+    analyze_main startblock bblocks args |> print_mstate
+
+    
     
   
 

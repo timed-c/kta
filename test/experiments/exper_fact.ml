@@ -62,12 +62,8 @@ let bblocks =
   
 (* -- Start of Analysis -- *)
 
-let main =
-  let args = (Array.to_list Sys.argv |> List.tl) in
-  analyze fact_ bblocks
-    (if args = [] then ["a0=4"]
-                  else args)
-  |> print_mstate
+let main = analyze fact_ bblocks ["a0=4"]
+
 
 
 

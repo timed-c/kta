@@ -53,10 +53,9 @@ let bblocks =
   
 (* -- Start of Analysis -- *)
 
-let main =
-  let args = (Array.to_list Sys.argv |> List.tl) in
-  analyze foo_ bblocks args
-  |> print_mstate
+let main = analyze foo_ bblocks []
+
+
 
 
 

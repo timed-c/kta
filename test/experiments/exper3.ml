@@ -96,13 +96,7 @@ let bblocks =
   
 (* -- Start of Analysis -- *)
 
-let main =
-  let args = (Array.to_list Sys.argv |> List.tl) in
-  analyze exper_ bblocks
-    (if args = [] then ["a0=300"]
-                  else args)
-  |> print_mstate
-
+let main = analyze exper_ bblocks ["a0=300"]
 
 
 (* 
