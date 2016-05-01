@@ -14,18 +14,18 @@ let exper_ret_ = 3
   
 (* -- Program Code -- *)
     
-let rec final ms = ms
+let final ms = ms
     
-and exper ms = ms       |>   
+let exper ms = ms       |>   
     addi  v0 zero 0     |>
     next  
 
-and loop ms = ms        |>
+let loop ms = ms        |>
     add  v0 v0 a0       |>
     addi a0 a0 (-1)     |>	
     bne	 a0 a1 loop_   
 
-and exper_ret  ms = ms  |>
+let exper_ret  ms = ms  |>
     jr   ra             |>
     ret
   

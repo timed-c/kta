@@ -5,17 +5,21 @@
   >> ocamlbuild experiment.native -lib Str -- v0=[1,100]
 *)
 
-open Ustring.Op
-open Printf
+
 open Aint32relint
 open Aregsimple
+  
+open Ustring.Op
+open Printf
 open Amemory
 open Scanf
-open Str
 open Config
+open Str
 
 let dbg = false
+let dbg_trace = true  (* Note that you should compile with exper.d.byte *)  
 let dbg_inst = true
+let dbg_mstate_sizes = false
 let dbg_debug_intervals = false
   
 
@@ -280,7 +284,9 @@ let enqueue blockid ps ms =
         (* No. Go to next *)
         (d,bid,pss)::(work qs)
     (* Block not found. Enqueue *)
-    | qs -> (dist,blockid,[ps])::qs)
+    | qs ->
+        (dist,blockid,[ps])::qs
+    )
   in
     {ms with prio = work ms.prio}
   
@@ -338,10 +344,18 @@ let dequeue ms =
 
 (* Continue and execute the next basic block in turn *)
 let continue ms =
+  (* Debug output for the mstate *)
+  if dbg && dbg_mstate_sizes then (
+    printf "-----------------\n";
+    printf "blockid = %d, pc = %d, batch size = %d, prio queue size = %d\n"
+      ms.cblock ms.pc (List.length ms.batch) (List.length ms.prio);
+    printf "cstack size %d\n" (List.length ms.cstack))
+  else ();
   let ms = dequeue ms in
   let ms = {ms with pc = ms.bbtable.(ms.cblock).addr} in 
   let bi = ms.bbtable.(ms.cblock) in
   bi.func ms 
+
 
     
 let to_mstate ms ps =
@@ -364,7 +378,7 @@ let r_instruction binop rd rs rt ms =
   let (r,v_rs) = getreg rs r in
   let (r,v_rt) = getreg rt r in
   let r' = setreg rd (binop v_rs v_rt) r in
-  if dbg then uprint_endline (us" " ^. 
+  if dbg && dbg_inst then uprint_endline (us" " ^. 
         (reg2ustr rd) ^. us"=" ^. (preg rd r') ^. us" " ^.
         (reg2ustr rs) ^. us"=" ^. (preg rs r) ^. us" " ^.
         (reg2ustr rt) ^. us"=" ^. (preg rt r) ) else ();
@@ -427,7 +441,7 @@ let enq blabel regt regf bval ms =
     enqueue blabel ps ms
   | None -> ms
 
-    
+      
 let branch_main equal dslot op rs rt label ms =
   match ms.sbranch with
   | None -> (
@@ -528,11 +542,6 @@ let bnel =
                    false false aint32_test_equal
   else branch_main false false aint32_test_equal
 
-
-
-
-
-    
     
 (* Count cycles for the return. The actual jump is performed
    by the pseudo instruction 'ret'. The reason is that
@@ -619,11 +628,11 @@ let nosbranch ms =
         
 (* Go to next basic block. Special handling if branch delay slot. *)
 let next ms =
-  if dbg then prn_inst ms (us"next");
   (* Get the block info for the current basic block *)
  let bi = ms.bbtable.(ms.cblock) in
   (match ms.sbranch with
   | None -> 
+    if dbg then prn_inst ms (us(sprintf "next id=%d" bi.nextid));
     (* Ordinary branch equality check *)
     (* Enqueue the current program state with the next basic block *)
     let ms' = enqueue bi.nextid ms.pstate ms in
@@ -631,6 +640,8 @@ let next ms =
     continue ms'
     
   | Some(label,r1,r2,tb,fb) -> 
+    if dbg then prn_inst ms
+      (us(sprintf "next (delay slot) label=%d nextid=%d" label bi.nextid));
     (* Special branch handling branch delay slots *)      
     let ms = {ms with sbranch = None} in
     continue (ms |> enq label r1 r2 tb |> enq bi.nextid r1 r2 fb))
@@ -641,7 +652,7 @@ let next ms =
 
 (* Return from a function. Pseudo-instruction that does not take time *)    
 let ret ms =
-  if dbg then prn_inst ms (us"ret");
+  if dbg then prn_inst ms (us(sprintf "ret returnid=%d" ms.returnid));
   continue (enqueue ms.returnid ms.pstate ms)
 
 (* load immediate interval *)
@@ -656,15 +667,15 @@ let lii rd l h ms =
 (* ------------------- MAIN ANALYSIS FUNCTIONS ----------------------*)
     
 (** Main function for analyzing an assembly function *)
-let analyze startblock bblocks args =
-  
+let analyze_main startblock bblocks args =
   (* Get the block info of the first basic block *)  
   let bi = bblocks.(startblock) in
 
   (* Update the program states with abstract inputs from program arguments *)
-  let ps =
+  let ps = 
     try pstate_input init_pstate args
-    with Failure s -> (printf "Error: %s\n" s; exit 1) in
+      with Failure s -> (printf "Error: %s\n" s; exit 1) in 
+
 
   (* Initiate the stack pointer *)
   let stack_addr = 0x80000000 - 8 in
@@ -688,11 +699,22 @@ let analyze startblock bblocks args =
 
   (* Continue the process and execute the next basic block from the queue *)
   continue mstate 
-  
 
+let _ = if dbg && dbg_trace then Printexc.record_backtrace true else ()
+
+let analyze startblock bblocks args =
+  if dbg && dbg_trace then
+    let v =     
+      try analyze_main startblock bblocks args
+      with _ -> (Printexc.print_backtrace stdout; raise Not_found)
+    in v
+  else
+    analyze_main startblock bblocks args
+
+    
 (** Print main state info *)
 let print_mstate ms =
-  printf "Count: %d\n" !count;
+  printf "Counter: %d\n" !counter;
   printf "BCET:  %d cycles\n" ms.pstate.bcet;
   printf "WCET:  %d cycles\n" ms.pstate.wcet;
   uprint_endline (pprint_pstate 32 ms.pstate)

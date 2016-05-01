@@ -1,11 +1,12 @@
-
-open Aint32relint
+open Aint32relint  
+  
 open Printf
 open Config
 
+
 (* If true, the memory will not set anything and all memory requests will
    return Any *)
-let nomem = false
+let nomem = true
   
 module Mem = Map.Make(
   struct type t = int
@@ -31,7 +32,6 @@ let set_memval addr v mem =
 (** Returns a tuple, (mem',val), where mem' is the updated
     abstract memory *)
 let get_memval addr mem =
-              count := !count + 1;
   if nomem then (mem, aint32_any)
   else
     let rec getmem_internal addr mem =      

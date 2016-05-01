@@ -16,6 +16,6 @@ unsigned exper(unsigned len){
 
 
 int main(){
-  unsigned v = exper(50);  //Expected outout: exper(300) = 13410150 = 0xCC9F66
+  unsigned v = exper(1000);  //Expected outout: exper(300) = 13410150 = 0xCC9F66
     printf("%d\n",v);
 }

@@ -1,5 +1,7 @@
 
-open Aint32relint
+open Aint32relint 
+  
+open Printf
 
 type registers = |R0 |R1 |R2 |R3 |R4 |R5 |R6 |R7
                  |R8 |R9 |R10|R11|R12|R13|R14|R15
@@ -62,6 +64,10 @@ let getreg r areg =
   | R14 -> areg.reg14        | R30 -> areg.reg30 
   | R15 -> areg.reg15        | R31 -> areg.reg31
   in
+(*  let v = reg r areg in
+  aint32_print_debug v;
+    (areg, v) *)
+
   (areg,reg r areg)
 
     
@@ -70,7 +76,8 @@ let getreg r areg =
     areg = program state
     returns the new abstract program state. *)
 let setreg r v areg =
-  match r with
+    (*  aint32_print_debug v; *)
+    match r with
   | R0   -> areg                   | R16 -> {areg with reg16 = v}
   | R1   -> {areg with reg1 = v}   | R17 -> {areg with reg17 = v}
   | R2   -> {areg with reg2 = v}   | R18 -> {areg with reg18 = v}

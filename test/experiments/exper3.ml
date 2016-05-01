@@ -2,7 +2,7 @@
 open Printf
 open AbstractMIPS 
 open Ustring.Op
-
+  
 (* -- Basic Block Identifiers -- *)
 
 let final_     = 0
@@ -19,67 +19,66 @@ let l1_        = 10
 let exper_ret_ = 11
   
 (* -- Program Code -- *)
-    
-let rec final ms = ms
 
-and exper ms = ms        |>
+let final ms = ms  
+
+let exper ms = ms        |>
   beqds   a0 zero l1_    |>
   addu    a2 zero zero   |>
   next
 
-and ex1 ms = ms          |>
+let ex1 ms = ms          |>
   addu    v0 zero zero   |>
   next  
 
-and l3 ms = ms           |>
+let l3 ms = ms           |>
   addiu   a2 a2 1        |>
   beqds   a2 a0 l2_      |>
   sll     zero zero 0    |>
   next
 
-and l5 ms = ms           |>
+let l5 ms = ms           |>
   blezds  a2 l3_         |>
   addu    v1 a2 zero     |>
   next
   
-and ex2  ms = ms         |>
+let ex2  ms = ms         |>
   sll     a1 a2 1        |>
   addu    v0 v0 v1       |>
   next
 
-and l4 ms = ms            |>
-  addiu   v1 v1 1         |>
-  bnel    a1 v1 l4likely_ |>
-  next
+let l4 ms = ms           |>
+  addiu   v1 v1 1        |>
+  bnel    a1 v1 l4likely_ 
 
-and l4likely  ms = ms    |>
+let l4likely  ms = ms    |>
   addu    v0 v0 v1       |>
   next     
 
-and ex3 ms = ms          |>
+let ex3 ms = ms          |>
   addiu   a2 a2 1        |>
   bneds   a2 a0 l5_      |>
   sll     zero zero 0    |>
   next
-  
-and l2 ms = ms           |>
+
+let l2 ms = ms           |>
   jrds    ra             |>
   sll     zero zero 0    |>
   next 
     
-and l1 ms = ms           |>
+let l1 ms = ms           |>
   jrds    ra             |>
   addu    v0 zero zero   |>
   next
 
-and exper_ret ms = ms    |>
+let exper_ret ms = ms    |>
   ret
-  
+   
 (* -- Basic Block Info -- *)
     
 let bblocks =
 [|
-  {func=final;    name="final";    nextid=final_;     dist=0; addr=0x00000000; caller=false};
+  {func=final;    name="final";    nextid=na_;        dist=0; addr=0x00000000; caller=false};
   {func=exper;    name="exper";    nextid=ex1_;       dist=8; addr=0x00000000; caller=false};
   {func=ex1;      name="ex1";      nextid=l3_;        dist=7; addr=0x00000000; caller=false};
   {func=l3;       name="l3";       nextid=l5_;        dist=6; addr=0x00000000; caller=false};
