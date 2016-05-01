@@ -53,7 +53,8 @@ type compOpTypes =
 (*| OpTa_Args  *)
 | OpTa_Exhaustive
 | OpTa_OutputPathInputs    
-
+| OpWCET_CPSOCaml
+    
 (* List of compiler options *)
 let extra_options = 
   [(OpCompile,     Uargs.No, us"-compile",     us"",
@@ -123,6 +124,12 @@ let ta_options =
   @ extra_options
     
 
+(* List of disasm command options *)
+let wcet_options = 
+  [(OpWCET_CPSOCaml, Uargs.No,  us"-cpsocaml",  us"",
+       us"Output the OCaml continuation passing style (CPS) code used for analysis.")]
+  @ extra_options
+
     
 (* Temp file name that is used if the program needs to be compiled *)
 let tmpfile = "temp-file-090916-070704.tmp"
@@ -170,7 +177,7 @@ let help command toptext =
 (* ---------------------------------------------------------------------*)
 let getBinFileName ops args =
   let sargs = List.map Ustring.to_utf8 args in
- if Uargs.has_op OpCompile ops then   
+ if Uargs.has_op OpCompile ops || List.exists (Ustring.ends_with (us".c")) args then   
     try   
       MipsSys.pic32_compile sargs false (Uargs.has_op OpOptimize ops) tmpfile; tmpfile
     with Sys_error m -> raise (Uargs.Error (us"Compilation error: " ^. us m))
@@ -186,22 +193,36 @@ let remove_tempfile() =
 
 (* ---------------------------------------------------------------------*)
 let parse_ops_get_filename args options =
+  let rec partition_str lst files names =
+    match lst with
+    | n::ns ->
+        if names = [] then
+          try let _ = Ustring.rindex n (uc('.')) in
+              partition_str ns (n::files) names
+          with _ -> partition_str ns files (n::names)
+        else
+          partition_str ns files (n::names)
+    | [] -> (List.rev files, List.rev names)
+  in
+  
   (* Parse options*)
   let (ops,args) = Uargs.parse args options in
 
+  let (args,funcargs) = partition_str args [] [] in
+  
   (* Enable verbose mode, if selected *)
   if Uargs.has_op OpVerbose ops then MipsSys.verbose true;
 
   (* Get the binary file name *)
   let binfile_name = getBinFileName ops args in
-  (ops,args,binfile_name)
+  (ops,args,binfile_name,funcargs)
 
 
 (* ---------------------------------------------------------------------*)
 let disasm_command args =
   try
     (* Parse options and get the binary file name *)
-    let (ops,args,binfile_name) = parse_ops_get_filename args disasm_options in
+    let (ops,args,binfile_name,_) = parse_ops_get_filename args disasm_options in
 
     (* Read program *)
     let prog =  MipsUtils.add_branch_symbols (MipsSys.get_program binfile_name) in
@@ -225,7 +246,7 @@ let exec_command args =
   let stack_addr = stack_ptr - stack_size + 8 in
   
   (* Parse options and get the binary file name *)
-  let (ops,args,binfile_name) = parse_ops_get_filename args exec_options in
+  let (ops,args,binfile_name,_) = parse_ops_get_filename args exec_options in
 
   (* Get the function name *)
   let func =
@@ -292,7 +313,7 @@ let exec_command args =
 let sections_command args =
 
   (* Parse options and get the binary file name *)
-  let (ops,args,binfile_name) = parse_ops_get_filename args sym_options in
+  let (ops,args,binfile_name,_) = parse_ops_get_filename args sym_options in
 
   (* Read the symbol table *)
   let sections_list =
@@ -313,7 +334,7 @@ let sections_command args =
 let sym_command args =
 
   (* Parse options and get the binary file name *)
-  let (ops,args,binfile_name) = parse_ops_get_filename args sym_options in
+  let (ops,args,binfile_name,_) = parse_ops_get_filename args sym_options in
 
   (* Read the symbol table *)
   let symtbl =
@@ -352,7 +373,7 @@ let ta_command args =
   let stack_addr = stack_ptr - stack_size + 8 in
 
   (* Parse options and get the binary file name *)
-  let (ops,args,binfile_name) = parse_ops_get_filename newargs ta_options in
+  let (ops,args,binfile_name,_) = parse_ops_get_filename newargs ta_options in
         
   (* Perform the timing analysis *)
   try (
@@ -426,4 +447,34 @@ let ta_command args =
   | Sys_error m -> (raise (Uargs.Error (us"System error: " ^. us m)))
 
 
+(* ---------------------------------------------------------------------*)
+let wcet_command args =
+  
+  (* Parse options and get the binary file name *)
+  let (ops,args,binfile_name,funcargs) = parse_ops_get_filename args wcet_options in
 
+  (* Get function name. Should be better error control of input here... TODO *)
+  let func_name = List.hd funcargs in
+
+  (* Load the program *)
+  let prog = MipsSys.get_program binfile_name |>  MipsUtils.add_branch_symbols in
+
+
+  MipsCfg.test prog (Ustring.to_utf8 func_name);
+  
+  func_name
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    

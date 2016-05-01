@@ -72,6 +72,11 @@ val ta_command : string list -> ustring
     [args].  Raises exception Uargs.Error if there is an error *)
 
 
+val wcet_command : string list -> ustring
+(** [wcet_command args] executes the [wcet] command with the arguments
+    [args].  Raises exception Uargs.Error if there is an error *)
+
+  
 
 
 

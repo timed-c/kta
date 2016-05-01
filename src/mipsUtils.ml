@@ -111,7 +111,7 @@ let decode ?(bigendian=false) data =
 
   
 (* ---------------------------------------------------------------------*)
-let reg x = us(
+let reg_asm x = us(
   match x with
   | 0  -> "$0"
   | 1  -> "$at"
@@ -148,31 +148,69 @@ let reg x = us(
   | _  -> failwith "Not a register.")
 
 
+let reg_ocaml x = us(
+  match x with
+  | 0  -> "zero"
+  | 1  -> "at"
+  | 2  -> "v0"
+  | 3  -> "v1"
+  | 4  -> "a0"
+  | 5  -> "a1"
+  | 6  -> "a2"
+  | 7  -> "a3"
+  | 8  -> "t0"
+  | 9  -> "t1"
+  | 10 -> "t2"
+  | 11 -> "t3"
+  | 12 -> "t4"
+  | 13 -> "t5"
+  | 14 -> "t6"
+  | 15 -> "t7"
+  | 16 -> "s0"
+  | 17 -> "s1"
+  | 18 -> "s2"
+  | 19 -> "s3"
+  | 20 -> "s4"
+  | 21 -> "s5"
+  | 22 -> "s6"
+  | 23 -> "s7"
+  | 24 -> "t8"
+  | 25 -> "t9"
+  | 26 -> "k0"
+  | 27 -> "k1"
+  | 28 -> "gp"
+  | 29 -> "sp"
+  | 30 -> "fp"
+  | 31 -> "ra"
+  | _  -> failwith "Not a register.")
+ 
+
 
 (* ---------------------------------------------------------------------*)
-let pprint_reg x = reg x
+let pprint_reg x = reg_asm x
 
-let com = us","
+
 let lparan = us"("
 let rparan = us")"
 
 
 
 (* ---------------------------------------------------------------------*)
-let pprint_inst inst = 
+let pprint_inst_general inst com reg int2str delayslot = 
   let rdst rd rs rt = (reg rd) ^. com ^. (reg rs) ^. com ^. (reg rt) in
   let rdts rd rt rs = rdst rd rt rs in
   let rst rs rt = (reg rs) ^. com ^. (reg rt) in
-  let rtsi rt rs imm = (reg rt) ^. com ^. (reg rs) ^. com ^. ustring_of_int imm in
+  let rtsi rt rs imm = (reg rt) ^. com ^. (reg rs) ^. com ^. int2str imm in
   let rtsis rt rs imm s = (reg rt) ^. com ^. (reg rs) ^. com ^. 
-                  if String.length s <> 0 then us s else ustring_of_int imm in
+                  if String.length s <> 0 then us s else int2str imm in
   let rsis rt imm s = (reg rt) ^. com ^. 
-                  if String.length s <> 0 then us s else ustring_of_int imm in
-  let rti  rt imm = (reg rt) ^. com ^. ustring_of_int imm in
-  let rtis rt imm rs = (reg rt) ^. com ^. ustring_of_int imm ^. 
+                  if String.length s <> 0 then us s else int2str imm in
+  let rti  rt imm = (reg rt) ^. com ^. int2str imm in
+  let rtis rt imm rs = (reg rt) ^. com ^. int2str imm ^. 
                        lparan ^. (reg rs) ^. rparan in  
   let dta  rd rt shamt = rtsi rd rt shamt in
   let istr is = Ustring.spaces_after (us is) 8 in
+  let istrds is = Ustring.spaces_after (us(if delayslot then (is ^ "ds") else is)) 8 in
   let address a s = if String.length s <> 0 then us s else us(sprintf "0x%x" a) in
   match inst with
   | MipsADD(rd,rs,rt)     -> (istr "add") ^. (rdst rd rs rt)
@@ -181,18 +219,18 @@ let pprint_inst inst =
   | MipsADDU(rd,rs,rt)    -> (istr "addu") ^. (rdst rd rs rt)
   | MipsAND(rd,rs,rt)     -> (istr "and") ^. (rdst rd rs rt)
   | MipsANDI(rt,rs,imm)   -> (istr "andi") ^. (rtsi rt rs imm)
-  | MipsBEQ(rs,rt,imm,s)  -> (istr "beq") ^. (rtsis rs rt imm s)
-  | MipsBEQL(rs,rt,imm,s) -> (istr "beql") ^. (rtsis rs rt imm s)
-  | MipsBGEZ(rs,imm,s)    -> (istr "bgez") ^. (rsis rs imm s)    
-  | MipsBGTZ(rs,imm,s)    -> (istr "bgtz") ^. (rsis rs imm s)    
-  | MipsBLEZ(rs,imm,s)    -> (istr "blez") ^. (rsis rs imm s)    
-  | MipsBLTZ(rs,imm,s)    -> (istr "bltz") ^. (rsis rs imm s)    
-  | MipsBNE(rs,rt,imm,s)  -> (istr "bne") ^. (rtsis rs rt imm s)    
-  | MipsBNEL(rs,rt,imm,s) -> (istr "bnel") ^. (rtsis rs rt imm s)
-  | MipsJALR(rs)          -> (istr "jalr") ^. (reg rs)
-  | MipsJR(rs)            -> (istr "jr") ^. (reg rs)
-  | MipsJ(addr,s)         -> (istr "j") ^. (address addr s)
-  | MipsJAL(addr,s)       -> (istr "jal") ^. (address addr s)
+  | MipsBEQ(rs,rt,imm,s)  -> (istrds "beq") ^. (rtsis rs rt imm s)
+  | MipsBEQL(rs,rt,imm,s) -> (istrds "beql") ^. (rtsis rs rt imm s)
+  | MipsBGEZ(rs,imm,s)    -> (istrds "bgez") ^. (rsis rs imm s)    
+  | MipsBGTZ(rs,imm,s)    -> (istrds "bgtz") ^. (rsis rs imm s)    
+  | MipsBLEZ(rs,imm,s)    -> (istrds "blez") ^. (rsis rs imm s)    
+  | MipsBLTZ(rs,imm,s)    -> (istrds "bltz") ^. (rsis rs imm s)    
+  | MipsBNE(rs,rt,imm,s)  -> (istrds "bne") ^. (rtsis rs rt imm s)    
+  | MipsBNEL(rs,rt,imm,s) -> (istrds "bnel") ^. (rtsis rs rt imm s)
+  | MipsJALR(rs)          -> (istrds "jalr") ^. (reg rs)
+  | MipsJR(rs)            -> (istrds "jr") ^. (reg rs)
+  | MipsJ(addr,s)         -> (istrds "j") ^. (address addr s)
+  | MipsJAL(addr,s)       -> (istrds "jal") ^. (address addr s)
   | MipsLB(rt,imm,rs)     -> (istr "lb") ^. (rtis rt imm rs)
   | MipsLBU(rt,imm,rs)    -> (istr "lbu") ^. (rtis rt imm rs)
   | MipsLUI(rt,imm)       -> (istr "lui") ^. (rti rt imm)
@@ -229,7 +267,16 @@ let pprint_inst inst =
   | MipsXORI(rt,rs,imm)   -> (istr "xori") ^. (rtsi rt rs imm)
   | MipsUnknown(inst)     -> us(sprintf "[0x%x]" inst)
 
+(* ---------------------------------------------------------------------*)
+let pprint_inst inst = 
+  pprint_inst_general inst (us",") reg_asm ustring_of_int false
 
+(* ---------------------------------------------------------------------*)
+let pprint_inst_ocaml inst = 
+  pprint_inst_general inst (us" ") reg_ocaml
+    (fun x -> if x < 0 then us"(" ^. ustring_of_int x ^. us")" else ustring_of_int x)
+    true    
+    
 (* ---------------------------------------------------------------------*)
 let pprint_inst_list instlst  = 
   (Ustring.concat (us"\n") (List.map pprint_inst instlst)) ^. us"\n"

@@ -19,6 +19,10 @@ val pprint_reg : int -> ustring
 val pprint_inst : MipsAst.inst ->  ustring
 (** [pprint_inst inst ] pretty prints one instruction [inst]. *)
 
+val pprint_inst_ocaml : MipsAst.inst ->  ustring
+(** [pprint_inst_ocaml inst ] pretty prints one instruction [inst]
+    using the ocaml syntax used in wcet analysis code. *)
+  
 
 val pprint_inst_list :  MipsAst.inst list -> ustring
 (** [pprint_inst lst] pretty prints the list [lst] of
@@ -56,6 +60,8 @@ val pprint_bytes : bytes -> int -> int -> int -> bool -> ustring
     byte array [b], starting at index [i], assuming that the first address is [addr] *)
 
 
+
+  
 
 
 
