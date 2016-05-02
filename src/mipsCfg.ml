@@ -249,7 +249,7 @@ let pprint_ocaml_cps_from_cfg nice_output cfg prog k =
                else cfglst
   in        
   List.fold_left (fun (lst,k,a) (name,block) ->
-    ((name,k)::lst,k+1,a ^. pprint_bblock name block ^. us"\n")
+    ((name,k,block)::lst,k+1,a ^. pprint_bblock name block ^. us"\n")
   ) ([],k,us"") cfglst
     
 
@@ -282,42 +282,56 @@ let pprint_ocaml_cps_from_cfgmap nice_output name cfgmap prog =
     let acc = acc ^. us"(* Function: " ^. us(name) ^. us" *)\n\n" ^. cfgstr ^. us"\n" in
     (lst'@lst,k,acc) 
   ) ([],1,us"") cfglst in
-  let namelist = List.rev namelist_rev in
-
-  (* final identifier *)
-  let finalid = Ustring.spaces_after (us"let final_") identifier_padding ^. us("= 0\n" ) in
+  let namelist =
+    ("final",0,{block_addr=0; block_code=[];
+     block_exit=ExitTypeReturn; block_dist=0})::(List.rev namelist_rev) in
 
   let final_block = us"let final ms = ms\n\n" in
   
   (* Pretty print identifier list *)
-  let ident_list = (List.fold_left (fun acc (n,k) ->
+  let ident_list = (List.fold_left (fun acc (n,k,_) ->
     acc ^. Ustring.spaces_after (us"let " ^. us n ^. us"_") identifier_padding ^.
     us(sprintf "= %d\n" k)
   ) (us"") namelist) ^. us"\n"
-  in    
+  in
+
+  (* Get the next block id, or "na" if there is no next id *)
+  let getNextId block =
+    match block.block_exit with
+    | ExitTypeNext(id) | ExitTypeBranch(_,id) | ExitTypeBrLikely(_,id) |
+      ExitTypeJump(id) | ExitTypeCall(_,id) -> us id
+    | ExitTypeReturn -> us"na"
+  in
+
+  (* Returns a "true" string if the block is a caller, else a "false" string *)
+  let isCaller block =
+    match block.block_exit with
+    | ExitTypeCall(_,_) -> us"true"
+    | _ -> us"false"
+  in  
 
   (* Pretty print the basic block table *)
   let bbtable_start = us"let bblocks =\n[|\n" in
   let bbtable_end = us"|]\n\n" in
-  let bbtable_list = List.fold_left (fun acc (n,_) ->
+  let bbtable_list = List.fold_left (fun acc (n,_,b) ->
     acc ^. us"{" ^.
-    Ustring.spaces_after (us"func=" ^. us n ^. us";") 18 ^.
-    Ustring.spaces_after (us"name=\"" ^. us n ^. us"\";") 18 ^.
-    Ustring.spaces_after (us"nextid=" ^. us"\";") 18 ^.
-    Ustring.spaces_after (us"dist=" ^. us"\";") 18 ^.
-    Ustring.spaces_after (us"addr=" ^. us"\";") 18 ^.
-    Ustring.spaces_after (us"caller=" ^. us"\";") 18 ^.
+    Ustring.spaces_after (us"func=" ^. us n ^. us";") 14 ^.
+    Ustring.spaces_after (us"name=\"" ^. us n ^. us"\";") 15 ^.
+    Ustring.spaces_after (us"nextid=" ^. getNextId b ^. us"_;") 14 ^.
+    Ustring.spaces_after (us"dist=" ^. us(sprintf "%d" b.block_dist) ^. us";") 10 ^.
+    (us"addr=" ^. us(sprintf "0x%08x" b.block_addr) ^. us"; ")  ^.
+    (us"caller=" ^. isCaller b ^. us";") ^.
     us"};\n"  
   ) (us"") namelist
   in
   let bbtable = bbtable_start ^. bbtable_list ^. bbtable_end in
-
+  
   (* Analyze text *)
   let analyze = us"(* -- Start of Analysis -- *)\n\n" ^.    
     us"let main = analyze " ^. us name ^. us"_ bblocks []\n" in
   
   (* Return the complete .ml file *)
-  intro ^. finalid ^. ident_list ^. blocks_header ^.
+  intro ^. ident_list ^. blocks_header ^.
   final_block ^. basic_blocks ^. bbtable ^. analyze
     
       
