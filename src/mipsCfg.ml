@@ -60,18 +60,20 @@ let s2a prog sym = MipsAst.Sym2Addr.find sym prog.sym2addr
    codelist the code list for the basic block, and exittype the actual [exittype]. *)
 let rec getblockcode prog addr acc_code =
   let inst = prog.code.(getinstidx prog addr) in
+  let ds_help prog = 
+    let inst_ds = prog.code.(getinstidx prog (addr+4)) in
+    let (prog,next_addr_sym) = mksym_from_addr prog (addr+8) in    
+    let codelist = List.rev (inst_ds::inst::acc_code) in
+    (prog,codelist,next_addr_sym)
+  in
   match inst with
   | MipsBEQ(_,_,_,s)  | MipsBGEZ(_,_,s) | MipsBGTZ(_,_,s) |
     MipsBLEZ(_,_,s) | MipsBLTZ(_,_,s) | MipsBNE(_,_,_,s) 
-    ->
-    let inst_ds = prog.code.(getinstidx prog (addr+4)) in
-    let (prog,next_addr_sym) = mksym_from_addr prog (addr+8) in    
-    let codelist = List.rev (inst_ds::inst::acc_code) in
+      ->
+    let (prog,codelist,next_addr_sym) = ds_help prog in
     (prog,codelist,ExitTypeBranch(s,next_addr_sym))
   | MipsBEQL(_,_,_,s) | MipsBNEL(_,_,_,s) ->
-    let inst_ds = prog.code.(getinstidx prog (addr+4)) in
-    let (prog,next_addr_sym) = mksym_from_addr prog (addr+8) in    
-    let codelist = List.rev (inst_ds::inst::acc_code) in
+    let (prog,codelist,next_addr_sym) = ds_help prog in
     (prog,codelist,ExitTypeBrLikely(s,next_addr_sym))
   | MipsJALR(rs) -> failwith "JALR not implemented yet"
   | MipsJR(rs) ->
@@ -83,11 +85,10 @@ let rec getblockcode prog addr acc_code =
        (prog,codelist,ExitTypeReturn)
      else failwith "Indirect jumps (used in switch statements) are not supported."
   | MipsJ(_,s) ->
-    let codelist = List.rev (inst::acc_code) in
+    let (prog,codelist,_) = ds_help prog in
     (prog,codelist,ExitTypeJump(s))
   | MipsJAL(_,s) ->
-    let (prog,next_addr_sym) = mksym_from_addr prog (addr+4) in     
-    let codelist = List.rev (inst::acc_code) in
+    let (prog,codelist,next_addr_sym) = ds_help prog in
     (prog,codelist,ExitTypeCall(s,next_addr_sym))
   | _ ->
     try let sym = MipsAst.Addr2Sym.find (addr+4) prog.addr2sym in
@@ -168,7 +169,9 @@ let make_cfg addr prog =
   let rec make_common_exit_node prog oldgraph =
     let (returns,graph) = BlockMap.partition
       (fun _ block -> match block.block_exit with| ExitTypeReturn -> true | _ -> false) oldgraph in
-    if BlockMap.cardinal returns = 1 then (prog,oldgraph)
+    if BlockMap.cardinal returns = 1 then
+      let exit_node = BlockMap.bindings returns |> List.hd |> fst in
+      (prog,oldgraph,exit_node)
     else
       let (prog,addr,sym) = new_unique_symaddr prog in
       let graph = BlockMap.fold (fun name block graph -> (
@@ -177,7 +180,7 @@ let make_cfg addr prog =
       )) returns graph in
       let retblock = {block_addr=0; block_code=[]; block_exit=ExitTypeReturn; block_dist=0} in
       let graph = BlockMap.add sym retblock graph in
-      (prog,graph)
+      (prog,graph,sym)
   in
   (* Create entry node symbol *)
   let (prog,entry_node) = mksym_from_addr prog addr in
@@ -186,9 +189,7 @@ let make_cfg addr prog =
   (* Expand likely nodes *)
   let (prog,graph) = expand_likely prog graph in
   (* Make sure that there is only one exit node *)
-  let (prog,graph) = make_common_exit_node prog graph in
-  (* Create exit node *)
-  let exit_node = "no_exit_yet" in
+  let (prog,graph,exit_node) = make_common_exit_node prog graph in
   (* Construct and return the control flow graph *)
   let cfg = {
       entry_node = entry_node; 
@@ -198,11 +199,25 @@ let make_cfg addr prog =
   (prog,cfg,funccalls)
   
 
-
-
-
-let make_cfgmap program = MipsAst.CfgMap.empty
-
+(* Construct the CFG map of the whole program.
+   Returns tuple (prog,cfgmap)  *)
+let make_cfgmap startname prog =
+  let rec traverse prog cfgmap visited funccalls =
+    match funccalls with
+    | f::fs ->
+      let addr = s2a prog f in
+      if IntSet.mem addr visited then
+        traverse prog cfgmap visited fs
+      else              
+        let (prog,cfg,newcalls) = make_cfg addr prog in
+        let cfgmap = CfgMap.add f cfg cfgmap in
+        let visited = IntSet.add addr visited in
+        traverse prog cfgmap visited (newcalls@funccalls)
+    | [] -> (prog,cfgmap)
+  in
+    traverse prog CfgMap.empty IntSet.empty [startname]
+    
+  
 
 (* Pretty print one basic block *)
 let pprint_bblock name block =
@@ -237,15 +252,40 @@ let pprint_ocaml_cps_from_cfg nice_output cfg prog =
   ) (us"") cfglst
     
 
- 
+
+    
+(* Pretty print a whole program as an analyzable .ml file *)  
+let pprint_ocaml_cps_from_cfgmap nice_output cfgmap prog =
+  (* Sort the CFGs according to memory addresses *)
+  let cfglst = CfgMap.bindings cfgmap in
+  let cfglst =
+    if nice_output then cfglst 
+    |> List.map (fun (s,b) -> (s2a prog s,(s,b)))
+    |> List.fast_sort (fun (k1,_) (k2,_) -> compare k1 k2) 
+    |> List.split |> snd
+    else cfglst
+  in
+    
+  (* Pretty print all basic blocks from all CFGs *)
+  let basic_blocks = List.fold_left (fun acc (name,cfg) ->
+    acc ^. us"(* Function: " ^. us(name) ^. us" *)\n\n" ^.
+    pprint_ocaml_cps_from_cfg true cfg prog ^. us"\n"
+  ) (us"") cfglst in
+
+  (* Return the complete .ml file *)
+  basic_blocks
+    
+    
   
-let pprint_ocaml_cps_from_funcmap funcmap = us"NOP"
+
+  
 
   
   
 let test prog fname =
-  let (prog,cfg1,_) = make_cfg (Sym2Addr.find fname prog.sym2addr) prog in
-  uprint_endline (pprint_ocaml_cps_from_cfg true cfg1 prog);    
+  let (prog,cfgmap) = make_cfgmap fname prog in
+  printf "### %d\n" (CfgMap.cardinal cfgmap);
+  uprint_endline (pprint_ocaml_cps_from_cfgmap true cfgmap prog);
   printf "Yes, length of code: %d\n" (Array.length prog.code);
     
 
