@@ -461,8 +461,7 @@ let wcet_command args =
 
 
   MipsCfg.test prog (Ustring.to_utf8 func_name);
-  
-  func_name
+  us""
 
 
 

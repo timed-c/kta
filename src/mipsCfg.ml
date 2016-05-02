@@ -200,6 +200,50 @@ let make_cfg addr prog =
   (prog,cfg,funccalls)
   
 
+(* Creates a mapping: bblockid -> bblockid list *)
+module BackMap = Map.Make(String)
+type backkmap = (bblockid list) BackMap.t
+module StringSet = Set.Make(String)
+  
+(* Assign distances to a control flow graph *)
+let assign_distances cfg =
+  (* Create the nodes for a back-edge graph *)
+  let bgraph = BlockMap.fold (fun k b a -> BackMap.add k [] a)
+    cfg.cfg_graph BackMap.empty in
+
+  (* Create the graph with back edges *)
+  let bgraph = BlockMap.fold (fun k b a ->
+    match b.block_exit with
+    | ExitTypeNext(id) | ExitTypeJump(id) | ExitTypeCall(_,id) 
+      -> BackMap.add id (k::(BackMap.find id a)) a
+    | ExitTypeBranch(id1,id2) | ExitTypeBrLikely(id1,id2) 
+      -> let a = BackMap.add id1 (k::(BackMap.find id1 a)) a in
+         BackMap.add id2 (k::(BackMap.find id2 a)) a
+    | ExitTypeReturn -> a      
+  ) cfg.cfg_graph bgraph in
+
+  (* Compute the distance properties using shortest path *)
+  let rec shortest_path next dist graph =    
+    let (graph,next) = List.fold_left (fun (graph,next) v ->
+      List.fold_left (fun (graph,next) w ->
+        let block = (BlockMap.find w graph) in
+        if block.block_dist = 0 && w != cfg.exit_node then
+          let block = {block with block_dist = dist} in
+          let graph = BlockMap.add w block graph in
+          (graph,w::next)
+        else
+          (graph,next)          
+      ) (graph,next) (BackMap.find v bgraph)         
+    ) (graph,[]) next
+    in
+    if next = [] then graph
+    else shortest_path next (dist+1) graph
+  in
+  let graph = shortest_path [cfg.exit_node] 1 cfg.cfg_graph in
+  {cfg with cfg_graph = graph}
+ 
+
+    
 (* Construct the CFG map of the whole program.
    Returns tuple (prog,cfgmap)  *)
 let make_cfgmap startname prog =
@@ -211,12 +255,13 @@ let make_cfgmap startname prog =
         traverse prog cfgmap visited fs
       else              
         let (prog,cfg,newcalls) = make_cfg addr prog in
+        let cfg = assign_distances cfg in
         let cfgmap = CfgMap.add f cfg cfgmap in
         let visited = IntSet.add addr visited in
         traverse prog cfgmap visited (newcalls@funccalls)
     | [] -> (prog,cfgmap)
   in
-    traverse prog CfgMap.empty IntSet.empty [startname]
+  traverse prog CfgMap.empty IntSet.empty [startname]
     
   
 
@@ -333,8 +378,27 @@ let pprint_ocaml_cps_from_cfgmap nice_output name cfgmap prog =
   (* Return the complete .ml file *)
   intro ^. ident_list ^. blocks_header ^.
   final_block ^. basic_blocks ^. bbtable ^. analyze
+
+
+
+ 
+  
+  
+type cfg =
+{
+  entry_node : bblockid;  (* ID to the entry node. This is the same as the function name *)
+  exit_node  : bblockid;  (* ID to the exit node *)
+  cfg_graph  : blockmap;  (* The mapping that represents the actual graph *)
+}
     
-      
+type bblock =
+{   
+  block_addr : int;           (* Memory address of the first instruction in the block *)
+  block_code : inst list;     (* Assembly code instructions of the bloc *)
+  block_exit : exittype;      (* Exist variants with string block ids to the next nodes *)
+  block_dist : int;           (* Shortest distance to the exit node in the CFG *)
+}    
+
   
   
 let test prog fname =
