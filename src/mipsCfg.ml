@@ -66,7 +66,8 @@ let rec getblockcode prog addr acc_code =
     (prog,codelist,ExitTypeBrLikely(s,next_addr_sym))
   | MipsJALR(rs) -> failwith "JALR not implemented yet"
   | MipsJR(rs) ->
-    let codelist = List.rev (inst::acc_code) in
+    let inst_ds = prog.code.(getinstidx prog (addr+4)) in
+    let codelist = List.rev (inst_ds::inst::acc_code) in
       (* TODO: This is just temp code. It assumes that the mapping to ra is correct. 
          Cannot handle jump tables, will fail *)
      if rs = reg_ra then 
@@ -154,6 +155,10 @@ let make_cfg addr prog =
       (prog,graph)
     )) likely (prog,graph)
   in
+  (* If more than one return node, create a common exit node *)
+  (* let rec make_common_exit_node prog graph = *)
+    
+  
   (* Create entry node symbol *)
   let (prog,entry_node) = mksym_from_addr prog addr in
   (* Traverse the graph *)
