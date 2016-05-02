@@ -1,5 +1,5 @@
 
-#include <stdio.h>
+//#include <stdio.h>
 
 unsigned exper(unsigned start, unsigned end){
   unsigned retval = 0;
@@ -14,5 +14,5 @@ unsigned exper(unsigned start, unsigned end){
 
 int main(){
   unsigned v = exper(100,50);  //expected output: 3775
-  printf("%d\n",v);
+  //  printf("%d\n",v);
 }

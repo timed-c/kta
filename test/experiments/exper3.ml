@@ -16,7 +16,7 @@ let ex4_       = 7
 let ex3_       = 8
 let l2_        = 9
 let l1_        = 10
-let exper_ret_ = 11
+let ex5_       = 11
   
 (* -- Program Code -- *)
 
@@ -72,7 +72,7 @@ let l1 ms = ms           |>
   addu    v0 zero zero   |>
   next
 
-let exper_ret ms = ms    |>
+let ex5 ms = ms          |>
   ret
    
 (* -- Basic Block Info -- *)
@@ -88,9 +88,9 @@ let bblocks =
   {func=l4;       name="l4";       nextid=ex3_;       dist=3; addr=0x00000000; caller=false};
   {func=ex4;      name="ex4";      nextid=l4_;        dist=4; addr=0x00000000; caller=false};
   {func=ex3;      name="ex3";      nextid=l2_;        dist=2; addr=0x00000000; caller=false};
-  {func=l2;       name="l2";       nextid=exper_ret_; dist=1; addr=0x00000000; caller=false};
-  {func=l1;       name="l1";       nextid=exper_ret_; dist=1; addr=0x00000000; caller=false};
-  {func=exper_ret;name="exper_ret";nextid=na_;        dist=0; addr=0x00000000; caller=false};
+  {func=l2;       name="l2";       nextid=ex5_;       dist=1; addr=0x00000000; caller=false};
+  {func=l1;       name="l1";       nextid=ex5_;       dist=1; addr=0x00000000; caller=false};
+  {func=ex5;      name="ex5";      nextid=na_;        dist=0; addr=0x00000000; caller=false};
 |]
 
   

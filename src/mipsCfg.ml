@@ -8,7 +8,8 @@ let arrow_padding = 40  (* Characters for the printed arrows |> *)
 let inden_inst = us"  " (* Characters indent for the instruction *)
 
 let idno = ref 1  
-
+let unique_addr = ref 0x100000000
+  
 (* Used for checking visited nodes *)
 module IntSet = Set.Make(
   struct
@@ -31,7 +32,15 @@ let rec new_unique_sym prog addr =
     (add_addrsym_prog prog addr sym, sym))
   else
     new_unique_sym prog addr
-    
+
+(* Creates a new unique symbol with a new unique (negative) address *)      
+let new_unique_symaddr prog =
+  let (prog,sym) = new_unique_sym prog !unique_addr in
+  let addr = !unique_addr in
+  unique_addr := !unique_addr + 1;
+  (prog,addr,sym)
+
+      
   
 let getinstidx prog addr =
   (addr - prog.text_sec.addr)/4
@@ -156,15 +165,28 @@ let make_cfg addr prog =
     )) likely (prog,graph)
   in
   (* If more than one return node, create a common exit node *)
-  (* let rec make_common_exit_node prog graph = *)
-    
-  
+  let rec make_common_exit_node prog oldgraph =
+    let (returns,graph) = BlockMap.partition
+      (fun _ block -> match block.block_exit with| ExitTypeReturn -> true | _ -> false) oldgraph in
+    if BlockMap.cardinal returns = 1 then (prog,oldgraph)
+    else
+      let (prog,addr,sym) = new_unique_symaddr prog in
+      let graph = BlockMap.fold (fun name block graph -> (
+        let nblock = {block with block_exit = ExitTypeNext(sym)} in
+        BlockMap.add name nblock graph        
+      )) returns graph in
+      let retblock = {block_addr=0; block_code=[]; block_exit=ExitTypeReturn; block_dist=0} in
+      let graph = BlockMap.add sym retblock graph in
+      (prog,graph)
+  in
   (* Create entry node symbol *)
   let (prog,entry_node) = mksym_from_addr prog addr in
   (* Traverse the graph *)
   let (prog,graph,_,funccalls) = traverse addr prog BlockMap.empty IntSet.empty [] in
   (* Expand likely nodes *)
   let (prog,graph) = expand_likely prog graph in
+  (* Make sure that there is only one exit node *)
+  let (prog,graph) = make_common_exit_node prog graph in
   (* Create exit node *)
   let exit_node = "no_exit_yet" in
   (* Construct and return the control flow graph *)
@@ -196,7 +218,7 @@ let pprint_bblock name block =
     | ExitTypeNext(_)  | ExitTypeBranch(_,_)  | ExitTypeJump(_) |
       ExitTypeCall(_,_) -> inden_inst ^.  us"next" ^. us"\n"
     | ExitTypeBrLikely(_,_) -> inden_inst
-    | ExitTypeReturn -> us"")
+    | ExitTypeReturn -> inden_inst ^.  us"ret" ^. us"\n")
   in
     head ^. instlist (us"") block.block_code ^. final
 
