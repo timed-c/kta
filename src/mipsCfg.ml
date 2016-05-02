@@ -6,7 +6,8 @@ open Printf
 
 let arrow_padding = 40  (* Characters for the printed arrows |> *)
 let inden_inst = us"  " (* Characters indent for the instruction *)
-
+let identifier_padding = 15
+    
 let idno = ref 1  
 let unique_addr = ref 0x100000000
   
@@ -239,7 +240,7 @@ let pprint_bblock name block =
 
 
 (* Pretty print a whole control flow graph *)      
-let pprint_ocaml_cps_from_cfg nice_output cfg prog =
+let pprint_ocaml_cps_from_cfg nice_output cfg prog k =
   let cfglst = BlockMap.bindings cfg.cfg_graph in
   let cfglst = if nice_output then cfglst 
                   |> List.map (fun (s,b) -> (s2a prog s,(s,b)))
@@ -247,9 +248,9 @@ let pprint_ocaml_cps_from_cfg nice_output cfg prog =
                   |> List.split |> snd
                else cfglst
   in        
-  List.fold_left (fun a (name,block) ->
-    a ^. pprint_bblock name block ^. us"\n"
-  ) (us"") cfglst
+  List.fold_left (fun (lst,k,a) (name,block) ->
+    ((name,k)::lst,k+1,a ^. pprint_bblock name block ^. us"\n")
+  ) ([],k,us"") cfglst
     
 
 
@@ -265,26 +266,43 @@ let pprint_ocaml_cps_from_cfgmap nice_output cfgmap prog =
     |> List.split |> snd
     else cfglst
   in
-    
+  (* Intro header *)
+  let intro =
+      us"open AbstractMIPS\n\n" ^.
+      us"(* -- Basic Block Identifiers -- *)\n\n"
+  in
+  
+  (* Info before program code *)
+  let blocks_header =
+    us"(* -- Program Code -- *)\n\n"
+  in
   (* Pretty print all basic blocks from all CFGs *)
-  let basic_blocks = List.fold_left (fun acc (name,cfg) ->
-    acc ^. us"(* Function: " ^. us(name) ^. us" *)\n\n" ^.
-    pprint_ocaml_cps_from_cfg true cfg prog ^. us"\n"
-  ) (us"") cfglst in
+  let (namelist,_,basic_blocks) = List.fold_left (fun (lst,k,acc) (name,cfg) ->
+    let (lst',k,cfgstr) = pprint_ocaml_cps_from_cfg true cfg prog k in
+    let acc = acc ^. us"(* Function: " ^. us(name) ^. us" *)\n\n" ^. cfgstr ^. us"\n" in
+    (lst'@lst,k,acc) 
+  ) ([],1,us"") cfglst in
 
+  (* final identifier *)
+  let finalid = Ustring.spaces_after (us"let final_") identifier_padding ^. us("= 0\n" ) in
+
+  let final_block = us"let final ms = ms\n\n" in
+  
+  (* Pretty print identifier list *)
+  let ident_list = (List.fold_left (fun acc (n,k) ->
+    acc ^. Ustring.spaces_after (us"let " ^. us n ^. us"_") identifier_padding ^.
+    us(sprintf "= %d\n" k)
+  ) (us"") (List.rev namelist)) ^. us"\n"
+  in    
+  
   (* Return the complete .ml file *)
-  basic_blocks
+  intro ^. finalid ^. ident_list ^. blocks_header ^. final_block ^. basic_blocks
     
     
-  
-
-  
-
   
   
 let test prog fname =
   let (prog,cfgmap) = make_cfgmap fname prog in
-  printf "### %d\n" (CfgMap.cardinal cfgmap);
   uprint_endline (pprint_ocaml_cps_from_cfgmap true cfgmap prog);
   printf "Yes, length of code: %d\n" (Array.length prog.code);
     
