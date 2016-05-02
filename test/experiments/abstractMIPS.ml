@@ -537,10 +537,10 @@ let blezds rs label ms =
    execute the delay slot only if the branch is taken." 
    NOTE: the generated code need to insert a "likely" node
    to make this correct. *)
-let bnel =
-  if dbg then debug_branch (us"bnel")
-                   false false aint32_test_equal
-  else branch_main false false aint32_test_equal
+let bnelds =
+  if dbg then debug_branch (us"bnelds")
+                   false true aint32_test_equal
+  else branch_main false true aint32_test_equal
 
     
 (* Count cycles for the return. The actual jump is performed

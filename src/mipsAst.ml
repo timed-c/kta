@@ -102,12 +102,14 @@ type program =
 type bblockid = string
   
 type exittype =
-| ExitTypeNext   of bblockid            (* Next block, no actual jump instruction *)
-| ExitTypeBranch of bblockid * bblockid (* true branch, false (branch not taken, 
-                                           not a likely inst *)
-| ExitTypeJump   of bblockid            (* Unconditional jump *)
-| ExitTypeCall   of bblockid * bblockid (* Function call and next id *)
-| ExitTypeReturn                        (* The type of the exit node *)
+| ExitTypeNext     of bblockid            (* Next block, no actual jump instruction *)
+| ExitTypeBranch   of bblockid * bblockid (* true branch, false (branch not taken, 
+                                             not a likely inst *)
+| ExitTypeBrLikely of bblockid * bblockid (* true branch, false (branch not taken), 
+                                             Used for likely instructions *)
+| ExitTypeJump     of bblockid            (* Unconditional jump *)
+| ExitTypeCall     of bblockid * bblockid (* Function call and next id *)
+| ExitTypeReturn                          (* The type of the exit node *)
   
 type bblock =
 {   

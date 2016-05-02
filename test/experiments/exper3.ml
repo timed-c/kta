@@ -12,7 +12,7 @@ let l3_        = 3
 let l5_        = 4
 let ex2_       = 5
 let l4_        = 6
-let l4likely_  = 7
+let ex4_       = 7
 let ex3_       = 8
 let l2_        = 9
 let l1_        = 10
@@ -49,9 +49,10 @@ let ex2  ms = ms         |>
 
 let l4 ms = ms           |>
   addiu   v1 v1 1        |>
-  bnel    a1 v1 l4likely_ 
+  bnelds  a1 v1 ex4_     |>
+  next        
 
-let l4likely  ms = ms    |>
+let ex4  ms = ms         |>
   addu    v0 v0 v1       |>
   next     
 
@@ -85,7 +86,7 @@ let bblocks =
   {func=l5;       name="l5";       nextid=ex2_;       dist=5; addr=0x00000000; caller=false};
   {func=ex2;      name="ex2";      nextid=l4_;        dist=4; addr=0x00000000; caller=false};
   {func=l4;       name="l4";       nextid=ex3_;       dist=3; addr=0x00000000; caller=false};
-  {func=l4likely; name="l4likely"; nextid=l4_;        dist=4; addr=0x00000000; caller=false};
+  {func=ex4;      name="ex4";      nextid=l4_;        dist=4; addr=0x00000000; caller=false};
   {func=ex3;      name="ex3";      nextid=l2_;        dist=2; addr=0x00000000; caller=false};
   {func=l2;       name="l2";       nextid=exper_ret_; dist=1; addr=0x00000000; caller=false};
   {func=l1;       name="l1";       nextid=exper_ret_; dist=1; addr=0x00000000; caller=false};

@@ -196,22 +196,22 @@ let rparan = us")"
 
 
 (* ---------------------------------------------------------------------*)
-let pprint_inst_general inst com reg int2str delayslot = 
+let pprint_inst_general inst com reg int2str delayslot dash = 
   let rdst rd rs rt = (reg rd) ^. com ^. (reg rs) ^. com ^. (reg rt) in
   let rdts rd rt rs = rdst rd rt rs in
   let rst rs rt = (reg rs) ^. com ^. (reg rt) in
   let rtsi rt rs imm = (reg rt) ^. com ^. (reg rs) ^. com ^. int2str imm in
   let rtsis rt rs imm s = (reg rt) ^. com ^. (reg rs) ^. com ^. 
-                  if String.length s <> 0 then us s else int2str imm in
+                  if String.length s <> 0 then us (dash s) else int2str imm in
   let rsis rt imm s = (reg rt) ^. com ^. 
-                  if String.length s <> 0 then us s else int2str imm in
+                  if String.length s <> 0 then us (dash s) else int2str imm in
   let rti  rt imm = (reg rt) ^. com ^. int2str imm in
   let rtis rt imm rs = (reg rt) ^. com ^. int2str imm ^. 
                        lparan ^. (reg rs) ^. rparan in  
   let dta  rd rt shamt = rtsi rd rt shamt in
   let istr is = Ustring.spaces_after (us is) 8 in
   let istrds is = Ustring.spaces_after (us(if delayslot then (is ^ "ds") else is)) 8 in
-  let address a s = if String.length s <> 0 then us s else us(sprintf "0x%x" a) in
+  let address a s = if String.length s <> 0 then us (dash s) else us(sprintf "0x%x" a) in
   match inst with
   | MipsADD(rd,rs,rt)     -> (istr "add") ^. (rdst rd rs rt)
   | MipsADDI(rt,rs,imm)   -> (istr "addi") ^. (rtsi rt rs imm)
@@ -269,13 +269,13 @@ let pprint_inst_general inst com reg int2str delayslot =
 
 (* ---------------------------------------------------------------------*)
 let pprint_inst inst = 
-  pprint_inst_general inst (us",") reg_asm ustring_of_int false
+  pprint_inst_general inst (us",") reg_asm ustring_of_int false (fun x -> x)
 
 (* ---------------------------------------------------------------------*)
 let pprint_inst_ocaml inst = 
   pprint_inst_general inst (us" ") reg_ocaml
     (fun x -> if x < 0 then us"(" ^. ustring_of_int x ^. us")" else ustring_of_int x)
-    true    
+    true (fun x -> x ^ "_")   
     
 (* ---------------------------------------------------------------------*)
 let pprint_inst_list instlst  = 
