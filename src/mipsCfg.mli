@@ -13,7 +13,8 @@ val make_cfgmap : string -> MipsAst.program -> (MipsAst.program * MipsAst.cfgmap
   
   
 (** Generates Ocaml analyze.ml file from the a funcmap. *)  
-val pprint_ocaml_cps_from_cfgmap : bool -> MipsAst.cfgmap -> MipsAst.program -> ustring
+val pprint_ocaml_cps_from_cfgmap :
+  bool -> string -> MipsAst.cfgmap -> MipsAst.program -> ustring
 
   
 

@@ -256,7 +256,7 @@ let pprint_ocaml_cps_from_cfg nice_output cfg prog k =
 
     
 (* Pretty print a whole program as an analyzable .ml file *)  
-let pprint_ocaml_cps_from_cfgmap nice_output cfgmap prog =
+let pprint_ocaml_cps_from_cfgmap nice_output name cfgmap prog =
   (* Sort the CFGs according to memory addresses *)
   let cfglst = CfgMap.bindings cfgmap in
   let cfglst =
@@ -277,11 +277,12 @@ let pprint_ocaml_cps_from_cfgmap nice_output cfgmap prog =
     us"(* -- Program Code -- *)\n\n"
   in
   (* Pretty print all basic blocks from all CFGs *)
-  let (namelist,_,basic_blocks) = List.fold_left (fun (lst,k,acc) (name,cfg) ->
+  let (namelist_rev,_,basic_blocks) = List.fold_left (fun (lst,k,acc) (name,cfg) ->
     let (lst',k,cfgstr) = pprint_ocaml_cps_from_cfg true cfg prog k in
     let acc = acc ^. us"(* Function: " ^. us(name) ^. us" *)\n\n" ^. cfgstr ^. us"\n" in
     (lst'@lst,k,acc) 
   ) ([],1,us"") cfglst in
+  let namelist = List.rev namelist_rev in
 
   (* final identifier *)
   let finalid = Ustring.spaces_after (us"let final_") identifier_padding ^. us("= 0\n" ) in
@@ -292,19 +293,40 @@ let pprint_ocaml_cps_from_cfgmap nice_output cfgmap prog =
   let ident_list = (List.fold_left (fun acc (n,k) ->
     acc ^. Ustring.spaces_after (us"let " ^. us n ^. us"_") identifier_padding ^.
     us(sprintf "= %d\n" k)
-  ) (us"") (List.rev namelist)) ^. us"\n"
+  ) (us"") namelist) ^. us"\n"
   in    
+
+  (* Pretty print the basic block table *)
+  let bbtable_start = us"let bblocks =\n[|\n" in
+  let bbtable_end = us"|]\n\n" in
+  let bbtable_list = List.fold_left (fun acc (n,_) ->
+    acc ^. us"{" ^.
+    Ustring.spaces_after (us"func=" ^. us n ^. us";") 18 ^.
+    Ustring.spaces_after (us"name=\"" ^. us n ^. us"\";") 18 ^.
+    Ustring.spaces_after (us"nextid=" ^. us"\";") 18 ^.
+    Ustring.spaces_after (us"dist=" ^. us"\";") 18 ^.
+    Ustring.spaces_after (us"addr=" ^. us"\";") 18 ^.
+    Ustring.spaces_after (us"caller=" ^. us"\";") 18 ^.
+    us"};\n"  
+  ) (us"") namelist
+  in
+  let bbtable = bbtable_start ^. bbtable_list ^. bbtable_end in
+
+  (* Analyze text *)
+  let analyze = us"(* -- Start of Analysis -- *)\n\n" ^.    
+    us"let main = analyze " ^. us name ^. us"_ bblocks []\n" in
   
   (* Return the complete .ml file *)
-  intro ^. finalid ^. ident_list ^. blocks_header ^. final_block ^. basic_blocks
+  intro ^. finalid ^. ident_list ^. blocks_header ^.
+  final_block ^. basic_blocks ^. bbtable ^. analyze
     
-    
+      
   
   
 let test prog fname =
   let (prog,cfgmap) = make_cfgmap fname prog in
-  uprint_endline (pprint_ocaml_cps_from_cfgmap true cfgmap prog);
-  printf "Yes, length of code: %d\n" (Array.length prog.code);
+  uprint_endline (pprint_ocaml_cps_from_cfgmap true fname cfgmap prog)
+
     
 
 
