@@ -1,0 +1,14 @@
+#!/bin/bash
+
+RPATH=${PWD}/runtime #${BASH_SOURCE[0]}/runtime
+BPATH=${PWD}/bin #${BASH_SOURCE[0]}/runtime
+# echo $RPATH
+# echo $BPATH
+yellow=$(tput setaf 3)
+white=$(tput sgr0)
+[[ $PS1 =~ 'kta' ]] || export PS1="\[$yellow\][kta]\[$white\] $PS1"
+unset yellow
+unset white
+
+export KTA_WCET_RUNTIME_PATH=$RPATH
+export PATH="${BPATH}:${PATH}"

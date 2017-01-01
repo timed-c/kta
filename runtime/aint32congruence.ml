@@ -26,10 +26,26 @@ let fail_aint32() = failwith "Error: aint32 error that should not happen."
 
 let lowval = -2147483648
 let highval = 2147483647
+
+let ulowval = 0
+let uhighval = 4294967295
+
+let lowval8 = -127
+let highval8 = 128
+let ulowval8 = 0
+let uhighval8 = 255
+
+let lowval16 = -32768
+let highval16 = 32767
+let ulowval16 = 0
+let uhighval16 = 65535
+
 let aint32_any = Any
                    
 exception AnyException
 
+
+  
 let gcd a b =
   let a = abs a in
   let b = abs b in
@@ -48,6 +64,37 @@ let number h l s =
 
 let dec_num n = max 1 (n-1) 
 (*n*)
+
+
+let check_aint16 v =
+  let check_aint16_int v =
+    let (l,s,n) = v in
+    let h = high l s n in
+    if (l<lowval16) || (h>highval16) then raise AnyException
+    else v
+  in
+  try
+    match v with
+    | Any -> Any
+    | Interval(v) -> Interval (check_aint16_int v)
+    | IntervalList(l,sp) -> IntervalList(List.map check_aint16_int l,sp)
+  with AnyException -> Any
+
+let check_aint8 v =
+  let check_aint8_int v =
+    let (l,s,n) = v in
+    let h = high l s n in
+    if (l<lowval8) || (h>highval8) then raise AnyException
+    else v
+  in
+  try
+    match v with
+    | Any -> Any
+    | Interval(v) -> Interval (check_aint8_int v)
+    | IntervalList(l,sp) -> IntervalList(List.map check_aint8_int l,sp)
+  with AnyException -> Any
+
+
 let interval_merge (l1,s1,n1) (l2,s2,n2) =
   let h1 = high l1 s1 n1 in
   let h2 = high l2 s2 n2 in
@@ -110,39 +157,6 @@ let rec aint32_mem_byte byte signed v =
   | Interval(v) -> Interval(get_byte byte v)
   | _ -> Any
           
-let rec aint32_mem_update_byte byte newv oldv = Any
-(*  let interv_set_byte byte (l1,s1,n1) (ol1,os1,on1) =
-    let set_byte newv oldv =
-      let newi = newv lsl (byte lsl 3)  in
-      let mask = 0xff lsl (byte lsl 3)  in
-      ((oldv land (lnot mask)) lor newi)
-    in
-     (set_byte l1 ol1, set_byte h1 oh1) in
- 
-  match newv,oldv with
-  | _,_ -> Any
-  | _,Any -> Any
-  | Interval(nv1),Interval(v1) -> Interval(interv_set_byte byte nv1 v1)
-  | Interval(nv1),IntervalList(l,sp) ->
-     IntervalList(List.map (interv_set_byte byte nv1) l,sp)
-  | _,_ -> raise Exception_aint32
- *)
-          
-let rec aint32_mem_update_byte byte newv oldv = Any
-(*  let interv_set_byte byte (l1,s1,n1) (ol1,os1,on1) =
-    let set_byte newv oldv =
-      let newi = newv lsl (byte lsl 3)  in
-      let mask = 0xff lsl (byte lsl 3)  in
-      ((oldv land (lnot mask)) lor newi)
-    in
-     (set_byte l1 ol1, set_byte h1 oh1) in
-  match newv,oldv with
-  | _,Any -> Any
-  | Interval(nv1),Interval(v1) -> Interval(interv_set_byte byte nv1 v1)
-  | Interval(nv1),IntervalList(l,sp) ->
-     IntervalList(List.map (interv_set_byte byte nv1) l,sp)
-  | _,_ -> raise Exception_aint32
- *)
 
 let aint32_binop op v1 v2 =
   try 
@@ -201,8 +215,10 @@ let aint32_and_f (l1,s1,n1) (l2,s2,n2) =
      let v1 = l1 land l2 in
      let v2 = l1 land (l2+s2) in
      let l = min v1 v2 in
-     let s = (max v1 v2)-l in
-     (l,s,2)
+     let h = max v1 v2 in
+     let s = h - l in
+     let n = number h l s in
+     (l,s,n)
   | _ ->
      let h1 = high l1 s1 n1 in
      let h2 = high l2 s2 n2 in 
@@ -712,24 +728,26 @@ let rec aint32_test_less_than v1 v2 =
   | Any,Interval(l,s,n) ->
      let h = high l s n in
      let anyl1 = lowval in
-     let anys = 1 in
      let anyh1 = h - 1 in
-     let anyn1 = number anyh1 anyl1 anys in
+     let anys1 = if anyh1 = anyl1 then 0 else 1 in
+     let anyn1 = number anyh1 anyl1 anys1 in
      let anyl2 = l in
      let anyh2 = highval in
-     let anyn2 = number anyh2 anyl2 anys in
-     (Some(Interval(anyl1,anys,anyn1),v2),Some(Interval(anyl2,anys,anyn2),v2))
+     let anys2 = if anyh2 = anyl2 then 0 else 1 in
+     let anyn2 = number anyh2 anyl2 anys2 in
+     (Some(Interval(anyl1,anys1,anyn1),v2),Some(Interval(anyl2,anys2,anyn2),v2))
   | Any,_ -> (Some(Any,v2),Some(Any,v2))
   | Interval(l,s,n),Any ->
      let h = high l s n in
      let anyl1 = l + 1 in
-     let anys = 1 in
      let anyh1 = highval in
-     let anyn1 = number anyh1 anyl1 anys in
+     let anys1 = if anyl1 = anyh1 then 0 else 1 in
+     let anyn1 = number anyh1 anyl1 anys1 in
      let anyl2 = lowval in
      let anyh2 = h in
-     let anyn2 = number anyh2 anyl2 anys in
-     (Some(v1, Interval(anyl1,anys,anyn1)),Some(v1,Interval(anyl2,anys,anyn2)))               
+     let anys2 = if anyl2 = anyh2 then 0 else 1 in
+     let anyn2 = number anyh2 anyl2 anys2 in
+     (Some(v1, Interval(anyl1,anys1,anyn1)),Some(v1,Interval(anyl2,anys2,anyn2)))               
   | _,Any -> (Some(v1,Any),Some(v1,Any))
   | Interval((l1,s1,n1)), Interval((l2,s2,n2)) ->
      let h1 = high l1 s1 n1 in
@@ -740,7 +758,7 @@ let rec aint32_test_less_than v1 v2 =
                    else max (l2 + s2) (l2 + ((l1 + s1 - l2) / s2) * s2)
          in
          let s1 = if h11 = l1 then 0 else s1 in
-         let s2 = if l22 = h2 then 0 else s2 in
+         let s2 = if l22 = h2 then 0 else s2 in        
          Some(Interval(l1,s1,number h11 l1 s1), Interval(l22,s2,number h2 l22 s2))
       else None),
       (if h1 >= l2 then
@@ -766,24 +784,26 @@ let rec aint32_test_less_than_unsigned v1 v2 =
   | Any,Interval(l,s,n) ->
      let h = high l s n in
      let anyl1 = lowval in
-     let anys = 1 in
      let anyh1 = h - 1 in
-     let anyn1 = number anyh1 anyl1 anys in
+     let anys1 = if anyl1=anyh1 then 0 else 1 in
+     let anyn1 = number anyh1 anyl1 anys1 in
      let anyl2 = l in
      let anyh2 = highval in
-     let anyn2 = number anyh2 anyl2 anys in
-     (Some(Interval(anyl1,anys,anyn1),v2),Some(Interval(anyl2,anys,anyn2),v2))
+     let anys2 = if anyl2=anyh2 then 0 else 1 in
+     let anyn2 = number anyh2 anyl2 anys2 in
+     (Some(Interval(anyl1,anys1,anyn1),v2),Some(Interval(anyl2,anys2,anyn2),v2))
   | Any,_ -> (Some(Any,v2),Some(Any,v2))
   | Interval(l,s,n),Any ->
      let h = high l s n in
      let anyl1 = l + 1 in
-     let anys = 1 in
      let anyh1 = highval in
-     let anyn1 = number anyh1 anyl1 anys in
+     let anys1 = if anyl1=anyh1 then 0 else 1 in
+     let anyn1 = number anyh1 anyl1 anys1 in
      let anyl2 = lowval in
      let anyh2 = h in
-     let anyn2 = number anyh2 anyl2 anys in
-     (Some(v1, Interval(anyl1,anys,anyn1)),Some(v1, Interval(anyl2,anys,anyn2)))               
+     let anys2 = if anyl2=anyh2 then 0 else 1 in
+     let anyn2 = number anyh2 anyl2 anys2 in
+     (Some(v1, Interval(anyl1,anys1,anyn1)),Some(v1, Interval(anyl2,anys2,anyn2)))               
   | _,Any -> (Some(v1,Any),Some(v1,Any))
   | Interval((l1,s1,n1)), Interval((l2,s2,n2)) ->
      let h1 = high l1 s1 n1 in
@@ -810,7 +830,7 @@ let rec aint32_test_less_than_unsigned v1 v2 =
            let s1 = if h1 = l11 then 0 else s1 in
            let h22 = min h1 h2 in
            let s2 = if h22 = l2 then 0 else s2 in
-           Some(Interval(l11,s1,number h1 l11 s2), Interval(l2,s2, number h22 l2 s2 ))        
+           Some(Interval(l11,s1,number h1 l11 s1), Interval(l2,s2, number h22 l2 s2 ))        
          else None))
   | Interval(v1),IntervalList(l1,_) | IntervalList(l1,_), Interval(v1) ->
     aint32_test_less_than_unsigned (Interval(v1)) (Interval(interval_merge_list l1))

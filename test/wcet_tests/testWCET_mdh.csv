@@ -1,108 +1,108 @@
-filename|function name|inputs|optimization flag|batch config (-1 for default)|expected bcet|expected wcet|comments|
-test/wcet_tests/mdh/ns.c|foo|a0=[1,10]|0|-1|4955|24219||
-test/wcet_tests/mdh/ns.c|foo|a0=[1,10]|1|-1|736|3530||
-test/wcet_tests/mdh/ns.c|foo|a0=[1,10]|2|-1|812|3905||
-test/wcet_tests/mdh/ns.c|foo|a0=[1,10]|3|-1|304|1380||
-test/wcet_tests/mdh/fac.c|fac|a0=[1,10]|1|-1|16|133||
-test/wcet_tests/mdh/fac.c|fac|a0=[1,10]|2|-1|9|54||
-test/wcet_tests/mdh/fac.c|fac|a0=[1,10]|3|-1|9|54||
-test/wcet_tests/mdh/recursion.c|kalle|a0=[0,10]|0|-1|15|185||
-test/wcet_tests/mdh/recursion.c|kalle|a0=[0,10]|1|-1|3|73||
-test/wcet_tests/mdh/recursion.c|kalle|a0=[0,10]|2|-1|3|25||
-test/wcet_tests/mdh/recursion.c|kalle|a0=[0,10]|3|-1|3|34||
-test/wcet_tests/mdh/recursion.c|anka|a0=[0,10]|0|-1|15|185||
-test/wcet_tests/mdh/recursion.c|anka|a0=[0,10]|1|-1|3|73||
-test/wcet_tests/mdh/recursion.c|anka|a0=[0,10]|2|-1|3|26||
-test/wcet_tests/mdh/recursion.c|anka|a0=[0,10]|3|-1|3|32||
-test/wcet_tests/mdh/recursion.c|fib|a0=[0,10]|1|-1|3|1675||
-test/wcet_tests/mdh/recursion.c|fib|a0=[0,10]|2|-1|11|1386||
-test/wcet_tests/mdh/recursion.c|fib|a0=[0,10]|3|-1|3|993||
-test/wcet_tests/mdh/bsort100.c|main||0|-1|4535|251917||
-test/wcet_tests/mdh/bsort100.c|main||1|-1|1417|51010||
-test/wcet_tests/mdh/bsort100.c|main||2|-1|1511|55954||
-test/wcet_tests/mdh/bsort100.c|main||3|-1|1511|55954||
-test/wcet_tests/mdh/insertsort.c|main||0|-1|2342|2342||
-test/wcet_tests/mdh/insertsort.c|main||1|-1|316|316||
-test/wcet_tests/mdh/insertsort.c|main||2|-1|316|316||
-test/wcet_tests/mdh/insertsort.c|main||3|-1|251|251||
-test/wcet_tests/mdh/matmult.c|main||0|-1|373479|373479||
-test/wcet_tests/mdh/matmult.c|main||1|-1|95935|95935||
-test/wcet_tests/mdh/matmult.c|main||2|-1|83874|83874||
-test/wcet_tests/mdh/matmult.c|main||3|-1|83898|83898||
-test/wcet_tests/mdh/fibcall.c|fib|a0=[0,100]|0|-1|24|542||
-test/wcet_tests/mdh/fibcall.c|fib|a0=[0,100]|1|-1|3|173||
-test/wcet_tests/mdh/fibcall.c|fib|a0=[0,100]|2|-1|3|174||
-test/wcet_tests/mdh/fibcall.c|fib|a0=[0,100]|3|-1|3|174||
-test/wcet_tests/mdh/nsichneu.c|main||0|-1|8448|8448||
-test/wcet_tests/mdh/nsichneu.c|main||1|-1|4900|4900||
-test/wcet_tests/mdh/nsichneu.c|main||2|-1|4501|4501||
-test/wcet_tests/mdh/nsichneu.c|main||3|-1|4501|4501||
-test/wcet_tests/mdh/fdct.c|main||0|-1|5238|5238||
-test/wcet_tests/mdh/fdct.c|main||1|-1|2599|2599||
-test/wcet_tests/mdh/fdct.c|main||2|-1|3230|3230||
-test/wcet_tests/mdh/fdct.c|main||3|-1|3223|3223||
-test/wcet_tests/mdh/cnt.c|main||0|-1|6527|6527||
-test/wcet_tests/mdh/cnt.c|main||1|-1|2300|2300||
-test/wcet_tests/mdh/cnt.c|main||2|-1|1776|1776||
-test/wcet_tests/mdh/cnt.c|main||3|-1|2125|2125||
-test/wcet_tests/mdh/prime.c|prime|a0=[0,100]|0|-1|47|176||
-test/wcet_tests/mdh/prime.c|prime|a0=[0,100]|2|-1|4|21||
-test/wcet_tests/mdh/prime.c|prime|a0=[0,100]|1|-1|4|21||
-test/wcet_tests/mdh/prime.c|prime|a0=[0,100]|3|-1|4|20||
-test/wcet_tests/mdh/adpcm.c|main||0|-1|26850|301347||
-test/wcet_tests/mdh/adpcm.c|main||1|-1|9531|112518||
-test/wcet_tests/mdh/adpcm.c|main||2|-1|9286|95200||
-test/wcet_tests/mdh/adpcm.c|main||3|-1|8790|94698||
-test/wcet_tests/mdh/adpcm.c|my_cos|a0=[0,6282]|0|-1|90|116442||
-test/wcet_tests/mdh/adpcm.c|my_cos|a0=[0,6282]|1|-1|27|43659||
-test/wcet_tests/mdh/adpcm.c|my_cos|a0=[0,6282]|2|-1|21|36381||
-test/wcet_tests/mdh/adpcm.c|my_cos|a0=[0,6282]|3|-1|21|36381||
-test/wcet_tests/mdh/adpcm.c|my_sin|a0=[0,6282]|0|-1|75|153339||
-test/wcet_tests/mdh/adpcm.c|my_sin|a0=[0,6282]|1|-1|21|57495||
-test/wcet_tests/mdh/adpcm.c|my_sin|a0=[0,6282]|2|-1|19|47914||
-test/wcet_tests/mdh/adpcm.c|my_sin|a0=[0,6282]|3|-1|19|47914||
-test/wcet_tests/mdh/bs.c|binary_search||0|23|48|143||
-test/wcet_tests/mdh/bs.c|binary_search||1|23|18|45||
-test/wcet_tests/mdh/bs.c|binary_search||2|23|17|47||
-test/wcet_tests/mdh/bs.c|binary_search||3|23|17|47||
-test/wcet_tests/mdh/jfdctint.c|main||0|-1|6858|6858||
-test/wcet_tests/mdh/jfdctint.c|main||1|-1|3396|3396||
-test/wcet_tests/mdh/jfdctint.c|main||2|-1|3807|3807||
-test/wcet_tests/mdh/jfdctint.c|main||3|-1|3807|3807||
-test/wcet_tests/mdh/edn.c|main||2|-1|50884|50884||
-test/wcet_tests/mdh/edn.c|main||3|-1|50213|50213||
-test/wcet_tests/mdh/ndes.c|main||0|-1|99070|100337||
-test/wcet_tests/mdh/ndes.c|main||1|-1|40888|40888||
-test/wcet_tests/mdh/ndes.c|main||2|-1|33216|33216||
-test/wcet_tests/mdh/ndes.c|main||3|-1|32959|32959||
-test/wcet_tests/mdh/lcdnum.c|main||2|-1|120|120||
-test/wcet_tests/mdh/lcdnum.c|main||3|-1|45|45||
-test/wcet_tests/mdh/statemate.c|main||0|-1|955|955|To be checked|
-test/wcet_tests/mdh/statemate.c|main||1|-1|577|577|To be checked|
-test/wcet_tests/mdh/statemate.c|main||2|-1|544|544|To be checked|
-test/wcet_tests/mdh/statemate.c|main||3|-1|481|481|To be checked|
-test/wcet_tests/mdh/janne_complex.c|main||0|-1|375|375|To be checked|
-test/wcet_tests/mdh/janne_complex.c|main||1|-1|88|88|To be checked|
-test/wcet_tests/mdh/janne_complex.c|main||2|-1|80|80|To be checked|
-test/wcet_tests/mdh/janne_complex.c|main||3|-1|132|132|To be checked|
-test/wcet_tests/mdh/ud.c|main||0|-1|7433|7889|To be checked|
-test/wcet_tests/mdh/ud.c|main||1|-1|2209|2665|To be checked|
-test/wcet_tests/mdh/ud.c|main||2|-1|2059|2515|To be checked|
-test/wcet_tests/mdh/ud.c|main||3|-1|1479|1479|To be checked|
-test/wcet_tests/mdh/compress.c|compress||0|-1|727|727|To be checked|
-test/wcet_tests/mdh/compress.c|compress||1|-1|416|416|To be checked|
-test/wcet_tests/mdh/compress.c|compress||2|-1|414|414|To be checked|
-test/wcet_tests/mdh/compress.c|compress||3|-1|420|420|To be checked|
-test/wcet_tests/mdh/crc.c|main||0|-1|46626|50722|To be checked|
-test/wcet_tests/mdh/crc.c|main||1|-1|22169|23568|To be checked|
-test/wcet_tests/mdh/crc.c|main||2|-1|13377|42045|To be checked|
-test/wcet_tests/mdh/crc.c|icrc|a0=[0,5];a1=[40,50];a2=[0,5];a3=[1,5]|0|-1|44884|49370|To be checked|
-test/wcet_tests/mdh/crc.c|icrc|a0=[0,5];a1=[40,50];a2=[0,5];a3=[1,5]|1|-1|21431|22830|To be checked|
-test/wcet_tests/mdh/crc.c|icrc|a0=[0,5];a1=[40,50];a2=[0,5];a3=[1,5]|2|-1|12704|41372|To be checked|
-test/wcet_tests/mdh/expint.c|main||0|-1|4405|4405|To be checked|
-test/wcet_tests/mdh/expint.c|main||1|-1|1948|1948|To be checked|
-test/wcet_tests/mdh/expint.c|main||2|-1|1|1|To be checked|
-test/wcet_tests/mdh/expint.c|main||3|-1|1|1|To be checked|
-test/wcet_tests/mdh/janne_complex.c|complex|a0=[1,30];a1=[1,30]|1|-1|2|246|To be checked|
-test/wcet_tests/mdh/janne_complex.c|complex|a0=[1,30];a1=[1,30]|2|-1|3|394|To be checked|
-test/wcet_tests/mdh/compress.c|main||1|-1|2817|17711|To be checked|
+filename|function name|inputs|optimization flag|batch config (-1 for default)|expected bcet|expected wcet|verbose|comments|
+test/wcet_tests/mdh/ns.c|foo|a0=[1,10]|0|-1|5146|25155|false||
+test/wcet_tests/mdh/ns.c|foo|a0=[1,10]|1|-1|736|3530|false||
+test/wcet_tests/mdh/ns.c|foo|a0=[1,10]|2|-1|812|3905|false||
+test/wcet_tests/mdh/ns.c|foo|a0=[1,10]|3|-1|304|1380|false||
+test/wcet_tests/mdh/fac.c|fac|a0=[1,10]|1|-1|16|133|false||
+test/wcet_tests/mdh/fac.c|fac|a0=[1,10]|2|-1|9|54|false||
+test/wcet_tests/mdh/fac.c|fac|a0=[1,10]|3|-1|9|54|false||
+test/wcet_tests/mdh/recursion.c|kalle|a0=[0,10]|0|-1|15|185|false||
+test/wcet_tests/mdh/recursion.c|kalle|a0=[0,10]|1|-1|3|73|false||
+test/wcet_tests/mdh/recursion.c|kalle|a0=[0,10]|2|-1|3|25|false||
+test/wcet_tests/mdh/recursion.c|kalle|a0=[0,10]|3|-1|3|34|false||
+test/wcet_tests/mdh/recursion.c|anka|a0=[0,10]|0|-1|15|185|false||
+test/wcet_tests/mdh/recursion.c|anka|a0=[0,10]|1|-1|3|73|false||
+test/wcet_tests/mdh/recursion.c|anka|a0=[0,10]|2|-1|3|26|false||
+test/wcet_tests/mdh/recursion.c|anka|a0=[0,10]|3|-1|3|32|false||
+test/wcet_tests/mdh/recursion.c|fib|a0=[0,10]|1|-1|4|1852|false||
+test/wcet_tests/mdh/recursion.c|fib|a0=[0,10]|2|-1|12|1563|false||
+test/wcet_tests/mdh/recursion.c|fib|a0=[0,10]|3|-1|4|1137|false||
+test/wcet_tests/mdh/bsort100.c|main||0|-1|4935|267165|false||
+test/wcet_tests/mdh/bsort100.c|main||1|-1|1614|60909|false||
+test/wcet_tests/mdh/bsort100.c|main||2|-1|1709|65952|false||
+test/wcet_tests/mdh/bsort100.c|main||3|-1|1709|65952|false||
+test/wcet_tests/mdh/insertsort.c|main||0|-1|2406|2406|false||
+test/wcet_tests/mdh/insertsort.c|main||1|-1|370|370|false||
+test/wcet_tests/mdh/insertsort.c|main||2|-1|370|370|false||
+test/wcet_tests/mdh/insertsort.c|main||3|-1|305|305|false||
+test/wcet_tests/mdh/matmult.c|main||0|-1|383202|383202|false||
+test/wcet_tests/mdh/matmult.c|main||1|-1|95935|95935|false||
+test/wcet_tests/mdh/matmult.c|main||2|-1|83874|83874|false||
+test/wcet_tests/mdh/matmult.c|main||3|-1|83898|83898|false||
+test/wcet_tests/mdh/fibcall.c|fib|a0=[0,100]|0|-1|26|601|false||
+test/wcet_tests/mdh/fibcall.c|fib|a0=[0,100]|1|-1|4|202|false||
+test/wcet_tests/mdh/fibcall.c|fib|a0=[0,100]|2|-1|4|203|false||
+test/wcet_tests/mdh/fibcall.c|fib|a0=[0,100]|3|-1|4|203|false||
+test/wcet_tests/mdh/nsichneu.c|main||0|-1|9204|9204|false||
+test/wcet_tests/mdh/nsichneu.c|main||1|-1|5656|5656|false||
+test/wcet_tests/mdh/nsichneu.c|main||2|-1|5257|5257|false||
+test/wcet_tests/mdh/nsichneu.c|main||3|-1|5257|5257|false||
+test/wcet_tests/mdh/fdct.c|main||0|-1|5256|5256|false||
+test/wcet_tests/mdh/fdct.c|main||1|-1|2599|2599|false||
+test/wcet_tests/mdh/fdct.c|main||2|-1|3230|3230|false||
+test/wcet_tests/mdh/fdct.c|main||3|-1|3223|3223|false||
+test/wcet_tests/mdh/cnt.c|main||0|-1|6769|6769|false||
+test/wcet_tests/mdh/cnt.c|main||1|-1|2300|2300|false||
+test/wcet_tests/mdh/cnt.c|main||2|-1|1776|1776|false||
+test/wcet_tests/mdh/cnt.c|main||3|-1|2125|2125|false||
+test/wcet_tests/mdh/prime.c|prime|a0=[0,100]|0|-1|48|186|false||
+test/wcet_tests/mdh/prime.c|prime|a0=[0,100]|2|-1|4|49|false||
+test/wcet_tests/mdh/prime.c|prime|a0=[0,100]|1|-1|4|52|false||
+test/wcet_tests/mdh/prime.c|prime|a0=[0,100]|3|-1|4|48|false||
+test/wcet_tests/mdh/adpcm.c|main||0|-1|30176|304732|false||
+test/wcet_tests/mdh/adpcm.c|main||1|-1|12579|115595|false||
+test/wcet_tests/mdh/adpcm.c|main||2|-1|12326|98277|false||
+test/wcet_tests/mdh/adpcm.c|main||3|-1|11826|97771|false||
+test/wcet_tests/mdh/adpcm.c|my_cos|a0=[0,6282]|0|-1|92|116444|false||
+test/wcet_tests/mdh/adpcm.c|my_cos|a0=[0,6282]|1|-1|29|43661|false||
+test/wcet_tests/mdh/adpcm.c|my_cos|a0=[0,6282]|2|-1|23|36383|false||
+test/wcet_tests/mdh/adpcm.c|my_cos|a0=[0,6282]|3|-1|23|36383|false||
+test/wcet_tests/mdh/adpcm.c|my_sin|a0=[0,6282]|0|-1|77|153341|false||
+test/wcet_tests/mdh/adpcm.c|my_sin|a0=[0,6282]|1|-1|23|57497|false||
+test/wcet_tests/mdh/adpcm.c|my_sin|a0=[0,6282]|2|-1|21|47916|false||
+test/wcet_tests/mdh/adpcm.c|my_sin|a0=[0,6282]|3|-1|21|47916|false||
+test/wcet_tests/mdh/bs.c|binary_search||0|23|50|152|false||
+test/wcet_tests/mdh/bs.c|binary_search||1|23|19|52|false||
+test/wcet_tests/mdh/bs.c|binary_search||2|23|18|54|false||
+test/wcet_tests/mdh/bs.c|binary_search||3|23|18|54|false||
+test/wcet_tests/mdh/jfdctint.c|main||0|-1|6923|6923|false||
+test/wcet_tests/mdh/jfdctint.c|main||1|-1|3396|3396|false||
+test/wcet_tests/mdh/jfdctint.c|main||2|-1|3807|3807|false||
+test/wcet_tests/mdh/jfdctint.c|main||3|-1|3807|3807|false||
+test/wcet_tests/mdh/edn.c|main||2|-1|50885|50885|false||
+test/wcet_tests/mdh/edn.c|main||3|-1|50214|50214|false||
+test/wcet_tests/mdh/ndes.c|main||0|-1|100204|101471|false||
+test/wcet_tests/mdh/ndes.c|main||1|-1|41856|41856|false||
+test/wcet_tests/mdh/ndes.c|main||2|-1|34184|34184|false||
+test/wcet_tests/mdh/ndes.c|main||3|-1|33927|33927|false||
+test/wcet_tests/mdh/lcdnum.c|main||2|-1|135|135|false||
+test/wcet_tests/mdh/lcdnum.c|main||3|-1|50|50|false||
+test/wcet_tests/mdh/statemate.c|main||0|-1|955|955|false|To be checked|
+test/wcet_tests/mdh/statemate.c|main||1|-1|577|577|false|To be checked|
+test/wcet_tests/mdh/statemate.c|main||2|-1|544|544|false|To be checked|
+test/wcet_tests/mdh/statemate.c|main||3|-1|481|481|false|To be checked|
+test/wcet_tests/mdh/janne_complex.c|main||0|-1|434|434|false|To be checked|
+test/wcet_tests/mdh/janne_complex.c|main||1|-1|126|126|false|To be checked|
+test/wcet_tests/mdh/janne_complex.c|main||2|-1|108|108|false|To be checked|
+test/wcet_tests/mdh/janne_complex.c|main||3|-1|168|168|false|To be checked|
+test/wcet_tests/mdh/ud.c|main||0|-1|7666|8146|false|To be checked|
+test/wcet_tests/mdh/ud.c|main||1|-1|2301|2781|false|To be checked|
+test/wcet_tests/mdh/ud.c|main||2|-1|2081|2561|false|To be checked|
+test/wcet_tests/mdh/ud.c|main||3|-1|1489|1489|false|To be checked|
+test/wcet_tests/mdh/compress.c|compress||0|-1|737|737|false|To be checked|
+test/wcet_tests/mdh/compress.c|compress||1|-1|426|426|false|To be checked|
+test/wcet_tests/mdh/compress.c|compress||2|-1|424|424|false|To be checked|
+test/wcet_tests/mdh/compress.c|compress||3|-1|430|430|false|To be checked|
+test/wcet_tests/mdh/crc.c|main||0|-1|49271|53367|false|To be checked|
+test/wcet_tests/mdh/crc.c|main||1|-1|22251|23602|false|To be checked|
+test/wcet_tests/mdh/crc.c|main||2|-1|13459|42127|false|To be checked|
+test/wcet_tests/mdh/crc.c|icrc|a0=[0,5];a1=[40,50];a2=[0,5];a3=[1,5]|0|-1|47486|51982|false|To be checked|
+test/wcet_tests/mdh/crc.c|icrc|a0=[0,5];a1=[40,50];a2=[0,5];a3=[1,5]|1|-1|21471|22992|false|To be checked|
+test/wcet_tests/mdh/crc.c|icrc|a0=[0,5];a1=[40,50];a2=[0,5];a3=[1,5]|2|-1|12744|41572|false|To be checked|
+test/wcet_tests/mdh/expint.c|main||0|-1|4557|4557|false|To be checked|
+test/wcet_tests/mdh/expint.c|main||1|-1|1998|1998|false|To be checked|
+test/wcet_tests/mdh/expint.c|main||2|-1|1|1|false|To be checked|
+test/wcet_tests/mdh/expint.c|main||3|-1|1|1|false|To be checked|
+test/wcet_tests/mdh/janne_complex.c|complex|a0=[1,30];a1=[1,30]|1|-1|3|351|false|To be checked|
+test/wcet_tests/mdh/janne_complex.c|complex|a0=[1,30];a1=[1,30]|2|-1|4|542|false|To be checked|
+test/wcet_tests/mdh/compress.c|main||1|-1|2827|19044|false|To be checked|
