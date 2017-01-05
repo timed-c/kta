@@ -1,0 +1,4 @@
+
+
+#!/bin/bash
+kta wcet $1 $2 > tmp.ml && ob tmp.native -lib str && time tmp.native $3 $4 $5 $6 $7

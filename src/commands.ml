@@ -171,6 +171,10 @@ let help command toptext =
         "  timing analysis files (supplied by the -tafiles option) or\n" ^
         "  by using the -func and -args options. \n")
         ta_options
+  | "wcet" -> 
+       pstr "wcet" 
+       ("  Performs worst case timing analysis. \n")
+        wcet_options
   | _ -> None
 
 

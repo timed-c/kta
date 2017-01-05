@@ -59,7 +59,7 @@ let print_main_help() =
  us"  sections Prints out information about sections.\n" ^. 
  us"  sym      Prints out the symbol table of the executable.\n" ^.
  us"  ta       Performs timing analysis.\n" ^.
- us"  wcet     Abstract search based WCET analysis.\n" ^.  
+ (* us"  wcet     Abstract search based WCET analysis.\n" ^.  *)
 (* us"  trace    Prints out a debug trace of a concrete execution.\n" ^. *)
  us"\n" ^.
  us"Run 'kta help <command>' to get help for a specific command.\n"

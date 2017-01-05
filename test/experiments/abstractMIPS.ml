@@ -118,6 +118,10 @@ let sp = R29
 let fp = R30
 let ra = R31
 
+(* Used for instructions mflo and mfhi *)  
+let internal_lo = R32
+let internal_hi = R33
+  
 let reg2str r =
   match r with
   | R0 -> "zero" | R8  -> "t0" | R16 -> "s0" | R24 -> "t8"
@@ -128,6 +132,7 @@ let reg2str r =
   | R5 -> "a1"   | R13 -> "t5" | R21 -> "s5" | R29 -> "sp"
   | R6 -> "a2"   | R14 -> "t6" | R22 -> "s6" | R30 -> "fp"
   | R7 -> "a3"   | R15 -> "t7" | R23 -> "s7" | R31 -> "ra"
+  | R32 -> "internal_lo"       | R33 -> "internal_hi"
 
 let reg2ustr r = reg2str r |> us
     
@@ -141,6 +146,7 @@ let int2reg x =
   | 5 -> R5 | 13 -> R13 | 21 -> R21 | 29 -> R29
   | 6 -> R6 | 14 -> R14 | 22 -> R22 | 30 -> R30
   | 7 -> R7 | 15 -> R15 | 23 -> R23 | 31 -> R31
+  | 32 -> R32 | 33 -> R33
   | _ -> failwith "Unknown register."
 
 let str2reg str =
@@ -153,6 +159,7 @@ let str2reg str =
   | "a1"   -> Some R5 | "t5" -> Some R13 | "s5" -> Some R21 | "sp" -> Some R29
   | "a2"   -> Some R6 | "t6" -> Some R14 | "s6" -> Some R22 | "fp" -> Some R30
   | "a3"   -> Some R7 | "t7" -> Some R15 | "s7" -> Some R23 | "ra" -> Some R31
+  | "internal_lo" -> Some R32            | "internal_hi" -> Some R33
   | _ -> None
     
 (** Creates an initial any state of the program state 
@@ -400,8 +407,36 @@ let mul =
   if dbg then debug_r_instruction (us"mul") aint32_mul
   else r_instruction aint32_mul
 
-
+(* TODO: handle 64-bit. Right now, we only use 32-bit multiplication. *)    
+let mult rs rt ms =
+  let ps = ms.pstate in
+  let r = ps.reg in
+  let (r,v_rs) = getreg rs r in
+  let (r,v_rt) = getreg rt r in
+  let r = setreg internal_lo (aint32_mul v_rs v_rt) r in
+  let r = setreg internal_hi (aint32_any) r in
+  if dbg then prn_inst ms (us"addi ");
+  ps |> update r |> tick 1 |> to_mstate ms
       
+
+let mflo rd ms = 
+  let ps = ms.pstate in
+  let r = ps.reg in
+  let (r,v_lo) = getreg internal_lo r in
+  let r = setreg rd v_lo r in
+  if dbg then prn_inst ms (us"mflo ");
+  ps |> update r |> tick 1 |> to_mstate ms
+  
+  
+let mfhi rd ms =
+  let ps = ms.pstate in
+  let r = ps.reg in
+  let (r,v_hi) = getreg internal_hi r in
+  let r = setreg rd v_hi r in
+  if dbg then prn_inst ms (us"mfhi ");
+  ps |> update r |> tick 1 |> to_mstate ms
+      
+    
 let addi rt rs imm ms  =
   let ps = ms.pstate in
   let r = ps.reg in
@@ -430,6 +465,17 @@ let sll rd rt shamt ms =
   ps |> update r' |> tick 1 |> to_mstate ms 
 
       
+let sra rd rt shamt ms =
+  let ps = ms.pstate in
+  let r = ps.reg in
+  let (r,v_rt) = getreg rt r in
+  let mval = aint32_const (1 lsl shamt) in
+  let r' = setreg rd (aint32_div v_rt mval) r in
+  if dbg then prn_inst ms (us"sra " ^. 
+        (reg2ustr rd) ^. us"=" ^. (preg rd r') ^. us" " ^.
+        (reg2ustr rt) ^. us"=" ^. (preg rt r) ^. us" " ^.
+         us(sprintf "shamt=%d" shamt));
+  ps |> update r' |> tick 1 |> to_mstate ms 
 
 
 (* used by next and branch_equality *)
@@ -514,6 +560,32 @@ let bneds =
                    false true aint32_test_equal
   else branch_main false true aint32_test_equal
 
+(* Instruction: beql
+   From official MIPS32 manual: 
+   "Branch on Equal Likely. 
+   To compare GPRs then do a PC-relative conditional branch; 
+   execute the delay slot only if the branch is taken. " 
+   NOTE: the generated code need to insert a "likely" node
+   to make this correct. *)
+let beqlds =
+  if dbg then debug_branch (us"beqlds")
+                   true true aint32_test_equal
+  else branch_main true true aint32_test_equal
+
+    
+(* Instruction: bnel
+   From official MIPS32 manual: 
+   "Branch on Not Equal Likely. 
+   To compare GPRs then do a PC-relative conditional branch; 
+   execute the delay slot only if the branch is taken." 
+   NOTE: the generated code need to insert a "likely" node
+   to make this correct. *)
+let bnelds =
+  if dbg then debug_branch (us"bnelds")
+                   false true aint32_test_equal
+  else branch_main false true aint32_test_equal
+
+    
 (* Instruction: blez
    From official MIPS32 manual: 
    "Branch on Less Than or Equal to Zero
@@ -529,20 +601,18 @@ let blezds rs label ms =
   if dbg then debug_branch (us"blezds")
                    true true aint32_test_less_than_equal rs zero label ms
   else branch_main true true aint32_test_less_than_equal rs zero label ms
-    
-(* Instruction: bnel
-   From official MIPS32 manual: 
-   "Branch on Not Equal Likely. 
-   To compare GPRs then do a PC-relative conditional branch; 
-   execute the delay slot only if the branch is taken." 
-   NOTE: the generated code need to insert a "likely" node
-   to make this correct. *)
-let bnelds =
-  if dbg then debug_branch (us"bnelds")
-                   false true aint32_test_equal
-  else branch_main false true aint32_test_equal
 
-    
+
+let lui rt imm ms =
+  if dbg then prn_inst ms (us"lui ");
+  let ps = ms.pstate in
+  let r = ps.reg in
+  let r = setreg rt (aint32_const (imm lsl 16)) r in
+  ps |> update r |> tick 1 |> to_mstate ms 
+
+
+  
+      
 (* Count cycles for the return. The actual jump is performed
    by the pseudo instruction 'ret'. The reason is that
    all functions should only have one final basic block node *)    
@@ -565,6 +635,16 @@ let jal label ms =
   if dbg then prn_inst ms (us"jal " ^. us(ms.bbtable.(label).name));
   continue (enqueue label ms.pstate ms)
 
+let jalds label ms =
+  if dbg then prn_inst ms (us"jalds " ^. us(ms.bbtable.(label).name));
+  {ms with sbranch = Some(label,zero,zero,Some(aint32_const 0,aint32_const 0),None)}
+
+    
+let jds label ms =
+  if dbg then prn_inst ms (us"jds " ^. us(ms.bbtable.(label).name));
+  {ms with sbranch = Some(label,zero,zero,Some(aint32_const 0,aint32_const 0),None)}
+  
+    
 let sw rt imm rs ms =
   let ps = ms.pstate in
   let r = ps.reg in
@@ -596,12 +676,10 @@ let lw rt imm rs ms =
   ps |> updatemem r' m |> tick 1 |> to_mstate ms 
 
       
-let slt rd rs rt ms =
+let slt_main signed r v_rs v_rt rd rs rt ms =
   let ps = ms.pstate in    
-  let r = ps.reg in
-  let (r,v_rs) = getreg rs r in
-  let (r,v_rt) = getreg rt r in
-  let (t,f) = aint32_test_less_than v_rs v_rt in
+  let (t,f) = (if signed then aint32_test_less_than else
+               aint32_test_less_than_unsigned) v_rs v_rt in
   let ms = {ms with sbranch = Some (0,rs,rt,t,f)} in
   let rd_v = match t,f with
     | _,None -> aint32_const 1
@@ -610,11 +688,31 @@ let slt rd rs rt ms =
   in
   let r' = setreg rd rd_v r in
   if dbg then
-    prn_inst ms (us"slt " ^. (reg2ustr rd) ^. us"=" ^. (preg rd r') ^. us" " ^.
-      (reg2ustr rs) ^. us"=" ^. (preg rs r) ^. us" " ^. (reg2ustr rt) ^. us"=" ^. (preg rt r) ^.
+    prn_inst ms ((if signed then us"slt " else us"sltu ") ^.
+      (reg2ustr rd) ^. us"=" ^. (preg rd r') ^. us" " ^.
+      (reg2ustr rs) ^. us"=" ^. (preg rs r) ^. us" " ^.
+      (reg2ustr rt) ^. us"=" ^. (preg rt r) ^.
       us" " ^. pprint_true_false_choice t f);
   ps |> update r' |> tick 1 |> to_mstate ms
 
+           
+let slt rd rs rt ms = 
+  let (r,v_rs) = getreg rs ms.pstate.reg in
+  let (r,v_rt) = getreg rt r in
+  slt_main true r v_rs v_rt rd rs rt ms
+
+    
+let sltu rd rs rt ms = 
+  let (r,v_rs) = getreg rs ms.pstate.reg in
+  let (r,v_rt) = getreg rt r in
+  slt_main false r v_rs v_rt rd rs rt ms
+    
+
+let slti rd rs imm ms =
+  let (r,v_rs) = getreg rs ms.pstate.reg in
+  slt_main true r v_rs (aint32_const imm) rd rs zero ms
+  
+  
 (* Removes special branch if variables are changed between set and 
    jump. Should be inserted by the compiler  *)  
 let nosbranch ms =

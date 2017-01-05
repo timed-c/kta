@@ -7,6 +7,7 @@ type registers = |R0 |R1 |R2 |R3 |R4 |R5 |R6 |R7
                  |R8 |R9 |R10|R11|R12|R13|R14|R15
                  |R16|R17|R18|R19|R20|R21|R22|R23
                  |R24|R25|R26|R27|R28|R29|R30|R31
+                 |R32|R33
 
 
 type aregister = {
@@ -18,6 +19,7 @@ type aregister = {
   reg5 : aint32; reg13 : aint32; reg21 : aint32; reg29 : aint32;
   reg6 : aint32; reg14 : aint32; reg22 : aint32; reg30 : aint32;
   reg7 : aint32; reg15 : aint32; reg23 : aint32; reg31 : aint32;
+  reg32 : aint32; reg33 : aint32;
 }
   
 
@@ -38,7 +40,9 @@ let areg_init =
     reg12 = aint32_any;  reg28 = aint32_any;
     reg13 = aint32_any;  reg29 = aint32_any;
     reg14 = aint32_any;  reg30 = aint32_any;
-    reg15 = aint32_any;  reg31 = aint32_any;    
+    reg15 = aint32_any;  reg31 = aint32_any;
+
+    reg32 = aint32_any; reg33 = aint32_any;
 }
 
 
@@ -63,6 +67,8 @@ let getreg r areg =
   | R13 -> areg.reg13        | R29 -> areg.reg29 
   | R14 -> areg.reg14        | R30 -> areg.reg30 
   | R15 -> areg.reg15        | R31 -> areg.reg31
+
+  | R32 -> areg.reg32        | R33 -> areg.reg33    
   in
 (*  let v = reg r areg in
   aint32_print_debug v;
@@ -95,6 +101,8 @@ let setreg r v areg =
   | R14  -> {areg with reg14 = v}  | R30 -> {areg with reg30 = v}
   | R15  -> {areg with reg15 = v}  | R31 -> {areg with reg31 = v}
 
+  | R32 -> {areg with reg32 = v}   | R33 -> {areg with reg33 = v}    
+
     
 
       
@@ -115,6 +123,8 @@ let areg_two_join areg1 areg2 =
    reg14 = aint32_join areg1.reg14 areg2.reg14; reg30 = aint32_join areg1.reg30 areg2.reg30;
    reg15 = aint32_join areg1.reg15 areg2.reg15; reg31 = aint32_join areg1.reg31 areg2.reg31;
    reg16 = aint32_join areg1.reg16 areg2.reg16;
+
+   reg32 = aint32_join areg1.reg32 areg2.reg32; reg33 = aint32_join areg1.reg33 areg2.reg33;
 }
 
 

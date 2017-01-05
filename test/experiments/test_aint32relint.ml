@@ -6,8 +6,9 @@ open Aint32relint
 
 let debug = false
 
-(* Exhaustive test of all combinations. Check soundsness. *)  
-let test_relation relation str testfun  low high =  
+(* Exhaustive test of all combinations of relation operations. Check soundsness. *)  
+let test_relation relation str testfun  low high =
+  printf "Test '%s' " str;
   let rec work l1 h1 l2 h2 = (
     let testpoints truecase falsecase =
       for x = l1 to h1 do
@@ -67,13 +68,51 @@ let test_relation relation str testfun  low high =
         done
       done
     done
-  done 
-       
+  done;
+  printf "OK!\n"
 
-let low = -10 
-let high = 10
+    
+let test_binop binop str testfun low high =
+  printf "Test '%s' " str;
+  let rec work l1 h1 l2 h2 = (
+    try 
+      match testfun (Interval (l1,h1)) (Interval (l2,h2)) with
+      | Interval(l,h) ->      
+        for x = l1 to h1 do
+          for y = l2 to h2 do
+            let v = binop x y in
+            if v < l || v > h then
+              failwith (sprintf "%s: Case [%d,%d] [%d,%d] at point %d %d failed.\n"
+                          str l1 h1 l2 h2 x y)
+            else if debug then printf "OK.\n" else ()
+          done
+        done
+      | _ -> failwith "Not an interval"
+    with
+      Division_by_zero -> if l2<=0 && h2>=0 then () else failwith "Wrong division by zero")
+  in
+  for h1 = low to high do
+    for l1 = low to h1 do
+      for h2 = low to high do
+        for l2 = low to h2 do
+          work l1 h1 l2 h2
+        done
+      done
+    done
+  done;
+  printf "OK!\n"
+                             
 
-let main =    
+  
+    
+
+let low = -15 
+let high = 15
+
+let main =
+  test_binop (+) "add" aint32_add low high;
+  test_binop (fun x y -> x * y) "mul" aint32_mul low high;
+  test_binop (/) "div" aint32_div low high;
   test_relation (<) "less_than" aint32_test_less_than low high;
   test_relation (<=) "less_than_equal" aint32_test_less_than_equal low high;
   test_relation (=) "equal" aint32_test_equal low high

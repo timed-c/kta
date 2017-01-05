@@ -95,6 +95,16 @@ let aint32_mul v1 v2 =
     else (l,h)
   ) v1 v2
     
+let aint32_div v1 v2 =
+  aint32_binop (fun (l1,h1) (l2,h2) ->
+    if (l2<=0 && h2 >=0) then raise Division_by_zero
+    else
+      let l = min (min (l1/l2) (l1/h2)) (min (h1/l2) (h1/h2)) in
+      let h = max (max (l1/l2) (l1/h2)) (max (h1/l2) (h1/h2)) in
+      if l<lowval || h>highval then raise AnyException
+      else (l,h)
+  ) v1 v2
+
     
 let aint32_const v =
     Interval(v,v)
@@ -264,7 +274,27 @@ let rec aint32_test_less_than v1 v2 =
   | IntervalList(l1,_), IntervalList(l2,_) ->
     aint32_test_less_than (Interval(interval_merge_list l1))
                           (Interval(interval_merge_list l2))
-                          
+
+(* Same as the above, but conservative for negative numbers *)      
+let rec aint32_test_less_than_unsigned v1 v2 =
+  match v1,v2 with
+  | Any,_|_,Any -> (Some(Any,Any),Some(Any,Any))
+  | Interval((l1,h1)), Interval((l2,h2)) ->
+    if l1 < 0 || l2 < 0 then (Some(Any,Any),Some(Any,Any))
+    else
+      ((if l1 < h2 then
+          Some(Interval(l1,min h1 (h2-1)), Interval(max (l1+1) l2,h2))
+        else None),
+       (if h1 >= l2 then
+           Some(Interval(max l1 l2,h1), Interval(l2,min h2 h1))        
+        else None))
+  | Interval(v1),IntervalList(l1,_) | IntervalList(l1,_), Interval(v1) ->
+    aint32_test_less_than_unsigned (Interval(v1)) (Interval(interval_merge_list l1))
+  | IntervalList(l1,_), IntervalList(l2,_) ->
+    aint32_test_less_than_unsigned (Interval(interval_merge_list l1))
+                          (Interval(interval_merge_list l2))
+  
+      
 (*  We can divide into 6 different cases when checking
       if x < y
 
