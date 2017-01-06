@@ -1,8 +1,7 @@
 
 (*
-
   Execute the main experiment using the following example
-  >> ocamlbuild experiment.native -lib Str -- v0=[1,100]
+  >> ocamlbuild experiment.native -lib Str -- a0=[1,100]
 *)
 
 
@@ -711,7 +710,14 @@ let sltu rd rs rt ms =
 let slti rd rs imm ms =
   let (r,v_rs) = getreg rs ms.pstate.reg in
   slt_main true r v_rs (aint32_const imm) rd rs zero ms
-  
+
+
+(* TODO: right now, stliu is just a copy of slti. It must 
+   be update to also include correct handling of unsigned integers! *)    
+let sltiu rd rs imm ms =
+  let (r,v_rs) = getreg rs ms.pstate.reg in
+  slt_main true r v_rs (aint32_const imm) rd rs zero ms
+    
   
 (* Removes special branch if variables are changed between set and 
    jump. Should be inserted by the compiler  *)  
