@@ -11,7 +11,7 @@ From the root path, the regression test suite is executed by the command
 
 ## WCET of the factorial demo
 
-** Note: This text describes how to perform WCET analysis using abstract search manually. This is not the optimal way for an end user, but is a good way to learn the internals of the analysis tool.** 
+**Note: This text describes how to perform WCET analysis using abstract search manually. This is not the optimal way for an end user, but is a good way to learn the internals of the analysis tool.** 
 
 Before you follow this tutorial, please go through the [getting started guide](gettingstarted.md).
 
