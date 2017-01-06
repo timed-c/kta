@@ -103,7 +103,7 @@ let optionstext ?(indent=2) ?(max_op_len=25) ?(line_length=80) options =
   
     (* Format description text. Split new line if space *)
     (snd (List.fold_left (fun (col,acc) s ->
-      let len_s = Ustring.length s + 1in
+      let len_s = Ustring.length s + 1 in
       if col + len_s < line_length then
         (col + len_s, acc ^. s ^. us" ")
       else

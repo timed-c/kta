@@ -224,7 +224,7 @@ let parse_ta_strings filename lines =
   (* Extract timing analysis request data *)
   let rec extract tokens fname initfunc args gvars state fwcet fbcet ta_req acc =
     let uppertokens = (match tokens with
-                      | (k,s::ss)::ts -> (k,(String.uppercase s)::ss)::ts
+                      | (k,s::ss)::ts -> (k,(String.uppercase_ascii s)::ss)::ts
                       | _ -> tokens) in
     match uppertokens with
     | (_,["FUNCTION";name])::ts -> (
