@@ -17,11 +17,15 @@ KTA should be possible to be executed on Windows, Mac OS X, and Linux, but it ha
 
 3. Launch the MCB32 command line terminal (see the link in step 2). If you have started the terminal correctly, the command line should show `[mcb32]`. 
 
-4. Clone this repository: `>> git clone https://github.com/timed-c/kta.git`
+4. Clone this repository: `git clone https://github.com/timed-c/kta.git`
 
 5. From the root path, run: `make`. An executable named `kta` should now be available in the directory `/bin`. Add this directory to your path environment.
 
+## Usage
 
+* Please see the following [getting started guide](doc/gettingstarted.md) for an informal introduction on how to use the tool.
+
+* Please see the [design overview](doc/design.md) document for a brief overview of the design and implementation of KTA.
 
 ## MIT License 
 KTA is licensed under the MIT license.
