@@ -44,7 +44,7 @@ open Ustring.Op
 (* ---------------------------------------------------------------------*)
 (* The top text message *)
 let top_text =     
-  us"KTA - KTH's Time-aware Analyzer. Copyright (C) 2015 David Broman.\n" 
+  us"KTA - KTH's Time-aware Analyzer.\nCopyright (C) 2015-2017 David Broman.\n" 
 
   
 (* ---------------------------------------------------------------------*)
@@ -58,8 +58,8 @@ let print_main_help() =
  us"  help     Prints out help about commands.\n" ^.
  us"  sections Prints out information about sections.\n" ^. 
  us"  sym      Prints out the symbol table of the executable.\n" ^.
- us"  ta       Performs timing analysis.\n" ^.
- (* us"  wcet     Abstract search based WCET analysis.\n" ^.  *)
+ us"  ta       Performs exhaustive search-based timing analysis.\n" ^.
+ us"  wcet     Abstract search based WCET analysis (under development).\n" ^.  
 (* us"  trace    Prints out a debug trace of a concrete execution.\n" ^. *)
  us"\n" ^.
  us"Run 'kta help <command>' to get help for a specific command.\n"
