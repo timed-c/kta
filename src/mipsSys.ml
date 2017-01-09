@@ -86,6 +86,8 @@ let section_info filename =
 
 (* ---------------------------------------------------------------------*)
 let symbol_table filename = 
+  let build_in_names = ["_start"; "_gp"; "_ftext"; "_fdata";
+			"_fbss"; "_end"; "_edata"; "__bss_start"] in
   let command = nm ^ " " ^ filename in
   if !enable_verbose then print_endline (command ^ "\n");
   let (code,stdout,stderr) = USys.shellcmd command in
@@ -96,7 +98,7 @@ let symbol_table filename =
       let sp = List.filter (fun y -> Ustring.length y != 0) 
                             (Ustring.split line (us" ")) in
       match sp with
-      | addr::_::sym::_ -> (
+      | addr::_::sym::_ when not (List.exists (fun x -> x= (Ustring.to_utf8 sym)) build_in_names)  -> (
           try
             let addrno = int_of_string ("0x" ^ (Ustring.to_utf8 addr)) in
             (Ustring.to_utf8 sym,addrno)::acc
