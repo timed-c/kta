@@ -40,7 +40,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 open Printf
 open Ustring.Op
 
-
 (* ---------------------------------------------------------------------*)
 (* The top text message *)
 let top_text =     
@@ -94,7 +93,7 @@ let main =
     | _::c::ls -> "Unknown command '" ^ c ^ "'." |> print_endline
 
     (* Print out the main help menu *)
-    | _ -> print_main_help()
+    | _ -> print_main_help();
 
   with
     (* Print out error message *)

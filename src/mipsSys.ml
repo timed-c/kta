@@ -275,7 +275,11 @@ let get_init_state_vals ?(bigendian=false) prog initfunc statelist =
   ) statelist
 
 
-
-
-
-
+let wcet_compile filename args =
+  let ocamlargs = " -lib str -- " in
+  let command = ("sh -c \"cd runtime; ocamlbuild " ^ filename ^ ".native" ^ ocamlargs ^ args ^"\"") in
+  if !enable_verbose then  print_endline (command ^ "\n");
+  let (code, stdout, stderr) = USys.shellcmd command in
+  if code != 0
+  then raise (Sys_error (stderr ^ " " ^ stdout))
+  else stdout

@@ -18,4 +18,4 @@ val pprint_ocaml_cps_from_cfgmap :
 
   
 
-val test : MipsAst.program -> string -> unit
+val test : MipsAst.program -> string -> (string list * bool) -> unit

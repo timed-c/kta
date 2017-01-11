@@ -54,6 +54,7 @@ type compOpTypes =
 | OpTa_Exhaustive
 | OpTa_OutputPathInputs    
 | OpWCET_CPSOCaml
+| OpWCET_OCamlArgs
     
 (* List of compiler options *)
 let extra_options = 
@@ -127,7 +128,10 @@ let ta_options =
 (* List of disasm command options *)
 let wcet_options = 
   [(OpWCET_CPSOCaml, Uargs.No,  us"-cpsocaml",  us"",
-       us"Output the OCaml continuation passing style (CPS) code used for analysis.")]
+       us"Output the OCaml continuation passing style (CPS) code used for analysis.");
+   (OpWCET_OCamlArgs, Uargs.StrList,  us"-args",  us"<args>",
+       us"Run the OCaml Code directly with <args> in the form: <reg>=[int,int]|int.")
+  ]
   @ extra_options
 
     
@@ -452,10 +456,14 @@ let ta_command args =
 
 
 (* ---------------------------------------------------------------------*)
+                                                                     
 let wcet_command args =
   
   (* Parse options and get the binary file name *)
   let (ops,args,binfile_name,funcargs) = parse_ops_get_filename args wcet_options in
+
+  let prog_args = Uargs.strlist_op OpWCET_OCamlArgs ops |> List.map Ustring.to_utf8 in
+  let print_out_option = (Uargs.has_op OpWCET_CPSOCaml ops) in
 
   (* Get function name. Should be better error control of input here... TODO *)
   let func_name = List.hd funcargs in
@@ -463,8 +471,7 @@ let wcet_command args =
   (* Load the program *)
   let prog = MipsSys.get_program binfile_name |>  MipsUtils.add_branch_symbols in
 
-
-  MipsCfg.test prog (Ustring.to_utf8 func_name);
+  MipsCfg.test prog (Ustring.to_utf8 func_name) (prog_args, print_out_option);
   us""
 
 

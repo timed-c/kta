@@ -3,7 +3,6 @@ open Ustring.Op
 open MipsAst
 open Printf
 
-
 let arrow_padding = 40  (* Characters for the printed arrows |> *)
 let inden_inst = us"  " (* Characters indent for the instruction *)
 let identifier_padding = 15
@@ -296,8 +295,6 @@ let pprint_ocaml_cps_from_cfg nice_output cfg prog k =
   List.fold_left (fun (lst,k,a) (name,block) ->
     ((name,k,block)::lst,k+1,a ^. pprint_bblock name block ^. us"\n")
   ) ([],k,us"") cfglst
-    
-
 
     
 (* Pretty print a whole program as an analyzable .ml file *)  
@@ -397,21 +394,25 @@ type bblock =
   block_code : inst list;     (* Assembly code instructions of the bloc *)
   block_exit : exittype;      (* Exist variants with string block ids to the next nodes *)
   block_dist : int;           (* Shortest distance to the exit node in the CFG *)
-}    
-
-  
-  
-let test prog fname =
+}
+                                  
+let test prog fname cm_args =
   let (prog,cfgmap) = make_cfgmap fname prog in
-  uprint_endline (pprint_ocaml_cps_from_cfgmap true fname cfgmap prog)
-
-    
-
-
-
-
-
-
-
-
-  
+  let program_code = (pprint_ocaml_cps_from_cfgmap true fname cfgmap prog)  in
+  match cm_args with
+   | (_,true) -> uprint_endline program_code
+   | (args,pr_option)  ->
+      let ocamlflnm = "temp_1214325_" ^ fname in
+      let files = [".ml"; ".native"] |> List.map (fun x -> "runtime/" ^ ocamlflnm ^ x) in
+      let remove_file fname = if Sys.file_exists fname then Sys.remove fname else () in
+      let oc = open_out (List.hd files) in
+      let newpr_code = (Ustring.to_utf8 program_code) in
+      Printf.fprintf oc "%s" newpr_code; 
+      close_out oc;
+      try
+        List.fold_left (fun x -> (^) (x ^ " ")) " " args |> MipsSys.wcet_compile ocamlflnm |> print_endline;
+        files |> List.iter remove_file
+      with Sys_error e ->
+        e |> eprintf "%s\n";
+        files |> List.iter remove_file
+        
