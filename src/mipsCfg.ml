@@ -310,8 +310,9 @@ let pprint_ocaml_cps_from_cfgmap nice_output name cfgmap prog =
   in
   (* Intro header *)
   let intro =
-      us"open AbstractMIPS\n\n" ^.
-      us"(* -- Basic Block Identifiers -- *)\n\n"
+    us"open AbstractMIPS\n\n" ^.
+      us"open Printf\n\n" ^.
+        us"(* -- Basic Block Identifiers -- *)\n\n"
   in
   
   (* Info before program code *)
@@ -369,8 +370,11 @@ let pprint_ocaml_cps_from_cfgmap nice_output name cfgmap prog =
   let bbtable = bbtable_start ^. bbtable_list ^. bbtable_end in
   
   (* Analyze text *)
-  let analyze = us"(* -- Start of Analysis -- *)\n\n" ^.    
-    us"let main = analyze " ^. us name ^. us"_ bblocks []\n" in
+  let analyze = us"(* -- Start of Analysis -- *)\n\n" ^.
+                  us"let main = \n\t"
+                  ^. us"let _st_time = Sys.time() in\n"
+                  ^. us"\tanalyze " ^. us name ^. us"_ bblocks [];\n"
+                  ^. us"\tprintf \"Time Elapsed %fs\\n\" (Sys.time() -. _st_time)\n" in
   
   (* Return the complete .ml file *)
   intro ^. ident_list ^. blocks_header ^.
