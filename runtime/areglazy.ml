@@ -7,7 +7,7 @@ type registers = |R0 |R1 |R2 |R3 |R4 |R5 |R6 |R7
                  |R8 |R9 |R10|R11|R12|R13|R14|R15
                  |R16|R17|R18|R19|R20|R21|R22|R23
                  |R24|R25|R26|R27|R28|R29|R30|R31
-
+                 |R32|R33
 
 type aregister = {
   reg1  : aint32 option;
@@ -42,6 +42,7 @@ type aregister = {
   reg30 : aint32 option;
   reg31 : aint32 option;
   reg32 : aint32 option;
+  reg33 : aint32 option;
 
   (* List of abstract registers that are to be joined *)
   ajoins : aregister list;
@@ -80,6 +81,7 @@ let areg_init = {
   reg30 = None;
   reg31 = None;
   reg32 = None;
+  reg33 = None;
 
   ajoins = [];
 }
@@ -105,7 +107,8 @@ let get_aregval r areg =
   | R12 -> areg.reg12           | R28 -> areg.reg28 
   | R13 -> areg.reg13           | R29 -> areg.reg29 
   | R14 -> areg.reg14           | R30 -> areg.reg30 
-  | R15 -> areg.reg15           | R31 -> areg.reg31 
+  | R15 -> areg.reg15           | R31 -> areg.reg31
+  | R32 -> areg.reg32           | R33 -> areg.reg33 
 
 
 let set_aregval r v areg =
@@ -126,6 +129,7 @@ let set_aregval r v areg =
   | R13  -> {areg with reg13 = v}  | R29 -> {areg with reg29 = v}
   | R14  -> {areg with reg14 = v}  | R30 -> {areg with reg30 = v}
   | R15  -> {areg with reg15 = v}  | R31 -> {areg with reg31 = v}
+  | R32  -> {areg with reg32 = v}  | R33 -> {areg with reg33 = v}
     
 
 let getreg r areg =        
