@@ -405,7 +405,19 @@ let addu =
 let mul =
   if dbg then debug_r_instruction (us"mul") aint32_mul
   else r_instruction aint32_mul
+            
+let and_ = 
+  if dbg then debug_r_instruction (us"and") aint32_and
+  else r_instruction aint32_and
 
+let or_ = 
+  if dbg then debug_r_instruction (us"or") aint32_or
+  else r_instruction aint32_or
+
+let nor = 
+  if dbg then debug_r_instruction (us"or") aint32_nor
+  else r_instruction aint32_nor
+                     
 (* TODO: handle 64-bit. Right now, we only use 32-bit multiplication. *)    
 let mult rs rt ms =
   let ps = ms.pstate in
@@ -450,7 +462,40 @@ let addi rt rs imm ms  =
       
 let addiu = addi
 
-  
+let andi rt rs imm ms  =
+  let ps = ms.pstate in
+  let r = ps.reg in
+  let (r,v_rs) = getreg rs r in
+  let r' = setreg rt (aint32_and v_rs (aint32_const imm)) r in             
+  if dbg then prn_inst ms (us"andi " ^. 
+        (reg2ustr rt) ^. us"=" ^. (preg rt r') ^. us" " ^.
+        (reg2ustr rs) ^. us"=" ^. (preg rs r) ^. us" " ^.
+         us(sprintf "imm=%d" imm));
+  ps |> update r' |> tick 1 |> to_mstate ms 
+
+let ori rt rs imm ms  =
+  let ps = ms.pstate in
+  let r = ps.reg in
+  let (r,v_rs) = getreg rs r in
+  let r' = setreg rt (aint32_or v_rs (aint32_const imm)) r in             
+  if dbg then prn_inst ms (us"ori " ^. 
+        (reg2ustr rt) ^. us"=" ^. (preg rt r') ^. us" " ^.
+        (reg2ustr rs) ^. us"=" ^. (preg rs r) ^. us" " ^.
+         us(sprintf "imm=%d" imm));
+  ps |> update r' |> tick 1 |> to_mstate ms 
+
+let xori rt rs imm ms  =
+  let ps = ms.pstate in
+  let r = ps.reg in
+  let (r,v_rs) = getreg rs r in
+  let r' = setreg rt (aint32_xor v_rs (aint32_const imm)) r in             
+  if dbg then prn_inst ms (us"xori " ^. 
+        (reg2ustr rt) ^. us"=" ^. (preg rt r') ^. us" " ^.
+        (reg2ustr rs) ^. us"=" ^. (preg rs r) ^. us" " ^.
+         us(sprintf "imm=%d" imm));
+  ps |> update r' |> tick 1 |> to_mstate ms 
+
+                                         
 let sll rd rt shamt ms =
   let ps = ms.pstate in
   let r = ps.reg in

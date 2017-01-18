@@ -86,6 +86,42 @@ let aint32_add v1 v2 =
     else (l,h)
   ) v1 v2
 
+let aint32_and_f (l1,h1) (l2,h2) =
+  let l = l1 land l2 in
+  let h = max h1 h2 in
+  if l<lowval || h>highval then raise AnyException
+  else (l,h)
+           
+(*TODO step*)
+let aint32_and v1 v2 =
+  aint32_binop  aint32_and_f v1 v2
+
+let aint32_or_f (l1,h1) (l2,h2) =
+  let l = min l1 l2 in
+  let h = h1 lor h2 in
+  if l<lowval || h>highval then raise AnyException
+  else (l,h)
+           
+(*TODO all*)
+let aint32_or v1 v2 =
+  aint32_binop aint32_or_f v1 v2
+
+let aint32_not_f (l,h) =
+  (lnot h, lnot l)
+    
+let aint32_nor_f t1 t2 =
+  aint32_and_f (aint32_not_f t1) (aint32_not_f t2)
+
+let aint32_nor v1 v2 =
+  aint32_binop (aint32_nor_f) v1 v2
+
+let aint32_xor_f t1 t2 =
+  aint32_or_f
+    (aint32_and_f (aint32_not_f t1) t2)
+    (aint32_and_f t1 (aint32_not_f t2))
+              
+let aint32_xor v1 v2 =
+  aint32_binop aint32_xor_f v1 v2
 
 let aint32_mul v1 v2 =
   aint32_binop (fun (l1,h1) (l2,h2) ->
