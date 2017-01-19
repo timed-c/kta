@@ -886,11 +886,10 @@ let options =
 let analyze startblock bblocks defaultargs =
   let args = (Array.to_list Sys.argv |> List.tl) in
   let (ops, args) = Uargs.parse args options in
-  let debug = Uargs.has_op OpDebug ops in
-  let enEID = Uargs.has_op OpEnEID ops in
+  (*let debug = Uargs.has_op OpDebug ops in
+  let enEID = Uargs.has_op OpEnEID ops in*)
   let args = Uargs.strlist_op OpArgs ops |> List.map Ustring.to_utf8 in 
   let args = if args = [] then defaultargs else args in
-  (*if debug then*)
   if dbg && dbg_trace then
     let v =     
       try analyze_main startblock bblocks args |> print_mstate
