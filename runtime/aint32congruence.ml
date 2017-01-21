@@ -59,7 +59,7 @@ let aint32_to_int32 v =
 let aint32_pprint debug v =
   let prn (l,s,n) =
     if n = 1 then us (sprintf "%d:%d " l s)
-    else us (sprintf "[%d,%d]:%d " l (high l s n) s)
+    else us (sprintf "[%d,%d]:%d " l s n)
   in  
   match v with
   | Any -> us"Any"
