@@ -86,8 +86,7 @@ let section_info filename =
 
 (* ---------------------------------------------------------------------*)
 let symbol_table filename = 
-  let build_in_names = ["_start"; "_gp"; "_ftext"; "_fdata";
-			"_fbss"; "_end"; "_edata"; "__bss_start"] in
+
   let command = nm ^ " " ^ filename in
   if !enable_verbose then print_endline (command ^ "\n");
   let (code,stdout,stderr) = USys.shellcmd command in
@@ -98,7 +97,7 @@ let symbol_table filename =
       let sp = List.filter (fun y -> Ustring.length y != 0) 
                             (Ustring.split line (us" ")) in
       match sp with
-      | addr::_::sym::_ when not (List.exists (fun x -> x= (Ustring.to_utf8 sym)) build_in_names)  -> (
+      | addr::_::sym::_ -> (
           try
             let addrno = int_of_string ("0x" ^ (Ustring.to_utf8 addr)) in
             (Ustring.to_utf8 sym,addrno)::acc
@@ -108,7 +107,9 @@ let symbol_table filename =
   
   
 (* ---------------------------------------------------------------------*)
-let get_program filename = 
+let get_program filename =
+  let build_in_names = ["_start"; "_gp"; "_ftext"; "_fdata";
+			"_fbss"; "_end"; "_edata"; "__bss_start"] in
   let l_symbols = List.rev (symbol_table filename) in
   let l_sections = section_info filename in
   let l_text = try Some(List.assoc ".text" l_sections) with _ -> None in
@@ -124,7 +125,7 @@ let get_program filename =
   sym2addr = List.fold_left (fun m (s,a) -> Sym2Addr.add s a m) 
                 Sym2Addr.empty l_symbols;
   addr2sym = List.fold_left (fun m (s,a) -> Addr2Sym.add a s m) 
-                Addr2Sym.empty l_symbols;
+                Addr2Sym.empty (List.filter (fun (sym,a) -> not (List.exists (fun x -> x = sym) build_in_names)) l_symbols);
   sections = l_sections;
   text_sec = {d = l_textcode;
               addr = (match l_text with Some(_,a) -> a | None -> 0);

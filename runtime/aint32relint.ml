@@ -62,8 +62,33 @@ let aint32_pprint debug v =
 let aint32_print_debug v =
   uprint_endline (aint32_pprint true v)
 
+(*big/little endian*)
+let rec aint32_mem_byte byte v =
+  let interv_get_byte byte (l1,h1) =
+     let get_byte i = i lsr (byte lsl 3)  in
+     (get_byte l1, get_byte h1) in
+  match v with
+  | Any -> Any
+  | Interval(v1) -> Interval(interv_get_byte byte v1)
+  | IntervalList(l,sp) ->
+     IntervalList(List.map (interv_get_byte byte) l,sp)
+(*big/little endian*)
+let rec aint32_mem_update_byte byte newv oldv =
+  let interv_set_byte byte (l1,h1) (ol1,oh1) =
+    let set_byte newv oldv =
+      let newi = newv lsl (byte lsl 3)  in
+      let mask = 0xff lsl (byte lsl 3)  in
+      ((oldv land (lnot mask)) lor newi)
+    in
+     (set_byte l1 ol1, set_byte h1 oh1) in
+  match newv,oldv with
+  | _,Any -> Any
+  | Interval(nv1),Interval(v1) -> Interval(interv_set_byte byte nv1 v1)
+  | Interval(nv1),IntervalList(l,sp) ->
+     IntervalList(List.map (interv_set_byte byte nv1) l,sp)
+  | _,_ -> raise Exception_aint32
 
-  
+     
 let aint32_binop op v1 v2 =
   try 
     match v1,v2 with
@@ -85,6 +110,16 @@ let aint32_add v1 v2 =
     if l<lowval || h>highval then raise AnyException
     else (l,h)
   ) v1 v2
+
+               
+let aint32_sub v1 v2 =
+  aint32_binop (fun (l1,h1) (l2,h2) ->
+      let l2,h2 = -h2,-l2 in
+      let l = l1+l2 in
+      let h = h1+h2 in
+      if l<lowval || h>highval then raise AnyException
+      else (l,h)
+    ) v1 v2
 
 let aint32_and_f (l1,h1) (l2,h2) =
   let l = l1 land l2 in
@@ -130,7 +165,24 @@ let aint32_mul v1 v2 =
     if l<lowval || h>highval then raise AnyException
     else (l,h)
   ) v1 v2
-    
+
+(* Check for (always positive) v2*)
+let aint32_sllv v1 v2 =
+  aint32_binop (fun (l1,h1) (l2,h2) ->
+    let l = l1 lsl l2 in
+    let h = h1 lsl h2 in
+    if l<lowval || h>highval then raise AnyException
+    else (l,h)
+  ) v1 v2
+
+let aint32_srlv v1 v2 =
+  aint32_binop (fun (l1,h1) (l2,h2) ->
+    let l = l1 lsr l2 in
+    let h = h1 lsr h2 in
+    if l<lowval || h>highval then raise AnyException
+    else (l,h)
+  ) v1 v2
+
 let aint32_div v1 v2 =
   aint32_binop (fun (l1,h1) (l2,h2) ->
     if (l2<=0 && h2 >=0) then raise Division_by_zero

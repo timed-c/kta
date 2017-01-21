@@ -15,7 +15,7 @@ open Scanf
 open Config
 open Str
 
-let dbg = false
+let dbg = true
 let dbg_trace = true  (* Note that you should compile with exper.d.byte *)  
 let dbg_inst = true
 let dbg_mstate_sizes = true
@@ -401,7 +401,15 @@ let add =
 let addu =
   if dbg then debug_r_instruction (us"addu") aint32_add
   else r_instruction aint32_add
-    
+
+let sub =
+  if dbg then debug_r_instruction (us"sub") aint32_sub
+  else r_instruction aint32_sub
+
+let subu =
+  if dbg then debug_r_instruction (us"subu") aint32_sub
+  else r_instruction aint32_sub
+
 let mul =
   if dbg then debug_r_instruction (us"mul") aint32_mul
   else r_instruction aint32_mul
@@ -417,7 +425,15 @@ let or_ =
 let nor = 
   if dbg then debug_r_instruction (us"or") aint32_nor
   else r_instruction aint32_nor
-                     
+
+let sllv =
+  if dbg then debug_r_instruction (us"sllv") aint32_sllv
+  else r_instruction aint32_sllv
+
+let srlv =
+  if dbg then debug_r_instruction (us"srlv") aint32_srlv
+  else r_instruction aint32_srlv
+
 (* TODO: handle 64-bit. Right now, we only use 32-bit multiplication. *)    
 let mult rs rt ms =
   let ps = ms.pstate in
@@ -503,6 +519,18 @@ let sll rd rt shamt ms =
   let mval = aint32_const (1 lsl shamt) in
   let r' = setreg rd (aint32_mul v_rt mval) r in
   if dbg then prn_inst ms (us"sll " ^. 
+        (reg2ustr rd) ^. us"=" ^. (preg rd r') ^. us" " ^.
+        (reg2ustr rt) ^. us"=" ^. (preg rt r) ^. us" " ^.
+         us(sprintf "shamt=%d" shamt));
+  ps |> update r' |> tick 1 |> to_mstate ms 
+
+let srl rd rt shamt ms =
+  let ps = ms.pstate in
+  let r = ps.reg in
+  let (r,v_rt) = getreg rt r in
+  let mval = aint32_const (1 lsl shamt) in
+  let r' = setreg rd (aint32_div v_rt mval) r in
+  if dbg then prn_inst ms (us"srl " ^. 
         (reg2ustr rd) ^. us"=" ^. (preg rd r') ^. us" " ^.
         (reg2ustr rt) ^. us"=" ^. (preg rt r) ^. us" " ^.
          us(sprintf "shamt=%d" shamt));
@@ -710,6 +738,21 @@ let sw rt imm rs ms =
          (reg2ustr rs) ^. us"=" ^. (preg rs r) ^. us")")) else ();
   ps |> updatemem r m |> tick 1 |> to_mstate ms 
 
+let sb rt imm rs ms =
+  let ps = ms.pstate in
+  let r = ps.reg in
+  let imm4,byte = (imm / 4) lsl 2, imm mod 4 in
+  let (r,v_rt) = getreg rt r in
+  let (r,v_rs) = getreg rs r in
+  let con_v_rs = aint32_to_int32 v_rs in
+  let m = set_memval_byte (imm4 + con_v_rs) v_rt ps.mem byte in
+  if dbg then(
+    prn_inst ms (us"sw " ^. 
+         (reg2ustr rt) ^. us"=" ^. (preg rt r) ^.
+         us(sprintf " imm=%d(" imm) ^.
+         (reg2ustr rs) ^. us"=" ^. (preg rs r) ^. us")")) else ();
+  ps |> updatemem r m |> tick 1 |> to_mstate ms 
+
 
 let lw rt imm rs ms =
   let ps = ms.pstate in
@@ -726,7 +769,24 @@ let lw rt imm rs ms =
          (reg2ustr rs) ^. us"=" ^. (preg rs r) ^. us")")) else ();
   ps |> updatemem r' m |> tick 1 |> to_mstate ms 
 
-      
+let lb rt imm rs ms = 
+  let ps = ms.pstate in
+  let r = ps.reg in
+  let imm4,byte = (imm / 4) lsl 2, imm mod 4 in
+  let (r,v_rt) = getreg rt r in
+  let (r,v_rs) = getreg rs r in
+  let con_v_rs = aint32_to_int32 v_rs in
+  let (m,v) = get_memval_byte (imm4 + con_v_rs) ps.mem byte in
+  let r' = setreg rt v r in
+  if dbg then(
+    prn_inst ms (us"lb " ^. 
+         (reg2ustr rt) ^. us"=" ^. (preg rt r') ^.
+         us(sprintf " imm=%d(" imm4) ^.
+         (reg2ustr rs) ^. us"=" ^. (preg rs r) ^. us")")) else ();
+  ps |> updatemem r' m |> tick 1 |> to_mstate ms 
+
+let lbu rt imm rs ms = lb rt imm rs ms
+
 let slt_main signed r v_rs v_rt rd rs rt ms =
   let ps = ms.pstate in    
   let (t,f) = (if signed then aint32_test_less_than else
@@ -823,7 +883,7 @@ let lii rd l h ms =
 (* ------------------- MAIN ANALYSIS FUNCTIONS ----------------------*)
     
 (** Main function for analyzing an assembly function *)
-let analyze_main startblock bblocks args =
+let analyze_main startblock bblocks gp_addr args =
   (* Get the block info of the first basic block *)  
   let bi = bblocks.(startblock) in
 
@@ -835,7 +895,9 @@ let analyze_main startblock bblocks args =
 
   (* Initiate the stack pointer *)
   let stack_addr = 0x80000000 - 8 in
-  let ps = {ps with reg = (setreg sp (aint32_const stack_addr) ps.reg)} in
+  let reg = setreg sp (aint32_const stack_addr) ps.reg in
+  let reg = setreg gp (aint32_const gp_addr) reg in
+  let ps = {ps with reg = reg} in (*(setreg sp (aint32_const stack_addr) ps.reg)} in*)
        
   
   (* Create the main state *)
@@ -883,7 +945,7 @@ let options =
      us"Enable extended Interval Domain Implementation");
   ]
     
-let analyze startblock bblocks defaultargs =
+let analyze startblock bblocks gp_addr defaultargs =
   let args = (Array.to_list Sys.argv |> List.tl) in
   let (ops, args) = Uargs.parse args options in
   (*let debug = Uargs.has_op OpDebug ops in
@@ -892,11 +954,11 @@ let analyze startblock bblocks defaultargs =
   let args = if args = [] then defaultargs else args in
   if dbg && dbg_trace then
     let v =     
-      try analyze_main startblock bblocks args |> print_mstate
+      try analyze_main startblock bblocks gp_addr args |> print_mstate
       with _ -> (Printexc.print_backtrace stdout; raise Not_found)
     in v
   else
-    analyze_main startblock bblocks args |> print_mstate
+    analyze_main startblock bblocks gp_addr args |> print_mstate
 
     
     

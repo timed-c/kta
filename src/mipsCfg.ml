@@ -308,11 +308,13 @@ let pprint_ocaml_cps_from_cfgmap nice_output name cfgmap prog =
     |> List.split |> snd
     else cfglst
   in
+  let gp_address = MipsAst.Sym2Addr.find "_gp" prog.sym2addr in
   (* Intro header *)
   let intro =
     us"open AbstractMIPS\n\n" ^.
       us"open Printf\n\n" ^.
-        us"(* -- Basic Block Identifiers -- *)\n\n"
+        us (sprintf "let gp_addr=%d\n" gp_address) ^.
+          us"(* -- Basic Block Identifiers -- *)\n\n"
   in
   
   (* Info before program code *)
@@ -373,7 +375,7 @@ let pprint_ocaml_cps_from_cfgmap nice_output name cfgmap prog =
   let analyze = us"(* -- Start of Analysis -- *)\n\n" ^.
                   us"let main = \n\t"
                   ^. us"let _st_time = Sys.time() in\n"
-                  ^. us"\tanalyze " ^. us name ^. us"_ bblocks [];\n"
+                  ^. us"\tanalyze " ^. us name ^. us"_ bblocks gp_addr [];\n"
                   ^. us"\tprintf \"Time Elapsed %fs\\n\" (Sys.time() -. _st_time)\n" in
   
   (* Return the complete .ml file *)
