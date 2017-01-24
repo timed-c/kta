@@ -278,7 +278,8 @@ let get_init_state_vals ?(bigendian=false) prog initfunc statelist =
 
 
 let wcet_compile filename args =
-    let ocamlargs = " -lib str -- " in
+  let flags = if !enable_verbose then " -debug " else "" in
+    let ocamlargs = " -lib str -- " ^ flags in
     let runtime_path =
       try
         Sys.getenv(kta_wcet_runtime_path)

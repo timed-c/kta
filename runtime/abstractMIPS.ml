@@ -15,12 +15,18 @@ open Scanf
 open Config
 open Str
 
-let dbg = true
-let dbg_trace = true  (* Note that you should compile with exper.d.byte *)  
-let dbg_inst = true
-let dbg_mstate_sizes = true
-let dbg_debug_intervals = true
+let dbg = ref false
+let dbg_trace = ref true  (* Note that you should compile with exper.d.byte *)  
+let dbg_inst = ref true
+let dbg_mstate_sizes = ref true
+let dbg_debug_intervals = ref true
   
+let enable_debug enable =
+  dbg := enable;
+  dbg_trace := enable;
+  dbg_inst := enable;
+  dbg_mstate_sizes := enable;
+  dbg_debug_intervals := enable;
 
 
 (* ------------------------ TYPES ------------------------------*)  
@@ -246,7 +252,7 @@ let print_pqueue noregs pqueue =
   List.iter (print_pqueue_elem noregs) pqueue 
       
 let prn_inst_main linebreak ms str =
-  if dbg_inst then
+  if !dbg_inst then
     (printf "%10s | %s" ms.bbtable.(ms.cblock).name (Ustring.to_utf8 str);
      if linebreak then printf "\n" else ())
   else ()
@@ -257,7 +263,7 @@ let prn_inst = prn_inst_main true
 let prn_inst_no_linebreak = prn_inst_main false
     
 let preg rt r =
-    aint32_pprint dbg_debug_intervals (getreg rt r |> snd) 
+    aint32_pprint !dbg_debug_intervals (getreg rt r |> snd) 
 
 let pprint_true_false_choice t f =
   let prn v =
@@ -351,7 +357,7 @@ let dequeue ms =
 (* Continue and execute the next basic block in turn *)
 let continue ms =
   (* Debug output for the mstate *)
-  if dbg && dbg_mstate_sizes then (
+  if !dbg && !dbg_mstate_sizes then (
     printf "-----------------\n";
     printf "blockid = %d, pc = %d, batch size = %d, prio queue size = %d\n"
            ms.cblock ms.pc (List.length ms.batch) (List.length ms.prio);
@@ -384,7 +390,7 @@ let r_instruction binop rd rs rt ms =
   let (r,v_rs) = getreg rs r in
   let (r,v_rt) = getreg rt r in
   let r' = setreg rd (binop v_rs v_rt) r in
-  if dbg && dbg_inst then uprint_endline (us" " ^. 
+  if !dbg && !dbg_inst then uprint_endline (us" " ^. 
         (reg2ustr rd) ^. us"=" ^. (preg rd r') ^. us" " ^.
         (reg2ustr rs) ^. us"=" ^. (preg rs r) ^. us" " ^.
         (reg2ustr rt) ^. us"=" ^. (preg rt r) ) else ();
@@ -395,43 +401,43 @@ let debug_r_instruction str binop rd rs rt ms =
   r_instruction binop rd rs rt ms
       
 let add =
-  if dbg then debug_r_instruction (us"add") aint32_add
+  if !dbg then debug_r_instruction (us"add") aint32_add
   else r_instruction aint32_add
 
 let addu =
-  if dbg then debug_r_instruction (us"addu") aint32_add
+  if !dbg then debug_r_instruction (us"addu") aint32_add
   else r_instruction aint32_add
 
 let sub =
-  if dbg then debug_r_instruction (us"sub") aint32_sub
+  if !dbg then debug_r_instruction (us"sub") aint32_sub
   else r_instruction aint32_sub
 
 let subu =
-  if dbg then debug_r_instruction (us"subu") aint32_sub
+  if !dbg then debug_r_instruction (us"subu") aint32_sub
   else r_instruction aint32_sub
 
 let mul =
-  if dbg then debug_r_instruction (us"mul") aint32_mul
+  if !dbg then debug_r_instruction (us"mul") aint32_mul
   else r_instruction aint32_mul
             
 let and_ = 
-  if dbg then debug_r_instruction (us"and") aint32_and
+  if !dbg then debug_r_instruction (us"and") aint32_and
   else r_instruction aint32_and
 
 let or_ = 
-  if dbg then debug_r_instruction (us"or") aint32_or
+  if !dbg then debug_r_instruction (us"or") aint32_or
   else r_instruction aint32_or
 
 let nor = 
-  if dbg then debug_r_instruction (us"or") aint32_nor
+  if !dbg then debug_r_instruction (us"or") aint32_nor
   else r_instruction aint32_nor
 
 let sllv =
-  if dbg then debug_r_instruction (us"sllv") aint32_sllv
+  if !dbg then debug_r_instruction (us"sllv") aint32_sllv
   else r_instruction aint32_sllv
 
 let srlv =
-  if dbg then debug_r_instruction (us"srlv") aint32_srlv
+  if !dbg then debug_r_instruction (us"srlv") aint32_srlv
   else r_instruction aint32_srlv
 
 (* TODO: handle 64-bit. Right now, we only use 32-bit multiplication. *)    
@@ -442,7 +448,7 @@ let mult rs rt ms =
   let (r,v_rt) = getreg rt r in
   let r = setreg internal_lo (aint32_mul v_rs v_rt) r in
   let r = setreg internal_hi (aint32_any) r in
-  if dbg then prn_inst ms (us"mult ");
+  if !dbg then prn_inst ms (us"mult ");
   ps |> update r |> tick 1 |> to_mstate ms
       
 
@@ -451,7 +457,7 @@ let mflo rd ms =
   let r = ps.reg in
   let (r,v_lo) = getreg internal_lo r in
   let r = setreg rd v_lo r in
-  if dbg then prn_inst ms (us"mflo ");
+  if !dbg then prn_inst ms (us"mflo ");
   ps |> update r |> tick 1 |> to_mstate ms
   
   
@@ -460,7 +466,7 @@ let mfhi rd ms =
   let r = ps.reg in
   let (r,v_hi) = getreg internal_hi r in
   let r = setreg rd v_hi r in
-  if dbg then prn_inst ms (us"mfhi ");
+  if !dbg then prn_inst ms (us"mfhi ");
   ps |> update r |> tick 1 |> to_mstate ms
       
     
@@ -469,7 +475,7 @@ let addi rt rs imm ms =
   let r = ps.reg in
   let (r,v_rs) = getreg rs r in
   let r' = setreg rt (aint32_add v_rs (aint32_const imm)) r in     
-  if dbg then prn_inst ms (us"addi " ^. 
+  if !dbg then prn_inst ms (us"addi " ^. 
         (reg2ustr rt) ^. us"=" ^. (preg rt r') ^. us" " ^.
         (reg2ustr rs) ^. us"=" ^. (preg rs r) ^. us" " ^.
          us(sprintf "imm=%d" imm));
@@ -483,7 +489,7 @@ let andi rt rs imm ms  =
   let r = ps.reg in
   let (r,v_rs) = getreg rs r in
   let r' = setreg rt (aint32_and v_rs (aint32_const imm)) r in             
-  if dbg then prn_inst ms (us"andi " ^. 
+  if !dbg then prn_inst ms (us"andi " ^. 
         (reg2ustr rt) ^. us"=" ^. (preg rt r') ^. us" " ^.
         (reg2ustr rs) ^. us"=" ^. (preg rs r) ^. us" " ^.
          us(sprintf "imm=%d" imm));
@@ -494,7 +500,7 @@ let ori rt rs imm ms  =
   let r = ps.reg in
   let (r,v_rs) = getreg rs r in
   let r' = setreg rt (aint32_or v_rs (aint32_const imm)) r in             
-  if dbg then prn_inst ms (us"ori " ^. 
+  if !dbg then prn_inst ms (us"ori " ^. 
         (reg2ustr rt) ^. us"=" ^. (preg rt r') ^. us" " ^.
         (reg2ustr rs) ^. us"=" ^. (preg rs r) ^. us" " ^.
          us(sprintf "imm=%d" imm));
@@ -505,7 +511,7 @@ let xori rt rs imm ms  =
   let r = ps.reg in
   let (r,v_rs) = getreg rs r in
   let r' = setreg rt (aint32_xor v_rs (aint32_const imm)) r in             
-  if dbg then prn_inst ms (us"xori " ^. 
+  if !dbg then prn_inst ms (us"xori " ^. 
         (reg2ustr rt) ^. us"=" ^. (preg rt r') ^. us" " ^.
         (reg2ustr rs) ^. us"=" ^. (preg rs r) ^. us" " ^.
          us(sprintf "imm=%d" imm));
@@ -518,7 +524,7 @@ let sll rd rt shamt ms =
   let (r,v_rt) = getreg rt r in
   let mval = aint32_const (1 lsl shamt) in
   let r' = setreg rd (aint32_mul v_rt mval) r in
-  if dbg then prn_inst ms (us"sll " ^. 
+  if !dbg then prn_inst ms (us"sll " ^. 
         (reg2ustr rd) ^. us"=" ^. (preg rd r') ^. us" " ^.
         (reg2ustr rt) ^. us"=" ^. (preg rt r) ^. us" " ^.
          us(sprintf "shamt=%d" shamt));
@@ -530,7 +536,7 @@ let srl rd rt shamt ms =
   let (r,v_rt) = getreg rt r in
   let mval = aint32_const (1 lsl shamt) in
   let r' = setreg rd (aint32_div v_rt mval) r in
-  if dbg then prn_inst ms (us"srl " ^. 
+  if !dbg then prn_inst ms (us"srl " ^. 
         (reg2ustr rd) ^. us"=" ^. (preg rd r') ^. us" " ^.
         (reg2ustr rt) ^. us"=" ^. (preg rt r) ^. us" " ^.
          us(sprintf "shamt=%d" shamt));
@@ -543,7 +549,7 @@ let sra rd rt shamt ms =
   let (r,v_rt) = getreg rt r in
   let mval = aint32_const (1 lsl shamt) in
   let r' = setreg rd (aint32_div v_rt mval) r in
-  if dbg then prn_inst ms (us"sra " ^. 
+  if !dbg then prn_inst ms (us"sra " ^. 
         (reg2ustr rd) ^. us"=" ^. (preg rd r') ^. us" " ^.
         (reg2ustr rt) ^. us"=" ^. (preg rt r) ^. us" " ^.
          us(sprintf "shamt=%d" shamt));
@@ -572,7 +578,7 @@ let branch_main equal dslot op rs rt label ms =
     let bi = ms.bbtable.(ms.cblock) in
     let (tb,fb) = op v_rs v_rt in
     let (tbranch,fbranch) = if equal then (tb,fb) else (fb,tb) in
-    if dbg then (
+    if !dbg then (
         let r = ms.pstate.reg in
         prn_inst ms ((if equal then us"beq " else us"bne ") ^.
         (reg2ustr rs) ^. us"=" ^. (preg rs r) ^. us" " ^.
@@ -590,7 +596,7 @@ let branch_main equal dslot op rs rt label ms =
        information in ms.sbranch *)      
     let bi = ms.bbtable.(ms.cblock) in
     let (tbranch,fbranch) = if equal then (fb,tb) else (tb,fb) in
-    if dbg then (
+    if !dbg then (
         let r = ms.pstate.reg in
         prn_inst ms ((if equal then us"beq " else us"bne ") ^.
         (reg2ustr rs) ^. us"=" ^. (preg rs r) ^. us" " ^.
@@ -613,13 +619,13 @@ let debug_branch str equal dslot op rs rt label ms =
    "Branch on Equal
    To compare GPRs then do a PC-relative conditional branch." *)
 let beq =
-  if dbg then debug_branch (us"beq")
+  if !dbg then debug_branch (us"beq")
                    true false aint32_test_equal
   else branch_main true false aint32_test_equal
 
 (* Same as above, but with branch delay slots enabled *)    
 let beqds =
-  if dbg then debug_branch (us"beqds")
+  if !dbg then debug_branch (us"beqds")
                    true true aint32_test_equal
   else branch_main true true aint32_test_equal
 
@@ -628,14 +634,14 @@ let beqds =
    "Branch on Not Equal
    To compare GPRs then do a PC-relative conditional branch" *)
 let bne =
-  if dbg then debug_branch (us"bne")
+  if !dbg then debug_branch (us"bne")
                    false false aint32_test_equal
   else branch_main false false aint32_test_equal
 
     
 (* Same as above, but with branch delay slots enabled *)    
 let bneds =
-  if dbg then debug_branch (us"bneds")
+  if !dbg then debug_branch (us"bneds")
                    false true aint32_test_equal
   else branch_main false true aint32_test_equal
 
@@ -647,7 +653,7 @@ let bneds =
    NOTE: the generated code need to insert a "likely" node
    to make this correct. *)
 let beqlds =
-  if dbg then debug_branch (us"beqlds")
+  if !dbg then debug_branch (us"beqlds")
                    true true aint32_test_equal
   else branch_main true true aint32_test_equal
 
@@ -660,7 +666,7 @@ let beqlds =
    NOTE: the generated code need to insert a "likely" node
    to make this correct. *)
 let bnelds =
-  if dbg then debug_branch (us"bnelds")
+  if !dbg then debug_branch (us"bnelds")
                    false true aint32_test_equal
   else branch_main false true aint32_test_equal
 
@@ -670,20 +676,20 @@ let bnelds =
    "Branch on Less Than or Equal to Zero
    To test a GPR then do a PC-relative conditional branch." *)
 let blez rs label ms =
-  if dbg then debug_branch (us"blez")
+  if !dbg then debug_branch (us"blez")
                    true false aint32_test_less_than_equal rs zero label ms
   else branch_main true false aint32_test_less_than_equal rs zero label ms
 
     
 (* Same as above, but with branch delay slots enabled *)    
 let blezds rs label ms =
-  if dbg then debug_branch (us"blezds")
+  if !dbg then debug_branch (us"blezds")
                    true true aint32_test_less_than_equal rs zero label ms
   else branch_main true true aint32_test_less_than_equal rs zero label ms
 
 
 let lui rt imm ms =
-  if dbg then prn_inst ms (us"lui ");
+  if !dbg then prn_inst ms (us"lui ");
   let ps = ms.pstate in
   let r = ps.reg in
   let r = setreg rt (aint32_const (imm lsl 16)) r in
@@ -696,14 +702,14 @@ let lui rt imm ms =
    by the pseudo instruction 'ret'. The reason is that
    all functions should only have one final basic block node *)    
 let jr rs ms =
-  if dbg then prn_inst ms (us"jr " ^. (reg2ustr rs));
+  if !dbg then prn_inst ms (us"jr " ^. (reg2ustr rs));
   if rs = ra then ms
 (*    let nextid = ms.bbtable.(ms.cblock).nextid in
       continue (enqueue nextid (tick 2 ms.pstate) ms) *)
   else failwith "Not yet implemented."
 
 let jrds rs ms =
-  if dbg then prn_inst ms (us"jrds " ^. (reg2ustr rs));
+  if !dbg then prn_inst ms (us"jrds " ^. (reg2ustr rs));
   if rs = ra then ms
 (*    let nextid = ms.bbtable.(ms.cblock).nextid in
       continue (enqueue nextid (tick 2 ms.pstate) ms) *)
@@ -711,16 +717,16 @@ let jrds rs ms =
 
     
 let jal label ms =
-  if dbg then prn_inst ms (us"jal " ^. us(ms.bbtable.(label).name));
+  if !dbg then prn_inst ms (us"jal " ^. us(ms.bbtable.(label).name));
   continue (enqueue label ms.pstate ms)
 
 let jalds label ms =
-  if dbg then prn_inst ms (us"jalds " ^. us(ms.bbtable.(label).name));
+  if !dbg then prn_inst ms (us"jalds " ^. us(ms.bbtable.(label).name));
   {ms with sbranch = Some(label,zero,zero,Some(aint32_const 0,aint32_const 0),None)}
 
     
 let jds label ms =
-  if dbg then prn_inst ms (us"jds " ^. us(ms.bbtable.(label).name));
+  if !dbg then prn_inst ms (us"jds " ^. us(ms.bbtable.(label).name));
   {ms with sbranch = Some(label,zero,zero,Some(aint32_const 0,aint32_const 0),None)}
   
     
@@ -731,7 +737,7 @@ let sw rt imm rs ms =
   let (r,v_rs) = getreg rs r in
   let con_v_rs = aint32_to_int32 v_rs in
   let m = set_memval (imm + con_v_rs) v_rt ps.mem in
-  if dbg then(
+  if !dbg then(
     prn_inst ms (us"sw " ^. 
          (reg2ustr rt) ^. us"=" ^. (preg rt r) ^.
          us(sprintf " imm=%d(" imm) ^.
@@ -746,7 +752,7 @@ let sb rt imm rs ms =
   let (r,v_rs) = getreg rs r in
   let con_v_rs = aint32_to_int32 v_rs in
   let m = set_memval_byte (imm4 + con_v_rs) v_rt ps.mem byte in
-  if dbg then(
+  if !dbg then(
     prn_inst ms (us"sw " ^. 
          (reg2ustr rt) ^. us"=" ^. (preg rt r) ^.
          us(sprintf " imm=%d(" imm) ^.
@@ -762,7 +768,7 @@ let lw rt imm rs ms =
   let con_v_rs = aint32_to_int32 v_rs in
   let (m,v) = get_memval (imm + con_v_rs) ps.mem in
   let r' = setreg rt v r in
-  if dbg then(
+  if !dbg then(
     prn_inst ms (us"lw " ^. 
          (reg2ustr rt) ^. us"=" ^. (preg rt r') ^.
          us(sprintf " imm=%d(" imm) ^.
@@ -778,7 +784,7 @@ let lb rt imm rs ms =
   let con_v_rs = aint32_to_int32 v_rs in
   let (m,v) = get_memval_byte (imm4 + con_v_rs) ps.mem byte in
   let r' = setreg rt v r in
-  if dbg then(
+  if !dbg then(
     prn_inst ms (us"lb " ^. 
          (reg2ustr rt) ^. us"=" ^. (preg rt r') ^.
          us(sprintf " imm=%d(" imm4) ^.
@@ -798,7 +804,7 @@ let slt_main signed r v_rs v_rt rd rs rt ms =
     | _,_ -> aint32_interval 0 1
   in
   let r' = setreg rd rd_v r in
-  if dbg then
+  if !dbg then
     prn_inst ms ((if signed then us"slt " else us"sltu ") ^.
       (reg2ustr rd) ^. us"=" ^. (preg rd r') ^. us" " ^.
       (reg2ustr rs) ^. us"=" ^. (preg rs r) ^. us" " ^.
@@ -848,7 +854,7 @@ let next ms =
  let bi = ms.bbtable.(ms.cblock) in
   (match ms.sbranch with
   | None -> 
-    if dbg then prn_inst ms (us(sprintf "next id=%d" bi.nextid));
+    if !dbg then prn_inst ms (us(sprintf "next id=%d" bi.nextid));
     (* Ordinary branch equality check *)
     (* Enqueue the current program state with the next basic block *)
     let ms' = enqueue bi.nextid ms.pstate ms in
@@ -856,7 +862,7 @@ let next ms =
     continue ms'
     
   | Some(label,r1,r2,tb,fb) -> 
-    if dbg then prn_inst ms
+    if !dbg then prn_inst ms
       (us(sprintf "next (delay slot) label=%d nextid=%d" label bi.nextid));
     (* Special branch handling branch delay slots *)      
     let ms = {ms with sbranch = None} in
@@ -868,12 +874,12 @@ let next ms =
 
 (* Return from a function. Pseudo-instruction that does not take time *)    
 let ret ms =
-  if dbg then prn_inst ms (us(sprintf "ret returnid=%d" ms.returnid));
+  if !dbg then prn_inst ms (us(sprintf "ret returnid=%d" ms.returnid));
   continue (enqueue ms.returnid ms.pstate ms)
 
 (* load immediate interval *)
 let lii rd l h ms =
-  if dbg then prn_inst ms (us"lii");
+  if !dbg then prn_inst ms (us"lii");
   let ps = ms.pstate in
   let r = ps.reg in
   let r = setreg rd (aint32_interval l h) r in
@@ -920,7 +926,7 @@ let analyze_main startblock bblocks gp_addr args =
 
 
 
-let _ = if dbg && dbg_trace then Printexc.record_backtrace true else ()
+let _ = if !dbg && !dbg_trace then Printexc.record_backtrace true else ()
 
 (** Print main state info *)
 let print_mstate ms =
@@ -948,11 +954,13 @@ let options =
 let analyze startblock bblocks gp_addr defaultargs =
   let args = (Array.to_list Sys.argv |> List.tl) in
   let (ops, args) = Uargs.parse args options in
-  (*let debug = Uargs.has_op OpDebug ops in
-  let enEID = Uargs.has_op OpEnEID ops in*)
+  let debug = Uargs.has_op OpDebug ops in
+  (*let enEID = Uargs.has_op OpEnEID ops in*)
   let args = Uargs.strlist_op OpArgs ops |> List.map Ustring.to_utf8 in 
   let args = if args = [] then defaultargs else args in
-  if dbg && dbg_trace then
+  if debug then
+    enable_debug true;
+  if !dbg && !dbg_trace then
     let v =     
       try analyze_main startblock bblocks gp_addr args |> print_mstate
       with _ -> (Printexc.print_backtrace stdout; raise Not_found)
