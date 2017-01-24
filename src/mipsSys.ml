@@ -285,7 +285,7 @@ let wcet_compile filename args =
         Sys.getenv(kta_wcet_runtime_path)
       with Not_found -> "runtime"
     in
-    let command = ("sh -c \"cd " ^ runtime_path ^ "; ocamlbuild " ^ filename ^ ".native" ^ ocamlargs ^ args ^ "\"") in
+    let command = ("sh -c \"cd " ^ runtime_path ^ "; ocamlbuild " ^ filename ^ ".p.native" ^ ocamlargs ^ args ^ "\"") in
     if !enable_verbose then print_endline (command ^ "\n");
     let (code, stdout, stderr) = USys.shellcmd command in
     if code != 0 then raise (Sys_error (stderr ^ " " ^ stdout))
