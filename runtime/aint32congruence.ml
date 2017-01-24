@@ -159,15 +159,39 @@ let aint32_sub v1 v2 =
     ) v1 v2
 
 (*n*)
+let find_mask l =
+  let rec find_bin_internal l n =
+    let mask = l land n in
+    if (mask != 0) then mask
+    else find_bin_internal l ((n lsr 1) lor n) in
+  find_bin_internal l (2 lsl 31)
+
+let min_max l1 l2 =
+  if l1>l2 then (l2,l1)
+  else (l1,l2)
+         
 let aint32_and_f (l1,s1,n1) (l2,s2,n2) =
-  let l = l1 land l2 in
-  let s = 1 in
   let h = (high l1 s1 n1) + (high l2 s2 n2) in (*h = h1 + h2*)
-  let n = number h l s in 
-  let h = high l s n in
-  if l<lowval || h>highval then raise AnyException
-  else (l,s,n)
-           
+  match (l1,s1,n1),(l2,s2,n2) with
+    | (_,_,1),(_,_,1) -> (l1 land l2,0,1)
+    | (l1,s1,n1),(l2,s2,n2) -> if l1>0 && l2>0 then
+                                 let minl,maxl = min_max l1 l2 in
+                                 let mask = find_mask minl in
+                                 let mask2 = maxl land mask in
+                                 let mask1 = minl land mask in
+                                 let l = mask1 land mask2 in
+                                 (l, 1, number h l 1)
+                               else if l1<0 && l2<0 then
+                                 let minl = min l1 l2 in
+                                 let mask = find_mask (lnot minl) in
+                                 (mask, 1, number h mask 1)
+                                   (*TODO(romy): check*)
+                               else
+                                 (0, 1, h) (* it is positive
+                                              && 0 is within the
+                                              range - can be
+                                              more tight *)
+                                   
 (*TODO step*)
 let aint32_and v1 v2 =
   aint32_binop aint32_and_f v1 v2
