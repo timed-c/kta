@@ -15,7 +15,7 @@ open Scanf
 open Config
 open Str
 
-let dbg = false
+let dbg = true
 let dbg_trace = true  (* Note that you should compile with exper.d.byte *)  
 let dbg_inst = true
 let dbg_mstate_sizes = true
@@ -940,7 +940,7 @@ let options =
   [ (OpDebug, Uargs.No, us"-debug", us"",
      us"Enable debug");
     (OpArgs, Uargs.StrList, us"-args", us"<args>",
-     us"Registers a0, a1, a2 and a3 initial interals");
+     us"Accepts Initial Intervals for Registers a0, a1, a2 and a3");
     (OpEnEID, Uargs.No, us"-enableEID", us"",
      us"Enable extended Interval Domain Implementation");
   ]
