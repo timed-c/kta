@@ -17,6 +17,7 @@ let magic_len = Ustring.length tpp_magic
 
 let enable_verbose = ref false
 
+let kta_wcet_runtime_path = "KTA_WCET_RUNTIME_PATH"
 (* ---------------------------------------------------------------------*)
 let verbose enable = 
   enable_verbose := enable
@@ -277,10 +278,14 @@ let get_init_state_vals ?(bigendian=false) prog initfunc statelist =
 
 
 let wcet_compile filename args =
-  let ocamlargs = " -lib str -- " in
-  let command = ("sh -c \"cd runtime; ocamlbuild " ^ filename ^ ".native" ^ ocamlargs ^ args ^"\"") in
-  if !enable_verbose then  print_endline (command ^ "\n");
-  let (code, stdout, stderr) = USys.shellcmd command in
-  if code != 0
-  then raise (Sys_error (stderr ^ " " ^ stdout))
-  else stdout
+    let ocamlargs = " -lib str -- " in
+    let runtime_path =
+      try
+        Sys.getenv(kta_wcet_runtime_path)
+      with Not_found -> "runtime"
+    in
+    let command = ("sh -c \"cd " ^ runtime_path ^ "; ocamlbuild " ^ filename ^ ".native" ^ ocamlargs ^ args ^ "\"") in
+    if !enable_verbose then print_endline (command ^ "\n");
+    let (code, stdout, stderr) = USys.shellcmd command in
+    if code != 0 then raise (Sys_error (stderr ^ " " ^ stdout))
+    else stdout
