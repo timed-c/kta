@@ -5,7 +5,7 @@
 *)
 
 
-open Aint32relint
+open Aint32congruence
 open Aregsimple
   
 open Ustring.Op
@@ -15,7 +15,7 @@ open Scanf
 open Config
 open Str
 
-let dbg = true
+let dbg = false
 let dbg_trace = true  (* Note that you should compile with exper.d.byte *)  
 let dbg_inst = true
 let dbg_mstate_sizes = true
@@ -354,11 +354,11 @@ let continue ms =
   if dbg && dbg_mstate_sizes then (
     printf "-----------------\n";
     printf "blockid = %d, pc = %d, batch size = %d, prio queue size = %d\n"
-      ms.cblock ms.pc (List.length ms.batch) (List.length ms.prio);
+           ms.cblock ms.pc (List.length ms.batch) (List.length ms.prio);
     printf "cstack size %d\n" (List.length ms.cstack))
   else ();
   let ms = dequeue ms in
-  let ms = {ms with pc = ms.bbtable.(ms.cblock).addr} in 
+  let ms = {ms with pc = ms.bbtable.(ms.cblock).addr} in
   let bi = ms.bbtable.(ms.cblock) in
   bi.func ms 
 
@@ -442,7 +442,7 @@ let mult rs rt ms =
   let (r,v_rt) = getreg rt r in
   let r = setreg internal_lo (aint32_mul v_rs v_rt) r in
   let r = setreg internal_hi (aint32_any) r in
-  if dbg then prn_inst ms (us"addi ");
+  if dbg then prn_inst ms (us"mult ");
   ps |> update r |> tick 1 |> to_mstate ms
       
 
@@ -464,11 +464,11 @@ let mfhi rd ms =
   ps |> update r |> tick 1 |> to_mstate ms
       
     
-let addi rt rs imm ms  =
+let addi rt rs imm ms =
   let ps = ms.pstate in
   let r = ps.reg in
   let (r,v_rs) = getreg rs r in
-  let r' = setreg rt (aint32_add v_rs (aint32_const imm)) r in             
+  let r' = setreg rt (aint32_add v_rs (aint32_const imm)) r in     
   if dbg then prn_inst ms (us"addi " ^. 
         (reg2ustr rt) ^. us"=" ^. (preg rt r') ^. us" " ^.
         (reg2ustr rs) ^. us"=" ^. (preg rs r) ^. us" " ^.

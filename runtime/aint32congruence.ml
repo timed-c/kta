@@ -36,12 +36,20 @@ let rec gcd a b =
   then a
   else gcd b (a mod b)
 
-let high l s n = l+s*n
-let number h l s = (h-l+1)/s
+let high l s n = l+s*(n-1)
+
+let number h l s =
+  if s = 0 then 1
+  else (h-l)/s+1
                        
 (*n*)
 let interval_merge (l1,s1,n1) (l2,s2,n2) =
-  (min l1 l2, gcd (abs (l1-l2)) (gcd s1 s2), n1+n2)
+  let h1 = high l1 s1 n1 in
+  let h2 = high l2 s2 n2 in
+  let l = min l1 l2 in
+  let s = gcd (abs (l1-l2)) (gcd s1 s2) in
+  let h = max h1 h2 in
+  (l, s, number h l s)
 
 let interval_merge_list lst =
   match lst with
@@ -58,8 +66,8 @@ let aint32_to_int32 v =
     
 let aint32_pprint debug v =
   let prn (l,s,n) =
-    if n = 1 then us (sprintf "%d:%d " l s)
-    else us (sprintf "[%d,%d]:%d " l s n)
+    if n = 1 then us (sprintf "%d:%d:%d " l s n)
+    else us (sprintf "[%d,%d]:%d:%d " l (high l s n) s n)
   in  
   match v with
   | Any -> us"Any"
@@ -126,19 +134,36 @@ let aint32_binop op v1 v2 =
 (*n*)
 let aint32_add v1 v2 =
   aint32_binop (fun (l1,s1,n1) (l2,s2,n2) ->
-    let l = l1 + l2 in
-    let s = gcd s1 s2 in
-    let n = (((high l1 s1 n1) + (high l2 s2 n2)) - l + 1)/s in (*h = h1 + h2*)
-    let h = l + n*s in
+      let h1 = high l1 s1 n1 in
+      let h2 = high l2 s2 n2 in
+      let l = l1 + l2 in
+      let s = gcd s1 s2 in
+      let h = h1+h2 in
+      let n = number h l s in
     if l<lowval || h>highval then raise AnyException
     else (l,s,n)
   ) v1 v2
+
+               
+let aint32_sub v1 v2 =
+  aint32_binop (fun (l1,s1,n1) (l2,s2,n2) ->
+      let h1 = high l1 s1 n1 in
+      let h2 = high l2 s2 n2 in
+      let l2,h2 = -h2,-l2 in
+      let s = gcd s1 s2 in
+      let l = l1+l2 in
+      let h = h1+h2 in
+      let n = number h l s in
+      if l<lowval || h>highval then raise AnyException
+      else (l,s,n)
+    ) v1 v2
 
 (*n*)
 let aint32_and_f (l1,s1,n1) (l2,s2,n2) =
   let l = l1 land l2 in
   let s = 1 in
-  let n = (((high l1 s1 n1) + (high l2 s2 n2)) - l + 1)/s in (*h = h1 + h2*)
+  let h = (high l1 s1 n1) + (high l2 s2 n2) in (*h = h1 + h2*)
+  let n = number h l s in 
   let h = high l s n in
   if l<lowval || h>highval then raise AnyException
   else (l,s,n)
@@ -193,8 +218,8 @@ let aint32_sllv v1 v2 =
       let h2 = high l2 s2 n2 in
       let l = l1 lsl l2 in
       let h = h1 lsl h2 in
-      let s = if n2 = 1
-              then (s1 lsl l2)
+      let s = if n1 = 1 then 0
+              else if n2 = 1 then (s1 lsl l2)
               else (gcd l1 s1) lsl l2 in
       let n = number h l s in
       if l<lowval || h>highval then raise AnyException
@@ -234,8 +259,9 @@ let aint32_const v =
     Interval(v,0,1)
 
 let aint32_interval l h =
-    Interval(l,1,h-l)
-
+  let h = h in
+  if l = h then Interval(l,0,1)
+  else Interval(l,1,number h l 1)
 
 let aint32_join v1 v2 =
   match v1, v2 with
@@ -257,8 +283,8 @@ let aint32_compare x y =
 let test_equal (l1,s1,n1) (l2,s2,n2) =
   let h1 = high l1 s1 n1 in
   let h2 = high l2 s2 n2 in
-  if l1=l2 && h1=h2 && h1-l1 = 1 then
-  (* Binary values that are equal *)
+  if l1=l2 && h1=h2 && n1=2 && n2=2 then
+    (* Binary values that are equal *)
     ([((l1,0,1),(l1,0,1)); ((h1,0,1),(h1,0,1))],
      [((l1,0,1),(h1,0,1)); ((h1,0,1),(l1,0,1))])     
   else if h1 < l2 || h2 < l1 then
@@ -273,27 +299,33 @@ let test_equal (l1,s1,n1) (l2,s2,n2) =
     ( (* Overlapping with one:
             11111
                 22222 
-      *)
+       *)
       if l1 < h1 && l2 < h2 then
       (* Two cases for false *)
-      ([((h1,0,1),(h1,0,1))],                          (* TRUE *)
-       [((l1,s1,n1),(l2+s2,s2,max 1 (n2-1)));((l1,s1,max 1 (n1-1)),(l2,s2,n2))])    (* FALSE *)
-    else if l1 < h1 && l2 = h2 then
+        let nn2 = n2-1 in
+        let ns2 = if nn2 = 1 then 0
+                    else s2 in
+        ([((h1,0,1),(h1,0,1))],                          (* TRUE *)
+         [((l1,s1,n1),(l2+s2,ns2,nn2));((l1,s1,n1-1),(l2,s2,n2))])    (* FALSE *)
+      else if l1 < h1 && l2 = h2 then
       (*  11111
 
               2  *)  
-      ([((h1,0,1),(h1,0,1))],                          (* TRUE *)
-       [((l1,s1,max 1 (n1-1)),(l2,s2,n2))])                        (* FALSE *)
-    else if l1 = h1 && l2 < h2 then
+        ([((h1,0,1),(h1,0,1))],                          (* TRUE *)
+         [((l1,s1,max 1 (n1-1)),(l2,s2,n2))])                        (* FALSE *)
+      else if l1 = h1 && l2 < h2 then
       (*      1
               22222 *)
-      ([((h1,0,1),(h1,0,1))],                          (* TRUE *)
-       [((l1,h1,s1),(l2+s2,s2,max 1 (n2-1)))])                        (* FALSE *)
-    else
+        let nn2 = n2-1 in
+        let ns2 = if nn2 = 1 then 0
+                  else s2 in
+        ([((h1,0,1),(h1,0,1))],                          (* TRUE *)
+         [((l1,s1,n1),(l2+s2,ns2,nn2))])                        (* FALSE *)
+      else
       (*      1
               2  *)
-      ([((h1,0,1),(h1,0,1))],                          (* TRUE *)
-       [])                                           (* FALSE *)
+        ([((h1,0,1),(h1,0,1))],                          (* TRUE *)
+         [])                                           (* FALSE *)
     )
   else if l1 = h2 then
     ( (* Overlapping with one:
@@ -301,19 +333,25 @@ let test_equal (l1,s1,n1) (l2,s2,n2) =
           22222 
       *)
       if l1 < h1 && l2 < h2 then
+        let nn1 = n1-1 in
+        let ns1 = if nn1 = 1 then 0
+                  else s1 in
       (* Two cases for false *)
       ([((h2,0,1),(h2,0,1))],                          (* TRUE *)
-       [((l1+s1,s1,max 1 (n1-1)),(l2,s2,n2));((l1,s1,n1),(l2,s2,max 1 (n2-1)))])    (* FALSE *)
+       [((l1+s1,ns1,nn1),(l2,s2,n2));((l1,s1,n1),(l2,s2,n2-1))])    (* FALSE *)
     else if l2 < h2 && l1 = h1 then
       (*  22222
               1  *)  
       ([((h2,0,1),(h2,0,1))],                          (* TRUE *)
-       [((l1,s1,n1),(l2,s2,max 1 (n2-1)))])                        (* FALSE *)
+       [((l1,s1,n1),(l2,s2,n2-1))])                        (* FALSE *)
     else if l2 = h2 && l1 < h1 then
-      (*      2
+        let nn1 = n1-1 in
+        let ns1 = if nn1 = 1 then 0
+                  else s1 in
+        (*      2
               11111 *)
       ([((h2,0,1),(h2,0,1))],                          (* TRUE *)
-       [((l1+s1,s1,max 1 (n1-1)),(l2,s2,n2))])                        (* FALSE *)
+       [((l1+s1,ns1,nn1),(l2,s2,n2))])                        (* FALSE *)
     else
       (*      1
               2  *)
