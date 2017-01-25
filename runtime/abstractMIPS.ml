@@ -384,12 +384,14 @@ let updatemem r m ps =
     
 (* ------------------------ INSTRUCTIONS -------------------------*)
 
-let r_instruction binop rd rs rt ms =
+let r_instruction str binop rd rs rt ms =
   let ps = ms.pstate in
   let r = ps.reg in
   let (r,v_rs) = getreg rs r in
   let (r,v_rt) = getreg rt r in
   let r' = setreg rd (binop v_rs v_rt) r in
+  if !dbg then
+      prn_inst_no_linebreak ms str;
   if !dbg && !dbg_inst then uprint_endline (us" " ^. 
         (reg2ustr rd) ^. us"=" ^. (preg rd r') ^. us" " ^.
         (reg2ustr rs) ^. us"=" ^. (preg rs r) ^. us" " ^.
@@ -397,48 +399,37 @@ let r_instruction binop rd rs rt ms =
   ps |> update r' |> tick 1 |> to_mstate ms
 
 let debug_r_instruction str binop rd rs rt ms =
-  prn_inst_no_linebreak ms str;
-  r_instruction binop rd rs rt ms
+  r_instruction str binop rd rs rt ms
       
 let add =
-  if !dbg then debug_r_instruction (us"add") aint32_add
-  else r_instruction aint32_add
+  r_instruction (us"add") aint32_add
 
 let addu =
-  if !dbg then debug_r_instruction (us"addu") aint32_add
-  else r_instruction aint32_add
+  r_instruction (us"addu") aint32_add
 
 let sub =
-  if !dbg then debug_r_instruction (us"sub") aint32_sub
-  else r_instruction aint32_sub
+  r_instruction (us"sub") aint32_sub
 
 let subu =
-  if !dbg then debug_r_instruction (us"subu") aint32_sub
-  else r_instruction aint32_sub
+  r_instruction (us"subu") aint32_sub
 
 let mul =
-  if !dbg then debug_r_instruction (us"mul") aint32_mul
-  else r_instruction aint32_mul
+  r_instruction (us"mul") aint32_mul
             
 let and_ = 
-  if !dbg then debug_r_instruction (us"and") aint32_and
-  else r_instruction aint32_and
+  r_instruction (us"and") aint32_and
 
 let or_ = 
-  if !dbg then debug_r_instruction (us"or") aint32_or
-  else r_instruction aint32_or
+  r_instruction (us"or") aint32_or
 
 let nor = 
-  if !dbg then debug_r_instruction (us"or") aint32_nor
-  else r_instruction aint32_nor
+  r_instruction (us"or") aint32_nor
 
 let sllv =
-  if !dbg then debug_r_instruction (us"sllv") aint32_sllv
-  else r_instruction aint32_sllv
+  r_instruction (us"sllv") aint32_sllv
 
 let srlv =
-  if !dbg then debug_r_instruction (us"srlv") aint32_srlv
-  else r_instruction aint32_srlv
+  r_instruction (us"srlv") aint32_srlv
 
 (* TODO: handle 64-bit. Right now, we only use 32-bit multiplication. *)    
 let mult rs rt ms =
@@ -566,7 +557,7 @@ let enq blabel regt regf bval ms =
   | None -> ms
 
       
-let branch_main equal dslot op rs rt label ms =
+let branch_main str equal dslot op rs rt label ms =
   match ms.sbranch with
   | None -> (
     (* Ordinary branch equality check *)
@@ -578,6 +569,7 @@ let branch_main equal dslot op rs rt label ms =
     let bi = ms.bbtable.(ms.cblock) in
     let (tb,fb) = op v_rs v_rt in
     let (tbranch,fbranch) = if equal then (tb,fb) else (fb,tb) in
+    if !dbg then prn_inst ms str;
     if !dbg then (
         let r = ms.pstate.reg in
         prn_inst ms ((if equal then us"beq " else us"bne ") ^.
@@ -609,41 +601,33 @@ let branch_main equal dslot op rs rt label ms =
       let ms = {ms with sbranch = None} in
       continue (ms |> enq label r1 r2 tbranch |> enq bi.nextid r1 r2 fbranch))
 
-let debug_branch str equal dslot op rs rt label ms =
-  prn_inst ms str;
-  branch_main equal dslot op rs rt label ms
-
 
 (* Instruction: beq
    From official MIPS32 manual: 
    "Branch on Equal
    To compare GPRs then do a PC-relative conditional branch." *)
 let beq =
-  if !dbg then debug_branch (us"beq")
+  branch_main (us"beq")
                    true false aint32_test_equal
-  else branch_main true false aint32_test_equal
 
 (* Same as above, but with branch delay slots enabled *)    
 let beqds =
-  if !dbg then debug_branch (us"beqds")
+  branch_main (us"beqds")
                    true true aint32_test_equal
-  else branch_main true true aint32_test_equal
 
 (* Instruction: bne
    From official MIPS32 manual: 
    "Branch on Not Equal
    To compare GPRs then do a PC-relative conditional branch" *)
 let bne =
-  if !dbg then debug_branch (us"bne")
+  branch_main (us"bne")
                    false false aint32_test_equal
-  else branch_main false false aint32_test_equal
 
     
 (* Same as above, but with branch delay slots enabled *)    
 let bneds =
-  if !dbg then debug_branch (us"bneds")
+  branch_main (us"bneds")
                    false true aint32_test_equal
-  else branch_main false true aint32_test_equal
 
 (* Instruction: beql
    From official MIPS32 manual: 
@@ -653,9 +637,8 @@ let bneds =
    NOTE: the generated code need to insert a "likely" node
    to make this correct. *)
 let beqlds =
-  if !dbg then debug_branch (us"beqlds")
+  branch_main (us"beqlds")
                    true true aint32_test_equal
-  else branch_main true true aint32_test_equal
 
     
 (* Instruction: bnel
@@ -666,9 +649,8 @@ let beqlds =
    NOTE: the generated code need to insert a "likely" node
    to make this correct. *)
 let bnelds =
-  if !dbg then debug_branch (us"bnelds")
+  branch_main (us"bnelds")
                    false true aint32_test_equal
-  else branch_main false true aint32_test_equal
 
     
 (* Instruction: blez
@@ -676,16 +658,14 @@ let bnelds =
    "Branch on Less Than or Equal to Zero
    To test a GPR then do a PC-relative conditional branch." *)
 let blez rs label ms =
-  if !dbg then debug_branch (us"blez")
+  branch_main (us"blez")
                    true false aint32_test_less_than_equal rs zero label ms
-  else branch_main true false aint32_test_less_than_equal rs zero label ms
 
     
 (* Same as above, but with branch delay slots enabled *)    
 let blezds rs label ms =
-  if !dbg then debug_branch (us"blezds")
+  branch_main (us"blezds")
                    true true aint32_test_less_than_equal rs zero label ms
-  else branch_main true true aint32_test_less_than_equal rs zero label ms
 
 
 let lui rt imm ms =
@@ -955,11 +935,10 @@ let analyze startblock bblocks gp_addr defaultargs =
   let args = (Array.to_list Sys.argv |> List.tl) in
   let (ops, args) = Uargs.parse args options in
   let debug = Uargs.has_op OpDebug ops in
+  enable_debug debug;
   (*let enEID = Uargs.has_op OpEnEID ops in*)
   let args = Uargs.strlist_op OpArgs ops |> List.map Ustring.to_utf8 in 
   let args = if args = [] then defaultargs else args in
-  if debug then
-    enable_debug true;
   if !dbg && !dbg_trace then
     let v =     
       try analyze_main startblock bblocks gp_addr args |> print_mstate
