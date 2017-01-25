@@ -2,7 +2,7 @@
 
 DIRS = src,test,ext/ucamlib/src
 
-.PHONY: all test clean
+.PHONY: all test clean wcet_reg_test
 
 # Init submodules if needed and make native version. 
 # The resulting executable can be found under /bin and /library (symlinks)
@@ -53,6 +53,9 @@ test:
 	@ocamlbuild -Is $(DIRS) maintest.native --
 	@rm -f maintest.native
 
+wcet_reg_test:
+	@ocamlbuild -lib str -Is $(DIRS) testWCET.native --
+	@rm -f testWCET.native
 
 dac16:	clean
 	cp -Rf * ~/paper/dac16/kta/.

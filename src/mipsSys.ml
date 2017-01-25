@@ -16,11 +16,14 @@ let tpp_magic = us"MAGIC070704090916_TPP_"
 let magic_len = Ustring.length tpp_magic
 
 let enable_verbose = ref false
-
+let vvv = true
 let kta_wcet_runtime_path = "KTA_WCET_RUNTIME_PATH"
 (* ---------------------------------------------------------------------*)
 let verbose enable = 
   enable_verbose := enable
+  
+(* ---------------------------------------------------------------------*)
+let verbose_enabled() = !enable_verbose
   
 
 (* ---------------------------------------------------------------------*)
@@ -277,16 +280,35 @@ let get_init_state_vals ?(bigendian=false) prog initfunc statelist =
   ) statelist
 
 
-let wcet_compile filename args =
-  let flags = if !enable_verbose then " -debug " else "" in
-    let ocamlargs = " -lib str -- " ^ flags in
-    let runtime_path =
-      try
-        Sys.getenv(kta_wcet_runtime_path)
-      with Not_found -> "runtime"
-    in
-    let command = ("sh -c \"cd " ^ runtime_path ^ "; ocamlbuild " ^ filename ^ ".p.native" ^ ocamlargs ^ args ^ "\"") in
-    if !enable_verbose then print_endline (command ^ "\n");
-    let (code, stdout, stderr) = USys.shellcmd command in
-    if code != 0 then raise (Sys_error (stderr ^ " " ^ stdout))
-    else stdout
+(* ---------------------------------------------------------------------*)
+let wcet_compile fname debug program_code args =
+  let remove_file fname = if Sys.file_exists fname then
+                            Sys.remove fname
+                          else () in  
+  let flags = if debug then " -debug " else "" in
+  let args = List.fold_left (fun x -> (^) (x ^ " ")) " -args " args in
+  let ocamlargs = " -lib str -- " ^ flags ^ args in
+  let ocamlflnm = "temp_1214325_" ^ fname in
+  let runtime_path =
+    try
+      Sys.getenv(kta_wcet_runtime_path)
+    with Not_found -> "runtime/"
+  in
+  let files = [".ml"; ".p.native"] |> List.map (fun x -> runtime_path ^ ocamlflnm ^ x) in
+
+  Ustring.write_file (List.hd files) program_code;
+  try      
+    if Sys.is_directory runtime_path then	
+      (let command = ("sh -c \"cd " ^ runtime_path ^ "; ocamlbuild " ^ ocamlflnm ^ ".p.native" ^ ocamlargs ^ "\"") in
+       if !enable_verbose then print_endline (command ^ "\n");
+       let (code, stdout, stderr) = USys.shellcmd command in
+       if code != 0 then raise (Sys_error (stderr ^ " " ^ stdout))
+       else stdout)
+    else
+      (eprintf "Runtime PATH: %s is not a directory.\n\tSet enviroment variable KTA_WCET_RUNTIME_PATH\n" runtime_path;
+       files |> List.iter remove_file;
+       "")
+  with Sys_error e ->
+    e |> eprintf "Error: %s\n";
+    files |> List.iter remove_file;
+    ""
