@@ -410,7 +410,7 @@ let test prog fname cm_args =
       Printf.fprintf oc "%s" newpr_code; 
       close_out oc;
       try
-        List.fold_left (fun x -> (^) (x ^ " ")) " " args |> MipsSys.wcet_compile ocamlflnm |> print_endline;
+        List.fold_left (fun x -> (^) (x ^ " ")) " -args " args |> MipsSys.wcet_compile ocamlflnm |> print_endline;
         files |> List.iter remove_file
       with Sys_error e ->
         e |> eprintf "%s\n";

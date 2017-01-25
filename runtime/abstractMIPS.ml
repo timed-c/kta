@@ -18,8 +18,8 @@ open Str
 let dbg = false
 let dbg_trace = true  (* Note that you should compile with exper.d.byte *)  
 let dbg_inst = true
-let dbg_mstate_sizes = false
-let dbg_debug_intervals = false
+let dbg_mstate_sizes = true
+let dbg_debug_intervals = true
   
 
 
@@ -499,6 +499,13 @@ let branch_main equal dslot op rs rt label ms =
     let bi = ms.bbtable.(ms.cblock) in
     let (tb,fb) = op v_rs v_rt in
     let (tbranch,fbranch) = if equal then (tb,fb) else (fb,tb) in
+    if dbg then (
+        let r = ms.pstate.reg in
+        prn_inst ms ((if equal then us"beq " else us"bne ") ^.
+        (reg2ustr rs) ^. us"=" ^. (preg rs r) ^. us" " ^.
+        (reg2ustr rt) ^. us"=" ^. (preg rt r) ^. us" " ^.
+        us(ms.bbtable.(label).name) ^. us" " ^. us(ms.bbtable.(bi.nextid).name) ^.
+        us" " ^. pprint_true_false_choice tbranch fbranch ^. us" (sbranch)"));
     if dslot then
       {ms with sbranch = Some(label,rs,rt,tbranch,fbranch)}
     else      
@@ -815,10 +822,30 @@ let print_mstate ms =
   printf "WCET:  %d cycles\n" ms.pstate.wcet;
   uprint_endline (pprint_pstate 32 ms.pstate)
 
+type options_t =
+  | OpDebug
+  | OpArgs
+  | OpEnEID
+
+open Ustring.Op
+       
+let options =
+  [ (OpDebug, Uargs.No, us"-debug", us"",
+     us"Enable debug");
+    (OpArgs, Uargs.StrList, us"-args", us"<args>",
+     us"Registers a0, a1, a2 and a3 initial interals");
+    (OpEnEID, Uargs.No, us"-enableEID", us"",
+     us"Enable extended Interval Domain Implementation");
+  ]
     
 let analyze startblock bblocks defaultargs =
   let args = (Array.to_list Sys.argv |> List.tl) in
+  let (ops, args) = Uargs.parse args options in
+  let debug = Uargs.has_op OpDebug ops in
+  let enEID = Uargs.has_op OpEnEID ops in
+  let args = Uargs.strlist_op OpArgs ops |> List.map Ustring.to_utf8 in 
   let args = if args = [] then defaultargs else args in
+  (*if debug then*)
   if dbg && dbg_trace then
     let v =     
       try analyze_main startblock bblocks args |> print_mstate
