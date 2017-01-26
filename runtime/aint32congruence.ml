@@ -158,41 +158,31 @@ let aint32_sub v1 v2 =
       else (l,s,n)
     ) v1 v2
 
-(*n*)
-let find_mask l =
-  let rec find_bin_internal l n =
-    let mask = l land n in
-    if (mask != 0) then mask
-    else find_bin_internal l ((n lsr 1) lor n) in
-  find_bin_internal l (2 lsl 31)
-
-let min_max l1 l2 =
-  if l1>l2 then (l2,l1)
-  else (l1,l2)
-         
+(*TODO(step)*)
 let aint32_and_f (l1,s1,n1) (l2,s2,n2) =
-  let h = (high l1 s1 n1) + (high l2 s2 n2) in (*h = h1 + h2*)
-  match (l1,s1,n1),(l2,s2,n2) with
-    | (_,_,1),(_,_,1) -> (l1 land l2,0,1)
-    | (l1,s1,n1),(l2,s2,n2) -> if l1>0 && l2>0 then
-                                 let minl,maxl = min_max l1 l2 in
-                                 let mask = find_mask minl in
-                                 let mask2 = maxl land mask in
-                                 let mask1 = minl land mask in
-                                 let l = mask1 land mask2 in
-                                 (l, 1, number h l 1)
-                               else if l1<0 && l2<0 then
-                                 let minl = min l1 l2 in
-                                 let mask = find_mask (lnot minl) in
-                                 (mask, 1, number h mask 1)
-                                   (*TODO(romy): check*)
-                               else
-                                 (0, 1, h) (* it is positive
-                                              && 0 is within the
-                                              range - can be
-                                              more tight *)
-                                   
-(*TODO step*)
+  let leading_ones l =
+    let rec leading_ones_internal l n =
+      if (l land n = n) then n
+      else leading_ones_internal l (n lsl 1)
+    in
+    leading_ones_internal l (-1) in
+  
+  let h1 = high l1 s1 n1 in
+
+  let h2 = high l2 s2 n2 in
+                               
+  let l = if l1 >= 0 && l2 >= 0 then 0
+          else if l1*l2 < 0 then
+            if h1>0 && h2>0 then 0
+            else 0 (*can probably tighten*)
+          else leading_ones (min l1 l2) in
+
+  let h = if h1*h2<0 then max h1 h2
+          else min h1 h2 in
+
+  if l<lowval || h>highval then raise AnyException
+  else (l,1,h)
+                                     
 let aint32_and v1 v2 =
   aint32_binop aint32_and_f v1 v2
 
@@ -200,9 +190,10 @@ let aint32_not_f (l,s,n) =
   (lnot (high l s n), s, n)
 
 let aint32_or_f v1 v2 =
-  aint32_not_f (aint32_and_f (aint32_not_f v1) (aint32_not_f v1))
+  aint32_not_f (aint32_and_f
+                  (aint32_not_f v1)
+                  (aint32_not_f v2))
            
-(*TODO all*)
 let aint32_or v1 v2 =
   aint32_binop aint32_or_f v1 v2
     
