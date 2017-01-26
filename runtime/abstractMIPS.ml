@@ -724,6 +724,7 @@ let sw rt imm rs ms =
          (reg2ustr rs) ^. us"=" ^. (preg rs r) ^. us")")) else ();
   ps |> updatemem r m |> tick 1 |> to_mstate ms 
 
+(*TODO(Romy):Not implemented*)
 let sb rt imm rs ms =
   let ps = ms.pstate in
   let r = ps.reg in
@@ -733,7 +734,7 @@ let sb rt imm rs ms =
   let con_v_rs = aint32_to_int32 v_rs in
   let m = set_memval_byte (imm4 + con_v_rs) v_rt ps.mem byte in
   if !dbg then(
-    prn_inst ms (us"sw " ^. 
+    prn_inst ms (us"sb " ^. 
          (reg2ustr rt) ^. us"=" ^. (preg rt r) ^.
          us(sprintf " imm=%d(" imm) ^.
          (reg2ustr rs) ^. us"=" ^. (preg rs r) ^. us")")) else ();
@@ -755,10 +756,11 @@ let lw rt imm rs ms =
          (reg2ustr rs) ^. us"=" ^. (preg rs r) ^. us")")) else ();
   ps |> updatemem r' m |> tick 1 |> to_mstate ms 
 
+(*TODO(Romy):Not implemented*)
 let lb rt imm rs ms = 
   let ps = ms.pstate in
   let r = ps.reg in
-  let imm4,byte = (imm / 4) lsl 2, imm mod 4 in
+  let imm4,byte = (imm lsr 2) lsl 2, imm mod 4 in
   let (r,v_rt) = getreg rt r in
   let (r,v_rs) = getreg rs r in
   let con_v_rs = aint32_to_int32 v_rs in
@@ -767,10 +769,11 @@ let lb rt imm rs ms =
   if !dbg then(
     prn_inst ms (us"lb " ^. 
          (reg2ustr rt) ^. us"=" ^. (preg rt r') ^.
-         us(sprintf " imm=%d(" imm4) ^.
+         us(sprintf " imm=%d(" imm) ^.
          (reg2ustr rs) ^. us"=" ^. (preg rs r) ^. us")")) else ();
-  ps |> updatemem r' m |> tick 1 |> to_mstate ms 
-
+  ps |> updatemem r' m |> tick 1 |> to_mstate ms
+                                              
+(*TODO(Romy):Not implemented*)
 let lbu rt imm rs ms = lb rt imm rs ms
 
 let slt_main signed r v_rs v_rt rd rs rt ms =
@@ -847,7 +850,6 @@ let next ms =
     (* Special branch handling branch delay slots *)      
     let ms = {ms with sbranch = None} in
     continue (ms |> enq label r1 r2 tb |> enq bi.nextid r1 r2 fb))
-
   
 
     
