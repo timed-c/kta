@@ -58,10 +58,19 @@ let set_memval_byte addr v mem byte =
   set_memval addr newv mem
 
 let mem_join memlist =
-  {mem_init with mjoins = memlist}
-  
-
-
-
-
-  
+  match memlist with
+  | [] ->   {mem_init with mjoins = []}
+  | m::ms -> List.fold_left
+                         (fun m1 m2 ->
+                           { memory =
+                               Mem.merge
+                                 (fun addr v1 v2 ->
+                                   match v1, v2 with
+                                   | None, None -> None
+                                   | None, Some vi | Some vi, None -> Some vi
+                                   | Some v1, Some v2 ->
+                                     Some (aint32_join v1 v2)) m1.memory m2.memory;
+                             mjoins = [];
+                         }) m ms;
+                        
+                
