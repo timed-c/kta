@@ -9,9 +9,9 @@ open Utest
        
 let tmpfile = "temp-file-090916-070704.tmp"
 
-let compile_file fname args optimize debug =
+let compile_file filename fname args optimize debug =
   (try
-     MipsSys.pic32_compile ["test/demo/array_mul.c"] false optimize tmpfile
+     MipsSys.pic32_compile [filename] false optimize tmpfile
    with Sys_error e ->
      e |> eprintf "Error %s");
   let prog = MipsSys.get_program tmpfile |>  MipsUtils.add_branch_symbols in
@@ -30,11 +30,18 @@ let compile_file fname args optimize debug =
 let main =
   Utest.init "WCET";
   
-  let bcet,wcet = compile_file "array_mul" ["a0=[1,2]";"a1=[1,4]";"a2=[1,3]"] false false in
+  let bcet,wcet = compile_file "test/demo/array_mul.c" "array_mul" ["a0=[1,2]";"a1=[1,4]";"a2=[1,3]"] false false in
   Utest.test_int "array_mul.c: Non optimized." bcet 118;
   Utest.test_int "array_mul.c: Non optimized." wcet 1687;
-  let bcet,wcet = compile_file "array_mul" ["a0=[1,2]";"a1=[1,4]";"a2=[1,3]"] true false in
+  let bcet,wcet = compile_file "test/demo/array_mul.c" "array_mul" ["a0=[1,2]";"a1=[1,4]";"a2=[1,3]"] true false in
   Utest.test_int "array_mul.c: Optimized." bcet 36;
   Utest.test_int "array_mul.c: Optimized." wcet 308;
+  let bcet,wcet = compile_file "test/demo/fact.c" "fact" ["a0=[1,6]"] false false in
+  Utest.test_int "fact.c: Not optimized." bcet 15;
+  Utest.test_int "fact.c: Not optimized." wcet 70;
+  let bcet,wcet = compile_file "test/demo/fact.c" "fact" ["a0=[1,6]"] true false in
+  Utest.test_int "fact.c: Optimized." bcet 3;
+  Utest.test_int "fact.c: Optimized." wcet 30;
+
 
 
