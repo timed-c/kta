@@ -302,6 +302,9 @@ let wcet_compile fname debug program_code args =
       (let command = ("sh -c \"cd " ^ runtime_path ^ "; ocamlbuild " ^ ocamlflnm ^ ".p.native" ^ ocamlargs ^ "\"") in
        if !enable_verbose then print_endline (command ^ "\n");
        let (code, stdout, stderr) = USys.shellcmd command in
+
+       files |> List.iter remove_file;
+
        if code != 0 then raise (Sys_error (stderr ^ " " ^ stdout))
        else stdout)
     else

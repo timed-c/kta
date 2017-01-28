@@ -323,7 +323,7 @@ let dequeue ms =
     (* Have we finished a call? Dist = 0? *)
     | (0,blockid,ps::pss)::rest ->
        (* Is it the final node? *)
-      if blockid=0 then 
+       if blockid=0 then 
          (* Join all final program states *)
          let ps' = List.fold_left join_pstates ps pss in
          {ms with cblock = 0; pstate=ps'; prio=rest} 
@@ -332,7 +332,7 @@ let dequeue ms =
          (match ms.cstack with
           | (retid,prio')::cstackrest ->  
              {ms with cblock=blockid; pstate=ps; batch=max_batch_size pss;
-               prio=prio'; returnid = retid; cstack=cstackrest;}
+                      prio=prio'; returnid = retid; cstack=cstackrest;}
           | [] -> should_not_happen 1)
         
     (* Dequeue the top program state *)  
@@ -397,10 +397,7 @@ let r_instruction str binop rd rs rt ms =
         (reg2ustr rs) ^. us"=" ^. (preg rs r) ^. us" " ^.
         (reg2ustr rt) ^. us"=" ^. (preg rt r) ) else ();
   ps |> update r' |> tick 1 |> to_mstate ms
-
-let debug_r_instruction str binop rd rs rt ms =
-  r_instruction str binop rd rs rt ms
-      
+  
 let add =
   r_instruction (us"add") aint32_add
 
@@ -928,17 +925,13 @@ let options =
   [ (OpDebug, Uargs.No, us"-debug", us"",
      us"Enable debug");
     (OpArgs, Uargs.StrList, us"-args", us"<args>",
-     us"Accepts Initial Intervals for Registers a0, a1, a2 and a3");
-    (OpEnEID, Uargs.No, us"-enableEID", us"",
-     us"Enable extended Interval Domain Implementation");
-  ]
+     us"Accepts Initial Intervals for Registers a0, a1, a2 and a3");  ]
     
 let analyze startblock bblocks gp_addr defaultargs =
   let args = (Array.to_list Sys.argv |> List.tl) in
   let (ops, args) = Uargs.parse args options in
   let debug = Uargs.has_op OpDebug ops in
   enable_debug debug;
-  (*let enEID = Uargs.has_op OpEnEID ops in*)
   let args = Uargs.strlist_op OpArgs ops |> List.map Ustring.to_utf8 in 
   let args = if args = [] then defaultargs else args in
   if !dbg && !dbg_trace then
