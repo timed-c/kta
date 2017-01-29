@@ -174,7 +174,7 @@ let aint32_and_f (l1,s1,n1) (l2,s2,n2) =
   let l = if l1 >= 0 && l2 >= 0 then 0
           else if l1*l2 < 0 then
             if h1>0 && h2>0 then 0
-            else 0 (*can probably tighten*)
+            else 0 (*TODO(Romy): (maybe) tighten*)
           else leading_ones (min l1 l2) in
 
   let h = if h1*h2<0 then max h1 h2
