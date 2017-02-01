@@ -291,7 +291,7 @@ let wcet_compile fname debug program_code args =
   let ocamlflnm = "temp_1214325_" ^ fname in
   let runtime_path =
     try
-      Sys.getenv(kta_wcet_runtime_path)
+      Sys.getenv(kta_wcet_runtime_path) ^ "/"
     with Not_found -> "runtime/"
   in
   let files = [".ml"; ".p.native"] |> List.map (fun x -> runtime_path ^ ocamlflnm ^ x) in
@@ -312,6 +312,6 @@ let wcet_compile fname debug program_code args =
        files |> List.iter remove_file;
        "")
   with Sys_error e ->
-    e |> eprintf "Error: %s\n";
+    eprintf "Error %s\nRuntime PATH: %s is not a directory.\n\tSet enviroment variable KTA_WCET_RUNTIME_PATH\n" e runtime_path;
     files |> List.iter remove_file;
     ""
