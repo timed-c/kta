@@ -10,8 +10,9 @@ open Utest
 let tmpfile = "temp-file-090916-070704.tmp"
 
 let compile_file filename fname args optimize debug =
+  let opt = if optimize then 3 else 0 in
   (try
-     MipsSys.pic32_compile [filename] false optimize tmpfile
+     MipsSys.pic32_compile [filename] false opt tmpfile
    with Sys_error e ->
      e |> eprintf "Error %s");
   let prog = MipsSys.get_program tmpfile |>  MipsUtils.add_branch_symbols in

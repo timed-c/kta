@@ -16,7 +16,7 @@ val get_section : string -> string -> bytes
 *)
 
 
-val pic32_compile : string list -> bool -> bool -> string -> unit
+val pic32_compile : string list -> bool -> int -> string -> unit
 (** [pic32_compile filenames only_compile optimization_ outputname]
     compiles a C file for the target of a PIC32 MIPS processor.
     [filenames] is a list of files (C or obj-files). If [only_compile]

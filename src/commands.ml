@@ -61,7 +61,7 @@ let extra_options =
   [(OpCompile,     Uargs.No, us"-compile",     us"",
        us"Assume that the input files are C files. These files are then " ^.
        us"compiled and used as input instead of a binary ELF executable." );
-   (OpOptimize,   Uargs.No, us"-optimize",     us"",
+   (OpOptimize,   Uargs.Int, us"-optimize",     us"<level>",
        us"Compile the C program with optimization enabled.");
    (OpVerbose,     Uargs.No, us"-verbose",     us"",
        us"Print out extra information, such as invocation of external compilers.")]
@@ -186,8 +186,11 @@ let help command toptext =
 let getBinFileName ops args =
   let sargs = List.map Ustring.to_utf8 args in
  if Uargs.has_op OpCompile ops || List.exists (Ustring.ends_with (us".c")) args then   
-    try   
-      MipsSys.pic32_compile sargs false (Uargs.has_op OpOptimize ops) tmpfile; tmpfile
+   try
+     let opt = if Uargs.has_op OpOptimize ops then
+                 Uargs.int_op OpOptimize ops
+               else 0 in
+      MipsSys.pic32_compile sargs false opt tmpfile; tmpfile
     with Sys_error m -> raise (Uargs.Error (us"Compilation error: " ^. us m))
  else 
   (match sargs with 
