@@ -130,7 +130,7 @@ let wcet_options =
   [(OpWCET_CPSOCaml, Uargs.No,  us"-cpsocaml",  us"",
        us"Output the OCaml continuation passing style (CPS) code used for analysis.");
    (OpWCET_OCamlArgs, Uargs.StrList,  us"-args",  us"<args>",
-       us"Run the OCaml Code directly with <args> in the form: <reg>=[int,int]|int.")
+       us"Run the OCaml Code directly with <args> in the form: <reg>=[int,int]|int. Set environment variable KTA_WCET_RUNTIME_PATH=$KTA_PATH/runtime.")
   ]
   @ extra_options
 
