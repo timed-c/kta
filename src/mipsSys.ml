@@ -16,7 +16,6 @@ let tpp_magic = us"MAGIC070704090916_TPP_"
 let magic_len = Ustring.length tpp_magic
 
 let enable_verbose = ref false
-let vvv = true
 let kta_wcet_runtime_path = "KTA_WCET_RUNTIME_PATH"
 (* ---------------------------------------------------------------------*)
 let verbose enable = 
