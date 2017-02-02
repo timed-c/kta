@@ -13,7 +13,7 @@ let main =
 
   (* Test decoding of basic ASM instructions *)
   let tmpname = "__tmp__" in
-  MipsSys.pic32_compile ["test/mips_tests/asmtest.c"] false false tmpname;
+  MipsSys.pic32_compile ["test/mips_tests/asmtest.c"] false 0 tmpname;
   let insts = MipsUtils.decode (MipsSys.get_section tmpname ".text") in
   Sys.remove tmpname;
 
@@ -25,7 +25,7 @@ let main =
 
   (* Test extraction of program information (sections, symbols etc. *)
   let tmpname = "__tmp__" in
-  MipsSys.pic32_compile ["test/mips_tests/hello_sections.c"] false true tmpname;
+  MipsSys.pic32_compile ["test/mips_tests/hello_sections.c"] false 3 tmpname;
   let prog = MipsSys.get_program tmpname in
   let txt = "Read from MIPS binary: " in
   Utest.test_str  (txt ^ "filename.") prog.filename tmpname;

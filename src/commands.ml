@@ -185,17 +185,17 @@ let help command toptext =
 (* ---------------------------------------------------------------------*)
 let getBinFileName ops args =
   let sargs = List.map Ustring.to_utf8 args in
- if Uargs.has_op OpCompile ops || List.exists (Ustring.ends_with (us".c")) args then   
+  if Uargs.has_op OpCompile ops || List.exists (Ustring.ends_with (us".c")) args then   
    try
      let opt = if Uargs.has_op OpOptimize ops then
                  Uargs.int_op OpOptimize ops
                else 0 in
-      MipsSys.pic32_compile sargs false opt tmpfile; tmpfile
-    with Sys_error m -> raise (Uargs.Error (us"Compilation error: " ^. us m))
- else 
-  (match sargs with 
-  | [fname] -> fname 
-  | _ -> raise (Uargs.Error (us"One binary ELF executable file is missing.")))
+     MipsSys.pic32_compile sargs false opt tmpfile; tmpfile
+   with Sys_error m -> raise (Uargs.Error (us"Compilation error: " ^. us m))
+  else 
+    (match sargs with 
+     | [fname] -> fname 
+     | _ -> raise (Uargs.Error (us"One binary ELF executable file is missing.")))
 
 (* ---------------------------------------------------------------------*)
 let remove_tempfile() =

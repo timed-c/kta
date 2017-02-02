@@ -206,7 +206,7 @@ let mips_debug filename func args opt =
 
 let mips_verify filename file_ta_req = 
   let tmpname = "__tmp__" in
-  MipsSys.pic32_compile [filename] false true tmpname;
+  MipsSys.pic32_compile [filename] false 3 tmpname;
   let prog = MipsSys.assign_program_stack (MipsSys.get_program tmpname) 
     stack_ptr stack_size stack_addr in
 
@@ -241,13 +241,13 @@ let main =
   if Sys.argv.(1) = "-mips" then 
     mips_print (Sys.argv.(2))
   else if Sys.argv.(1) = "-compile" then 
-      mips_compile (Sys.argv.(2)) true
+      mips_compile (Sys.argv.(2)) 3
   else if Sys.argv.(1) = "-compile-no-opt" then 
-      mips_compile (Sys.argv.(2)) false
+      mips_compile (Sys.argv.(2)) 0
   else if Sys.argv.(1) = "-sections" then 
-      mips_sections (Sys.argv.(2)) true
+      mips_sections (Sys.argv.(2)) 3
   else if Sys.argv.(1) = "-symbols" then 
-      mips_symbols (Sys.argv.(2)) true
+      mips_symbols (Sys.argv.(2)) 3
   else if Sys.argv.(1) = "-eval" || Sys.argv.(1) = "-debug"  then 
     let filename = if len >= 3 then (Sys.argv.(2)) else failwith "No filename" in
     let funcname = if len >= 4 then (Sys.argv.(3)) else "main" in

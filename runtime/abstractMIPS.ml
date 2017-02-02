@@ -932,7 +932,12 @@ let analyze startblock bblocks gp_addr defaultargs =
   let (ops, args) = Uargs.parse args options in
   let debug = Uargs.has_op OpDebug ops in
   enable_debug debug;
-  let args = Uargs.strlist_op OpArgs ops |> List.map Ustring.to_utf8 in 
+  let args =
+    if Uargs.has_op OpArgs ops then
+      Uargs.strlist_op OpArgs ops |> List.map Ustring.to_utf8
+    else
+      []
+  in
   let args = if args = [] then defaultargs else args in
   if !dbg && !dbg_trace then
     let v =     

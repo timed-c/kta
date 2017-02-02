@@ -26,7 +26,7 @@ sll     $0,$0,0
 sll     $0,$0,0
 addiu   $s0,$s1,555
 addu    $t1,$t2,$t3
-and     $t1,$t2,$t3
+and_    $t1,$t2,$t3
 andi    $s0,$s1,555
 sll     $0,$0,0
 sll     $0,$0,0
@@ -63,7 +63,7 @@ sll     $0,$0,0
 lw      $t1,500($t2)
 mul     $t1,$t2,$t3
 nor     $t1,$t2,$t3
-or      $t1,$t2,$t3
+or_     $t1,$t2,$t3
 ori     $t1,$t2,8
 sll     $0,$0,0
 sll     $0,$0,0

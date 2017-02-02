@@ -45,12 +45,12 @@ let get_section filename section =
 
 (* ---------------------------------------------------------------------*)
 let pic32_compile filenames only_compile optimization outputname =
-   let cflags = " -ffreestanding  -mips32 -mips2  -msoft-float -Wa,-msoft-float " in 
+  let cflags = " -ffreestanding  -mips32 -mips2  -msoft-float -Wa,-msoft-float " in 
 (* NOTE:  -march=mips32r2  and -mips32 -mips2  are not the same. *)
   let command = (gcc ^ cflags ^ (String.concat " " filenames) ^ " " ^
                    (if only_compile then "-c " else "") ^ 
-                   (sprintf "-O%d " optimization) ^ 
-                   "-o " ^ outputname) in 
+                     (sprintf "-O%d " optimization) ^ 
+                       "-o " ^ outputname) in 
   if !enable_verbose then print_endline (command ^ "\n");
   let (code,stdout,stderr) = USys.shellcmd command in
   if code != 0 then raise (Sys_error (stderr ^ " " ^ stdout)) else ()
@@ -289,6 +289,7 @@ let wcet_compile fname debug program_code args =
   let args = List.fold_left (fun x -> (^) (x ^ " ")) " -args " args in
   let ocamlargs = " -lib str -- " ^ flags ^ args in
   let ocamlflnm = "temp_1214325_" ^ fname in
+
   let runtime_path =
     try
       Sys.getenv(kta_wcet_runtime_path) ^ "/"
