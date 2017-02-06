@@ -15,7 +15,7 @@ unsigned int array_mul(unsigned int N, unsigned int K, unsigned int M){
 	for(j=0; j<M; j++) {
 		c[i][j] = 0;
 		for(k=0; k<K; k++) 
-			c[i][j] += a[i][k] * b[i][k];	
+			c[i][j] += a[i][k] * b[k][j];	
 	}
   return 0;
 }
