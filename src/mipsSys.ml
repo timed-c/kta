@@ -312,6 +312,6 @@ let wcet_compile fname debug program_code args =
        files |> List.iter remove_file;
        "")
   with Sys_error e ->
-    eprintf "Error %s\nRuntime PATH: %s is not a directory.\n\tSet enviroment variable KTA_WCET_RUNTIME_PATH\n" e runtime_path;
+    e |> eprintf "Error %s\n";
     files |> List.iter remove_file;
     ""
