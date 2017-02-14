@@ -29,12 +29,15 @@ let highval = 2147483647
 let aint32_any = Any
 exception AnyException
 
-let rec gcd a b =
+let gcd a b =
   let a = abs a in
   let b = abs b in
-  if b = 0
-  then a
-  else gcd b (a mod b)
+  let (ma,mi) = if a > b then (a,b) else (b,a) in
+  let rec gcd_rec a b =
+    if b = 0
+    then a
+    else gcd_rec b (a mod b) in
+  gcd_rec ma mi
 
 let high l s n = l+s*(n-1)
 
@@ -60,7 +63,7 @@ let interval_merge_list lst =
 let aint32_to_int32 v =
   match v with
   | Any | IntervalList(_,_) -> raise Exception_aint32
-  | Interval(l,s,n) when n <> 1 -> raise Exception_aint32
+  | Interval(l,s,n) when n <> 1 -> (printf "raise %d %d %d" l s n); raise Exception_aint32
   | Interval(l,_,_) -> l
 
     
@@ -263,7 +266,7 @@ let aint32_div v1 v2 =
       else
         let l = min (min (l1/l2) (l1/h2)) (min (h1/l2) (h1/h2)) in
         let h = max (max (l1/l2) (l1/h2)) (max (h1/l2) (h1/h2)) in
-        let s = 1 in (* TODO(Romy): tighten*)
+        let s = if h = l then 0 else 1 in 
         let n = number h l s in
         if l<lowval || h>highval then raise AnyException
         else (l,s,n)
@@ -446,15 +449,19 @@ let rec aint32_test_less_than v1 v2 =
      let h2 = high l2 s2 n2 in
      ((if l1 < h2 then
          let h11 = min h1 (h2-s2) in
-         let si = gcd (abs (l1-l2)) (gcd s1 s2) in
-         let l22 = max (l1+s1) l2 in
-         Some(Interval(l1,si,number h11 l1 si), Interval(l22,si,number h2 l22 si))
+         let l22 = if s2 = 0 || l2 > (l1 + s1)
+                   then l2
+                   else l2 + ((l1 + s1 - l2) / s2) * s2
+         in
+         Some(Interval(l1,s1,number h11 l1 s1), Interval(l22,s2,number h2 l22 s2))
       else None),
      (if h1 >= l2 then
-        let l11 = max l1 l2 in
-        let si = gcd (abs (l1-l2)) (gcd s1 s2) in
+        let l11 = if s1 = 0 || l1 > l2
+                  then l1
+                  else l1 + ((l2 - l1) / s1) * s1
+        in          
         let h22 = min h2 h1 in
-        Some(Interval(l11,si,number h1 l11 si), Interval(l2,si,number h22 l2 si))        
+        Some(Interval(l11,s1,number h1 l11 s1), Interval(l2,s2,number h22 l2 s2))        
       else None))
   | Interval(v1),IntervalList(l1,_) | IntervalList(l1,_), Interval(v1) ->
     aint32_test_less_than (Interval(v1)) (Interval(interval_merge_list l1))
@@ -473,15 +480,19 @@ let rec aint32_test_less_than_unsigned v1 v2 =
      else
        ((if l1 < h2 then
            let h11 = min h1 (h2-s2) in
-           let si = gcd (abs (l1-l2)) (gcd s1 s2) in
-           let l22 = max (l1+s1) l2 in
-           Some(Interval(l1,si,number h11 l1 si), Interval(l22,si,number h11 l2 si))
+           let l22 = if s2 = 0 || l2 > (l1 + s1)
+                     then l2
+                     else l2 + ((l1 + s1 - l2) / s2) * s2
+           in
+           Some(Interval(l1,s1,number h11 l1 s1), Interval(l22,s2,number h11 l2 s2))
          else None),
         (if h1 >= l2 then
-           let l11 = max l1 l2 in
+           let l11 = if s1 = 0 || l1 > l2
+                  then l1
+                  else l1 + ((l2 - l1) / s1) * s1
+           in
            let h22 = min h1 h2 in
-           let si = gcd (abs (l1-l2)) (gcd s1 s2) in
-           Some(Interval(l11,si,number h1 l11 si), Interval(l2,si, number h22 l2 si ))        
+           Some(Interval(l11,s1,number h1 l11 s2), Interval(l2,s2, number h22 l2 s2 ))        
          else None))
   | Interval(v1),IntervalList(l1,_) | IntervalList(l1,_), Interval(v1) ->
     aint32_test_less_than_unsigned (Interval(v1)) (Interval(interval_merge_list l1))
@@ -536,6 +547,7 @@ let rec aint32_test_less_than_unsigned v1 v2 =
                  else None
   *)        
 let rec aint32_test_less_than_equal v1 v2 =
+  printf "foeiwfe3\n%!";
   match v1,v2 with
   | Any,_|_,Any -> (Some(Any,Any),Some(Any,Any))
   | Interval((l1,s1,n1)), Interval((l2,s2,n2)) ->
@@ -543,15 +555,19 @@ let rec aint32_test_less_than_equal v1 v2 =
      let h2 = high l2 s2 n2 in
      ((if l1 <= h2 then
          let h11 = min h1 h2 in
-         let si = gcd (abs (l1-l2)) (gcd s1 s2) in
-         let l22 = max l1 l2 in
-         Some(Interval(l1,si,number h11 l1 si), Interval(l22,si, number h2 l22 si))
+         let l22 = if s2 = 0 || l2 > (l1 + s1)
+                   then l2
+                   else l2 + ((l1 + s1 - l2) / s2) * s2
+         in
+         Some(Interval(l1,s1,number h11 l1 s1), Interval(l22,s2, number h2 l22 s2))
       else None),
      (if h1 > l2 then
-           let l11 = max l1 (l2+s2) in
-           let h22 = min (h1-s1) h2 in
-           let si = gcd (abs (l1-l2)) (gcd s1 s2) in
-           Some(Interval(l11,si,number h1 l11 si), Interval(l2,si,high h22 l2 si))        
+        let l11 = if s1 = 0 || l1 > l2
+                  then l1
+                  else l1 + ((l2 - l1) / s1) * s1
+        in
+        let h22 = min (h1-s1) h2 in
+        Some(Interval(l11,s1,number h1 l11 s1), Interval(l2,s2,high h22 l2 s2))        
       else None))
   | Interval(v1),IntervalList(l1,_) | IntervalList(l1,_), Interval(v1) ->
     aint32_test_less_than_equal (Interval(v1)) (Interval(interval_merge_list l1))
