@@ -420,7 +420,7 @@ let or_ =
   r_instruction (us"or") aint32_or
 
 let nor = 
-  r_instruction (us"or") aint32_nor
+  r_instruction (us"nor") aint32_nor
 
 let sllv =
   r_instruction (us"sllv") aint32_sllv
