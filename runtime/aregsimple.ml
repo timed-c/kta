@@ -22,7 +22,7 @@ type aregister = {
   reg32 : aint32; reg33 : aint32;
 }
   
-
+                        
 let areg_init =
   {
                          reg16 = aint32_any;
@@ -73,9 +73,13 @@ let getreg r areg =
 (*  let v = reg r areg in
   aint32_print_debug v;
     (areg, v) *)
-
   (areg,reg r areg)
 
+(*let getreg r areg =
+  match areg with
+  | Nobranch(areg) -> getreg_int r areg
+  | Sbranch(areg1,areg2) -> getreg_int r areg1
+ *)
     
 (** Sets the value of a register.
     r = register symbol, v = abstract value to be set
@@ -101,8 +105,14 @@ let setreg r v areg =
   | R14  -> {areg with reg14 = v}  | R30 -> {areg with reg30 = v}
   | R15  -> {areg with reg15 = v}  | R31 -> {areg with reg31 = v}
 
-  | R32 -> {areg with reg32 = v}   | R33 -> {areg with reg33 = v}    
+  | R32 -> {areg with reg32 = v}   | R33 -> {areg with reg33 = v}
 
+(*
+let setreg r v areg =
+  match areg with
+  | Nobranch(areg) -> Nobranch(setreg_int r v areg)
+  | Sbranch(areg1,areg2) -> Sbranch(setreg_int r v areg1,setreg_int r v areg2)
+ *)
     
 
       
@@ -123,13 +133,16 @@ let areg_two_join areg1 areg2 =
    reg14 = aint32_join areg1.reg14 areg2.reg14; reg30 = aint32_join areg1.reg30 areg2.reg30;
    reg15 = aint32_join areg1.reg15 areg2.reg15; reg31 = aint32_join areg1.reg31 areg2.reg31;
    reg16 = aint32_join areg1.reg16 areg2.reg16;
-
    reg32 = aint32_join areg1.reg32 areg2.reg32; reg33 = aint32_join areg1.reg33 areg2.reg33;
 }
 
 
+(*let areg_two_join areg1 areg2 =
+  match areg1, areg2 with
+  | Nobranch(areg1), Nobranch(areg2) -> Nobranch(areg_two_join_int areg1 areg2)
+  | _,_ -> raise Not_found (* fix that with another error *)
+ *)
 
-    
 let areg_join lst =
   match lst with
   | [] -> areg_init

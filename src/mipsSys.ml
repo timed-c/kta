@@ -294,12 +294,12 @@ let wcet_compile fname debug program_code args =
       Sys.getenv(kta_wcet_runtime_path) ^ "/"
     with Not_found -> "runtime/"
   in
-  let files = [".ml"; ".p.native"] |> List.map (fun x -> runtime_path ^ ocamlflnm ^ x) in
+  let files = [".ml"; ".native"] |> List.map (fun x -> runtime_path ^ ocamlflnm ^ x) in
 
   Ustring.write_file (List.hd files) program_code;
   try      
     if Sys.is_directory runtime_path then	
-      (let command = ("sh -c \"cd " ^ runtime_path ^ "; ocamlbuild " ^ ocamlflnm ^ ".p.native" ^ ocamlargs ^ "\"") in
+      (let command = ("sh -c \"cd " ^ runtime_path ^ "; ocamlbuild " ^ ocamlflnm ^ ".native" ^ ocamlargs ^ "\"") in
        if !enable_verbose then print_endline (command ^ "\n");
        let (code, stdout, stderr) = USys.shellcmd command in
 

@@ -62,9 +62,9 @@ let interval_merge_list lst =
     
 let aint32_to_int32 v =
   match v with
-  | Any | IntervalList(_,_) -> raise Exception_aint32
-  | Interval(l,s,n) when n <> 1 -> (printf "raise %d %d %d" l s n); raise Exception_aint32
-  | Interval(l,_,_) -> l
+  | Interval(l,_,1) -> Some l
+  | Any | IntervalList(_,_)
+    | Interval(_) -> None
 
     
 let aint32_pprint debug v =
@@ -547,7 +547,6 @@ let rec aint32_test_less_than_unsigned v1 v2 =
                  else None
   *)        
 let rec aint32_test_less_than_equal v1 v2 =
-  printf "foeiwfe3\n%!";
   match v1,v2 with
   | Any,_|_,Any -> (Some(Any,Any),Some(Any,Any))
   | Interval((l1,s1,n1)), Interval((l2,s2,n2)) ->
