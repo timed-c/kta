@@ -49,7 +49,9 @@ type progstate = {
 
 type branchprogstate =
   | Nobranch of progstate
-  | Sbranch of (blockid * (progstate option * progstate option))
+  | Sbranch of (blockid *
+                  (branchprogstate option *
+                     branchprogstate option))
 
 (** Basic block ID na_ means "not applicable". *)
 let  na_ = -1
@@ -394,12 +396,36 @@ let update r ps =
 let updatemem r m ps =
   {ps with reg = r; mem = m}
 
-let match_branches l proc_ps ps1 ps2 =
-  match ps1,ps2 with
-  | None, None -> should_not_happen 3;
-  | None, Some ps2 -> Sbranch (l,(None,Some (proc_ps ps2)))
-  | Some ps1, None -> Sbranch (l,(Some (proc_ps ps1),None))
-  | Some ps1, Some ps2 -> Sbranch (l, (Some (proc_ps ps1), Some (proc_ps ps2)))
+let nobranch ps =
+  Nobranch ps
+           
+    (* proc_branches -- same *)
+let rec proc_rec_ps proc_ps ps =
+  let proc_option_ps ps =
+    match ps with
+    | None -> None
+    | Some ps -> Some (proc_rec_ps proc_ps ps)
+  in
+  match ps with
+  | Nobranch ps -> proc_ps ps
+  | Sbranch (l, (ps1, ps2)) -> Sbranch (l, (proc_option_ps ps1,
+                                            proc_option_ps ps2))
+     
+
+let rec proc_branches proc_ps ps =
+  match ps with
+  | Nobranch ps -> Nobranch (proc_ps ps)
+  | Sbranch (l, (ps1,ps2)) ->
+     match ps1, ps2 with
+     | None, None -> should_not_happen 3
+     | None, Some ps2 ->
+        Sbranch (l, (None, Some (proc_branches proc_ps ps2)))
+     | Some ps1, None ->
+        Sbranch (l, (Some (proc_branches proc_ps ps1), None))
+     | Some ps1, Some ps2 ->
+        Sbranch (l, (Some (proc_branches proc_ps ps1),
+                     Some (proc_branches proc_ps ps2)))
+
 
 (* ------------------------ INSTRUCTIONS -------------------------*)
 
@@ -418,14 +444,9 @@ let r_instruction str binop rd rs rt ms =
               (reg2ustr rd) ^. us"=" ^. (preg rd r') ^. us" " ^.
                 (reg2ustr rs) ^. us"=" ^. (preg rs r) ^. us" " ^.
                   (reg2ustr rt) ^. us"=" ^. (preg rt r) ) else ();
-       ps |> update r' |> tick ticks
+       ps |> update r' |> tick ticks |> nobranch
   in
-  let ps = ms.pstate in
-  let ps =
-    match ps with
-    | Nobranch ps -> Nobranch (proc_ps ps)
-    | Sbranch (l,(ps1, ps2)) -> match_branches l proc_ps ps1 ps2
-  in
+  let ps = proc_rec_ps proc_ps ms.pstate in
   ps |> to_mstate ms
   
 let add =
@@ -469,15 +490,11 @@ let mult rs rt ms =
     let (r,v_rt) = getreg rt r in
     let r = setreg internal_lo (aint32_mul v_rs v_rt) r in
     let r = setreg internal_hi (aint32_any) r in
-    ps |>  update r |> tick ticks
+    ps |>  update r |> tick ticks |> nobranch
   in
-  let ps = 
-    match ms.pstate with
-    | Nobranch ps -> Nobranch (proc_ps ps)
-    | Sbranch (l, (pst, psf)) -> match_branches l proc_ps pst psf
-  in
+  let ps =  proc_rec_ps proc_ps ms.pstate in
   if !dbg then prn_inst ms (us"mult ");
-  ps |> to_mstate ms
+  ps |> to_mstate ms 
 
 (* copy of the mult *)
 let div rs rt ms =
@@ -488,13 +505,9 @@ let div rs rt ms =
     let (r,v_rt) = getreg rt r in
     let r = setreg internal_lo (aint32_div v_rs v_rt) r in
     let r = setreg internal_hi (aint32_any) r in
-    ps |>  update r |> tick ticks
+    ps |>  update r |> tick ticks |> nobranch
   in
-  let ps = 
-    match ms.pstate with
-    | Nobranch ps -> Nobranch (proc_ps ps)
-    | Sbranch (l, (pst, psf)) -> match_branches l proc_ps pst psf
-  in
+  let ps = proc_rec_ps proc_ps ms.pstate in
   if !dbg then prn_inst ms (us"div ");
   ps |> to_mstate ms
 
@@ -508,13 +521,9 @@ let process_ps rd rt aint32_f ticks dbg_f ps ms =
     let r' = (setreg rd (aint32_f v_rs) r) in
     if !dbg then
       dbg_f rd rt r r' ms;
-    ps |> update r' |> tick ticks
+    ps |> update r' |> tick ticks |> nobranch
   in
-  match ps with
-  | Nobranch ps ->
-     Nobranch (proc_ps ps)
-  | Sbranch (l,(ps1, ps2)) ->
-     match_branches l proc_ps ps1 ps2
+  proc_rec_ps proc_ps ps
 
 
 
@@ -612,11 +621,11 @@ let sra rd rt shamt ms =
 let enq tlabel flabel pst psf ms =
   match pst, psf with
         | None, Some(psf) ->
-           continue (ms |> enqueue flabel (Nobranch psf))
+           continue (ms |> enqueue flabel (psf))
         | Some(pst), None ->
-           continue (ms |> enqueue tlabel (Nobranch pst))
+           continue (ms |> enqueue tlabel (pst))
         | Some(pst), Some(psf) ->
-           continue (ms |> enqueue tlabel (Nobranch pst) |> enqueue flabel (Nobranch psf))
+           continue (ms |> enqueue tlabel (pst) |> enqueue flabel (psf))
         | None, None -> should_not_happen 4
 
       
@@ -644,7 +653,7 @@ let branch_main str equal dslot op rs rt label ms =
     let (tbranch,fbranch) = if equal then (tb,fb) else (fb,tb) in
     let update_pstate ps rs rt branch =
       match branch with
-      | Some(sval,tval) -> Some ({ ps with reg = setreg rs sval (setreg rt tval ps.reg)})
+      | Some(sval,tval) -> Some (Nobranch { ps with reg = setreg rs sval (setreg rt tval ps.reg)})
       | None -> None
     in
     
@@ -668,7 +677,7 @@ let branch_main str equal dslot op rs rt label ms =
        information in ms.sbranch *)      
     let bi = ms.bbtable.(ms.cblock) in
     let pst, psf = if equal then (psf, pst) else (pst, psf) in 
-    if !dbg then
+    (*    if !dbg then
       (
         match pst with
         | None -> prn_inst ms str;
@@ -677,7 +686,7 @@ let branch_main str equal dslot op rs rt label ms =
         | None -> prn_inst ms str;
         | Some psf -> print_dbg "F: " psf;
       );
-    
+ *)  
     if dslot then 
       {ms with pstate = Sbranch (label, (pst, psf))}
     else
@@ -758,13 +767,9 @@ let lui rt imm ms =
   let proc_ps ps =
     let r = ps.reg in
     let r = setreg rt immi r in
-    ps |> update r |> tick ticks
+    ps |> update r |> tick ticks |> nobranch
   in
-  let ps =
-    match ps with
-    | Nobranch ps -> Nobranch (proc_ps ps)
-    | Sbranch (l,(ps1,ps2)) -> match_branches l proc_ps ps1 ps2
-  in
+  let ps = proc_rec_ps proc_ps ps in
   ps |> to_mstate ms
 
 
@@ -794,27 +799,18 @@ let jal label ms =
 
 let jalds label ms =
   if !dbg then prn_inst ms (us"jalds " ^. us(ms.bbtable.(label).name));
-  let ps = ms.pstate in
-  match ps with
-  | Nobranch ps ->  {ms with pstate = Sbranch(label, (Some ps, None))}
-  | Sbranch _ -> should_not_happen 5
-(*  {ms with sbranch = Some(label,zero,zero,Some(aint32_const 0,aint32_const 0),None)}
- *)
+  proc_rec_ps
+    (fun ps -> Sbranch (label, (Some (Nobranch ps), None)))
+    ms.pstate |> to_mstate ms
     
 let jds label ms =
   if !dbg then prn_inst ms (us"jds " ^. us(ms.bbtable.(label).name));
-  let ps = ms.pstate in
-  match ps with
-  | Nobranch ps ->
-     {ms with pstate = Sbranch(label, (Some ps, None))}
-  | Sbranch _ -> should_not_happen 6 
-
-(*  {ms with sbranch = Some(label,zero,zero,Some(aint32_const 0,aint32_const 0),None)}
- *)
+  proc_rec_ps
+    (fun ps -> Sbranch (label, (Some (Nobranch ps), None)))
+    ms.pstate |> to_mstate ms
     
 let sw rt imm rs ms =
   let ticks = 1 in
-  let ps = ms.pstate in
   let proc_ps ps = 
     let r = ps.reg in
     let (r,v_rt) = getreg rt r in
@@ -832,20 +828,15 @@ let sw rt imm rs ms =
                      (reg2ustr rt) ^. us"=" ^. (preg rt r) ^.
                        us(sprintf " imm=%d(" imm) ^.
                          (reg2ustr rs) ^. us"=" ^. (preg rs r) ^. us")")) else ();
-    ps |> updatemem r m |> tick ticks
+    ps |> updatemem r m |> tick ticks |> nobranch
   in
-  let ps =
-    match ps with
-    | Nobranch ps -> Nobranch (proc_ps ps)
-    | Sbranch (l,(ps1, ps2)) -> match_branches l proc_ps ps1 ps2
-  in  
+  let ps = proc_rec_ps proc_ps ms.pstate in
   ps |> to_mstate ms 
 
 
 (*TODO(Romy):Not implemented*)
 let sb rt imm rs ms =
   let ticks = 1 in
-  let ps = ms.pstate in
   let proc_ps ps = 
     let r = ps.reg in
     let imm4,byte = (imm / 4) lsl 2, imm mod 4 in
@@ -864,15 +855,9 @@ let sb rt imm rs ms =
                      (reg2ustr rt) ^. us"=" ^. (preg rt r) ^.
                        us(sprintf " imm=%d(" imm) ^.
                          (reg2ustr rs) ^. us"=" ^. (preg rs r) ^. us")")) else ();
-    ps |> updatemem r m |> tick ticks
+    ps |> updatemem r m |> tick ticks |> nobranch
   in
-  let ps =
-    match ps with
-    | Nobranch ps -> Nobranch (proc_ps ps)
-    | Sbranch (l,(ps1, ps2)) -> match_branches l proc_ps ps1 ps2
-  in
-  (*
-   *)
+  let ps = proc_rec_ps proc_ps ms.pstate in
   ps |> to_mstate ms 
 
                                              
@@ -896,13 +881,9 @@ let lw rt imm rs ms =
                      (reg2ustr rt) ^. us"=" ^. (preg rt r') ^.
                        us(sprintf " imm=%d(" imm) ^.
                          (reg2ustr rs) ^. us"=" ^. (preg rs r) ^. us")")) else ();
-    ps |> updatemem r' m |> tick ticks
+    ps |> updatemem r' m |> tick ticks |> nobranch
   in
-  let ps =
-    match ps with
-    | Nobranch ps -> Nobranch (proc_ps ps)
-    | Sbranch (l, (ps1, ps2)) -> match_branches l proc_ps ps1 ps2
-  in  
+  let ps = proc_rec_ps proc_ps ps in
   ps |> to_mstate ms 
 
 (*TODO(Romy):Not implemented*)
@@ -926,13 +907,9 @@ let lb rt imm rs ms =
                      (reg2ustr rt) ^. us"=" ^. (preg rt r') ^.
                        us(sprintf " imm=%d(" imm) ^.
                          (reg2ustr rs) ^. us"=" ^. (preg rs r) ^. us")")) else ();
-    ps |> updatemem r' m |> tick ticks
+    ps |> updatemem r' m |> tick ticks |> nobranch
   in
-  let ps =
-    match ms.pstate with
-    | Nobranch ps -> Nobranch (proc_ps ps)
-    | Sbranch (l, (ps1, ps2)) -> match_branches l proc_ps ps1 ps2
-  in
+  let ps = proc_rec_ps proc_ps ms.pstate in
   ps |> to_mstate ms
                                               
 (*TODO(Romy):Not implemented*)
@@ -943,9 +920,9 @@ let slt_main signed r v_rs v_rt rd rs rt ms =
   let update_pstate tf ps rd_v r =
     match tf with
       | Some(sval,tval) ->
-         Some ({ps with reg = setreg rd rd_v
+         Some (Nobranch ({ps with reg = setreg rd rd_v
                                      (setreg rs sval
-                                             (setreg rt tval r))} |> tick ticks)
+                                             (setreg rt tval r))} |> tick ticks))
       | None -> None
   in
   let (t,f) = (if signed then aint32_test_less_than else
@@ -973,46 +950,45 @@ let slt_main signed r v_rs v_rt rd rs rt ms =
                        (reg2ustr rt) ^. us"=" ^. (preg rt r) ^.
                          us" " ^. pprint_true_false_choice t f);
    
-  ps |> to_mstate ms
+  ps
 
-           
+
+
 let slt rd rs rt ms =
   let ps = ms.pstate in
-  match ps with
-  | Nobranch ps ->
-     let (r,v_rs) = getreg rs ps.reg in
-     let (r,v_rt) = getreg rt r in
-     slt_main true r v_rs v_rt rd rs rt ms
-  | _ -> should_not_happen 8
-
+  let proc_ps ps =
+    let (r,v_rs) = getreg rs ps.reg in
+    let (r,v_rt) = getreg rt r in
+    slt_main true r v_rs v_rt rd rs rt ms 
+  in    
+  proc_rec_ps proc_ps ps |> to_mstate ms
     
 let sltu rd rs rt ms = 
   let ps = ms.pstate in
-  match ps with
-  | Nobranch ps ->
-     let (r,v_rs) = getreg rs ps.reg in
-     let (r,v_rt) = getreg rt r in
-     slt_main false r v_rs v_rt rd rs rt ms
-  | _ -> should_not_happen 9
-    
+  let proc_ps ps =
+    let (r,v_rs) = getreg rs ps.reg in
+    let (r,v_rt) = getreg rt r in
+    slt_main false r v_rs v_rt rd rs rt ms 
+  in    
+  proc_rec_ps proc_ps ps |> to_mstate ms
 
 let slti rd rs imm ms =
   let ps = ms.pstate in
-  match ps with
-  | Nobranch ps ->
-     let (r,v_rs) = getreg rs ps.reg in
-     slt_main true r v_rs (aint32_const imm) rd rs zero ms
-  | _ -> should_not_happen 10
-
+  let proc_ps ps =
+    let (r,v_rs) = getreg rs ps.reg in
+    slt_main true r v_rs (aint32_const imm) rd rs zero ms
+  in
+  proc_rec_ps proc_ps ps |> to_mstate ms
+                                      
 (* TODO: right now, stliu is just a copy of slti. It must 
    be update to also include correct handling of unsigned integers! *)    
 let sltiu rd rs imm ms =
   let ps = ms.pstate in
-  match ps with
-  | Nobranch ps ->
-     let (r,v_rs) = getreg rs ps.reg in
-     slt_main true r v_rs (aint32_const imm) rd rs zero ms
-  | _ -> should_not_happen 11
+  let proc_ps ps =
+    let (r,v_rs) = getreg rs ps.reg in
+    slt_main true r v_rs (aint32_const imm) rd rs zero ms
+  in
+  proc_rec_ps proc_ps ps |> to_mstate ms
   
 
       
@@ -1044,17 +1020,12 @@ let ret ms =
 (* load immediate interval *)
 let lii rd l h ms =
   if !dbg then prn_inst ms (us"lii");
-  let ps = ms.pstate in
   let proc_ps ps =
     let r = ps.reg in
     let r = setreg rd (aint32_interval l h) r in
-    ps |> update r
+    ps |> update r |> nobranch
   in
-  let ps =
-    match ps with
-    | Nobranch ps -> Nobranch (proc_ps ps)
-    | Sbranch (l,(ps1,ps2)) -> match_branches l proc_ps ps1 ps2
-  in
+  let ps = proc_rec_ps proc_ps ms.pstate in
   ps |> to_mstate ms
   
 
