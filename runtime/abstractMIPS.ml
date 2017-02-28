@@ -399,32 +399,17 @@ let updatemem r m ps =
 let nobranch ps =
   Nobranch ps
            
-    (* proc_branches -- same *)
-let rec proc_rec_ps proc_ps ps =
+let rec proc_branches proc_ps ps =
   let proc_option_ps ps =
     match ps with
     | None -> None
-    | Some ps -> Some (proc_rec_ps proc_ps ps)
+    | Some ps -> Some (proc_branches proc_ps ps)
   in
   match ps with
   | Nobranch ps -> proc_ps ps
   | Sbranch (l, (ps1, ps2)) -> Sbranch (l, (proc_option_ps ps1,
                                             proc_option_ps ps2))
      
-
-let rec proc_branches proc_ps ps =
-  match ps with
-  | Nobranch ps -> Nobranch (proc_ps ps)
-  | Sbranch (l, (ps1,ps2)) ->
-     match ps1, ps2 with
-     | None, None -> should_not_happen 3
-     | None, Some ps2 ->
-        Sbranch (l, (None, Some (proc_branches proc_ps ps2)))
-     | Some ps1, None ->
-        Sbranch (l, (Some (proc_branches proc_ps ps1), None))
-     | Some ps1, Some ps2 ->
-        Sbranch (l, (Some (proc_branches proc_ps ps1),
-                     Some (proc_branches proc_ps ps2)))
 
 
 (* ------------------------ INSTRUCTIONS -------------------------*)
@@ -446,7 +431,7 @@ let r_instruction str binop rd rs rt ms =
                   (reg2ustr rt) ^. us"=" ^. (preg rt r) ) else ();
        ps |> update r' |> tick ticks |> nobranch
   in
-  let ps = proc_rec_ps proc_ps ms.pstate in
+  let ps = proc_branches proc_ps ms.pstate in
   ps |> to_mstate ms
   
 let add =
@@ -492,7 +477,7 @@ let mult rs rt ms =
     let r = setreg internal_hi (aint32_any) r in
     ps |>  update r |> tick ticks |> nobranch
   in
-  let ps =  proc_rec_ps proc_ps ms.pstate in
+  let ps =  proc_branches proc_ps ms.pstate in
   if !dbg then prn_inst ms (us"mult ");
   ps |> to_mstate ms 
 
@@ -507,7 +492,7 @@ let div rs rt ms =
     let r = setreg internal_hi (aint32_any) r in
     ps |>  update r |> tick ticks |> nobranch
   in
-  let ps = proc_rec_ps proc_ps ms.pstate in
+  let ps = proc_branches proc_ps ms.pstate in
   if !dbg then prn_inst ms (us"div ");
   ps |> to_mstate ms
 
@@ -523,7 +508,7 @@ let process_ps rd rt aint32_f ticks dbg_f ps ms =
       dbg_f rd rt r r' ms;
     ps |> update r' |> tick ticks |> nobranch
   in
-  proc_rec_ps proc_ps ps
+  proc_branches proc_ps ps
 
 
 
@@ -769,7 +754,7 @@ let lui rt imm ms =
     let r = setreg rt immi r in
     ps |> update r |> tick ticks |> nobranch
   in
-  let ps = proc_rec_ps proc_ps ps in
+  let ps = proc_branches proc_ps ps in
   ps |> to_mstate ms
 
 
@@ -799,13 +784,13 @@ let jal label ms =
 
 let jalds label ms =
   if !dbg then prn_inst ms (us"jalds " ^. us(ms.bbtable.(label).name));
-  proc_rec_ps
+  proc_branches
     (fun ps -> Sbranch (label, (Some (Nobranch ps), None)))
     ms.pstate |> to_mstate ms
     
 let jds label ms =
   if !dbg then prn_inst ms (us"jds " ^. us(ms.bbtable.(label).name));
-  proc_rec_ps
+  proc_branches
     (fun ps -> Sbranch (label, (Some (Nobranch ps), None)))
     ms.pstate |> to_mstate ms
     
@@ -830,7 +815,7 @@ let sw rt imm rs ms =
                          (reg2ustr rs) ^. us"=" ^. (preg rs r) ^. us")")) else ();
     ps |> updatemem r m |> tick ticks |> nobranch
   in
-  let ps = proc_rec_ps proc_ps ms.pstate in
+  let ps = proc_branches proc_ps ms.pstate in
   ps |> to_mstate ms 
 
 
@@ -857,7 +842,7 @@ let sb rt imm rs ms =
                          (reg2ustr rs) ^. us"=" ^. (preg rs r) ^. us")")) else ();
     ps |> updatemem r m |> tick ticks |> nobranch
   in
-  let ps = proc_rec_ps proc_ps ms.pstate in
+  let ps = proc_branches proc_ps ms.pstate in
   ps |> to_mstate ms 
 
                                              
@@ -883,7 +868,7 @@ let lw rt imm rs ms =
                          (reg2ustr rs) ^. us"=" ^. (preg rs r) ^. us")")) else ();
     ps |> updatemem r' m |> tick ticks |> nobranch
   in
-  let ps = proc_rec_ps proc_ps ps in
+  let ps = proc_branches proc_ps ps in
   ps |> to_mstate ms 
 
 (*TODO(Romy):Not implemented*)
@@ -909,7 +894,7 @@ let lb rt imm rs ms =
                          (reg2ustr rs) ^. us"=" ^. (preg rs r) ^. us")")) else ();
     ps |> updatemem r' m |> tick ticks |> nobranch
   in
-  let ps = proc_rec_ps proc_ps ms.pstate in
+  let ps = proc_branches proc_ps ms.pstate in
   ps |> to_mstate ms
                                               
 (*TODO(Romy):Not implemented*)
@@ -961,7 +946,7 @@ let slt rd rs rt ms =
     let (r,v_rt) = getreg rt r in
     slt_main true r v_rs v_rt rd rs rt ms 
   in    
-  proc_rec_ps proc_ps ps |> to_mstate ms
+  proc_branches proc_ps ps |> to_mstate ms
     
 let sltu rd rs rt ms = 
   let ps = ms.pstate in
@@ -970,7 +955,7 @@ let sltu rd rs rt ms =
     let (r,v_rt) = getreg rt r in
     slt_main false r v_rs v_rt rd rs rt ms 
   in    
-  proc_rec_ps proc_ps ps |> to_mstate ms
+  proc_branches proc_ps ps |> to_mstate ms
 
 let slti rd rs imm ms =
   let ps = ms.pstate in
@@ -978,7 +963,7 @@ let slti rd rs imm ms =
     let (r,v_rs) = getreg rs ps.reg in
     slt_main true r v_rs (aint32_const imm) rd rs zero ms
   in
-  proc_rec_ps proc_ps ps |> to_mstate ms
+  proc_branches proc_ps ps |> to_mstate ms
                                       
 (* TODO: right now, stliu is just a copy of slti. It must 
    be update to also include correct handling of unsigned integers! *)    
@@ -988,7 +973,7 @@ let sltiu rd rs imm ms =
     let (r,v_rs) = getreg rs ps.reg in
     slt_main true r v_rs (aint32_const imm) rd rs zero ms
   in
-  proc_rec_ps proc_ps ps |> to_mstate ms
+  proc_branches proc_ps ps |> to_mstate ms
   
 
       
@@ -1025,7 +1010,7 @@ let lii rd l h ms =
     let r = setreg rd (aint32_interval l h) r in
     ps |> update r |> nobranch
   in
-  let ps = proc_rec_ps proc_ps ms.pstate in
+  let ps = proc_branches proc_ps ms.pstate in
   ps |> to_mstate ms
   
 
