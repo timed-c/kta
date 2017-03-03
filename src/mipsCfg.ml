@@ -72,7 +72,9 @@ let rec getblockcode prog addr acc_code =
       ->
     let (prog,codelist,next_addr_sym) = ds_help prog in
     (prog,codelist,ExitTypeBranch(s,next_addr_sym))
-  | MipsBEQL(_,_,_,s) | MipsBNEL(_,_,_,s) ->
+  | MipsBEQL(_,_,_,s) | MipsBNEL(_,_,_,s) |
+      MipsBLEZL(_,_,s) | MipsBLTZL(_,_,s) |
+        MipsBGEZL(_,_,s) | MipsBGTZL(_,_,s)->
     let (prog,codelist,next_addr_sym) = ds_help prog in
     (prog,codelist,ExitTypeBrLikely(s,next_addr_sym))
   | MipsJALR(rs) -> failwith "JALR not implemented yet"
@@ -155,6 +157,10 @@ let make_cfg addr prog =
         match List.rev block.block_code with
         | inst::MipsBEQL(rs,rt,imm,s)::rest -> (inst,s,List.rev (MipsBEQL(rs,rt,imm,new_sym)::rest))
         | inst::MipsBNEL(rs,rt,imm,s)::rest -> (inst,s,List.rev (MipsBNEL(rs,rt,imm,new_sym)::rest))
+        | inst::MipsBGEZL(rs,imm,s)::rest -> (inst,s,List.rev (MipsBGEZL(rs,imm,new_sym)::rest))
+        | inst::MipsBGTZL(rs,imm,s)::rest -> (inst,s,List.rev (MipsBGTZL(rs,imm,new_sym)::rest))
+        | inst::MipsBLEZL(rs,imm,s)::rest -> (inst,s,List.rev (MipsBLEZL(rs,imm,new_sym)::rest))
+        | inst::MipsBLTZL(rs,imm,s)::rest -> (inst,s,List.rev (MipsBLTZL(rs,imm,new_sym)::rest))
         | _ -> failwith "should not happen"
       in
       let block1 = {block with block_code = new_block_code; block_exit = ExitTypeNext(nextsym)} in

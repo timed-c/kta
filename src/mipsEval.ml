@@ -109,14 +109,26 @@ let rec step bigendian prog state hookfunc hookval is_a_delay_slot =
        else (pc 8; hook())
   | MipsBGEZ(rs,imm,s) -> 
        if Int32.compare (reg rs) (Int32.zero) >= 0 then branch (imm*4 + 4 + state.pc)
+       else (pc 4; hook())
+  | MipsBGEZL(rs,imm,s) -> 
+       if Int32.compare (reg rs) (Int32.zero) >= 0 then branch (imm*4 + 4 + state.pc)
        else (pc 8; hook())
   | MipsBGTZ(rs,imm,s) -> 
+       if Int32.compare (reg rs) (Int32.zero) > 0 then branch (imm*4 + 4 + state.pc)
+       else (pc 4; hook())
+  | MipsBGTZL(rs,imm,s) -> 
        if Int32.compare (reg rs) (Int32.zero) > 0 then branch (imm*4 + 4 + state.pc)
        else (pc 8; hook())
   | MipsBLEZ(rs,imm,s) -> 
        if Int32.compare (reg rs) (Int32.zero) <= 0 then branch (imm*4 + 4 + state.pc)
        else (pc 4; hook())
+  | MipsBLEZL(rs,imm,s) -> 
+       if Int32.compare (reg rs) (Int32.zero) <= 0 then branch (imm*4 + 4 + state.pc)
+       else (pc 8; hook())
   | MipsBLTZ(rs,imm,s) -> 
+       if Int32.compare (reg rs) (Int32.zero) < 0 then branch (imm*4 + 4 + state.pc)
+       else (pc 4; hook())
+  | MipsBLTZL(rs,imm,s) -> 
        if Int32.compare (reg rs) (Int32.zero) < 0 then branch (imm*4 + 4 + state.pc)
        else (pc 8; hook())
   | MipsBNE(rs,rt,imm,s) ->
@@ -271,9 +283,13 @@ let debug_print inst pc prog state is_a_delay_slot terminate (acc,prev_regfile) 
     | MipsBEQ(rs,rt,_,_) -> (0,rs,rt)
     | MipsBEQL(rs,rt,_,_) -> (0,rs,rt)
     | MipsBGEZ(rs,_,_) -> (0,rs,0)
+    | MipsBGEZL(rs,_,_) -> (0,rs,0)
     | MipsBGTZ(rs,_,_) -> (0,rs,0)
+    | MipsBGTZL(rs,_,_) -> (0,rs,0)
     | MipsBLEZ(rs,_,_) -> (0,rs,0)
+    | MipsBLEZL(rs,_,_) -> (0,rs,0)
     | MipsBLTZ(rs,_,_) -> (0,rs,0)
+    | MipsBLTZL(rs,_,_) -> (0,rs,0)
     | MipsBNE(rs,rt,_,_) -> (0,rs,rt)
     | MipsBNEL(rs,rt,_,_) -> (0,rs,rt)
     | MipsJALR(rs) -> (0,rs,0)

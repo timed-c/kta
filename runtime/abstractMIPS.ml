@@ -746,6 +746,12 @@ let blezds rs label ms =
                    true true aint32_test_less_than_equal rs zero label ms
 
 
+(* Instruction: blezl *)
+let blezlds rs label ms =
+  branch_main (us"blezlds")
+                   true true aint32_test_less_than_equal rs zero label ms
+
+
                    
 (* Instruction: bltz
    From official MIPS32 manual: 
@@ -762,6 +768,11 @@ let bltzds rs label ms =
   branch_main (us"bltzds")
                    true true aint32_test_less_than rs zero label ms
 
+(* Instruction: bltzl *)
+let bltzlds rs label ms =
+  branch_main (us"bltzlds")
+                   true true aint32_test_less_than rs zero label ms
+
 (* Instruction: bgez
    From official MIPS32 manual: 
    "Branch on Greater Than or Equal to Zero
@@ -776,6 +787,10 @@ let bgezds rs label ms =
   branch_main (us"bgezds")
                    true true aint32_test_greater_than_equal rs zero label ms
 
+(* Instruction: bgezl *)
+let bgezlds rs label ms =
+  branch_main (us"bgezlds")
+                   true true aint32_test_greater_than_equal rs zero label ms
 
 (* Instruction: bgtz
    From official MIPS32 manual: 
@@ -789,6 +804,11 @@ let bgtz rs label ms =
 (* Same as above, but with branch delay slots enabled *)    
 let bgtzds rs label ms =
   branch_main (us"bgtzds")
+                   true true aint32_test_greater_than rs zero label ms
+
+(* Instruction: bgtzl *)
+let bgtzlds rs label ms =
+  branch_main (us"bgtzlds")
                    true true aint32_test_greater_than rs zero label ms
 
 

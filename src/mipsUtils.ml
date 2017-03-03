@@ -50,6 +50,8 @@ let decode_inst bininst =
   | 1  -> (match rt() with
            | 0  -> MipsBLTZ(rs(),imm(),"")
            | 1  -> MipsBGEZ(rs(),imm(),"")
+           | 2  -> MipsBLTZL(rs(),imm(),"")
+           | 3  -> MipsBGEZL(rs(),imm(),"")
            | _  -> MipsUnknown(bininst)) 
   | 2  -> MipsJ(address(),"")
   | 3  -> MipsJAL(address(),"")
@@ -67,6 +69,8 @@ let decode_inst bininst =
   | 15 -> MipsLUI(rt(),imm())
   | 20 -> MipsBEQL(rs(),rt(),imm(),"")
   | 21 -> MipsBNEL(rs(),rt(),imm(),"")
+  | 22 -> MipsBLEZL(rs(),imm(),"")
+  | 23 -> MipsBGTZL(rs(),imm(),"")
   | 28 -> (match funct() with
            | 2  -> MipsMUL(rd(),rs(),rt())
            | _  -> MipsUnknown(bininst))
@@ -225,9 +229,13 @@ let pprint_inst_general inst com reg int2str delayslot dash =
   | MipsBEQ(rs,rt,imm,s)  -> (istrds "beq") ^. (rtsis rs rt imm s)
   | MipsBEQL(rs,rt,imm,s) -> (istrds "beql") ^. (rtsis rs rt imm s)
   | MipsBGEZ(rs,imm,s)    -> (istrds "bgez") ^. (rsis rs imm s)    
+  | MipsBGEZL(rs,imm,s)   -> (istrds "bgezl") ^. (rsis rs imm s)    
   | MipsBGTZ(rs,imm,s)    -> (istrds "bgtz") ^. (rsis rs imm s)    
+  | MipsBGTZL(rs,imm,s)   -> (istrds "bgtzl") ^. (rsis rs imm s)    
   | MipsBLEZ(rs,imm,s)    -> (istrds "blez") ^. (rsis rs imm s)    
+  | MipsBLEZL(rs,imm,s)   -> (istrds "blezl") ^. (rsis rs imm s)    
   | MipsBLTZ(rs,imm,s)    -> (istrds "bltz") ^. (rsis rs imm s)    
+  | MipsBLTZL(rs,imm,s)   -> (istrds "bltzl") ^. (rsis rs imm s)    
   | MipsBNE(rs,rt,imm,s)  -> (istrds "bne") ^. (rtsis rs rt imm s)    
   | MipsBNEL(rs,rt,imm,s) -> (istrds "bnel") ^. (rtsis rs rt imm s)
   | MipsJALR(rs)          -> (istrds "jalr") ^. (reg rs)
@@ -343,16 +351,22 @@ let add_branch_symbols prog =
     (* Match relative branch instructions *)
     | MipsBEQ(_,_,imm,_) | MipsBEQL(_,_,imm,_) | 
       MipsBLEZ(_,imm,_)  | MipsBNE(_,_,imm,_)  | MipsBNEL(_,_,imm,_)  |
-      MipsBLTZ(_,imm,_)  | MipsBGEZ(_,imm,_)   | MipsBGTZ(_,imm,_) ->
+        MipsBLTZ(_,imm,_)  | MipsBGEZ(_,imm,_)   | MipsBGTZ(_,imm,_) |
+          MipsBLTZL(_,imm,_)  | MipsBGEZL(_,imm,_)   | MipsBGTZL(_,imm,_) |
+            MipsBLEZL(_,imm,_) ->
         let addr = i*4 + 4 + imm*4 + prog.text_sec.addr in
         let (newlabel,s2a',a2s') = makenew addr in
         let i2 = (match inst with
           | MipsBEQ(rs,rt,_,_)  -> MipsBEQ(rs,rt,imm,newlabel)
           | MipsBEQL(rs,rt,_,_)  -> MipsBEQL(rs,rt,imm,newlabel)
           | MipsBGEZ(rs,_,_) -> MipsBGEZ(rs,imm,newlabel)
+          | MipsBGEZL(rs,_,_) -> MipsBGEZL(rs,imm,newlabel)
           | MipsBGTZ(rs,_,_) -> MipsBGTZ(rs,imm,newlabel)
+          | MipsBGTZL(rs,_,_) -> MipsBGTZL(rs,imm,newlabel)
           | MipsBLEZ(rs,_,_) -> MipsBLEZ(rs,imm,newlabel)
+          | MipsBLEZL(rs,_,_) -> MipsBLEZL(rs,imm,newlabel)
           | MipsBLTZ(rs,_,_) -> MipsBLTZ(rs,imm,newlabel)
+          | MipsBLTZL(rs,_,_) -> MipsBLTZL(rs,imm,newlabel)
           | MipsBNE(rs,rt,_,_)  -> MipsBNE(rs,rt,imm,newlabel)
           | MipsBNEL(rs,rt,_,_)  -> MipsBNEL(rs,rt,imm,newlabel)
           | _ -> failwith "Should not happen"

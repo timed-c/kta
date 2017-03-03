@@ -20,9 +20,13 @@ type inst =
   | MipsBEQ     of rs * rt  * imm * string
   | MipsBEQL    of rs * rt  * imm * string
   | MipsBGEZ    of rs * imm * string
+  | MipsBGEZL   of rs * imm * string
   | MipsBGTZ    of rs * imm * string
+  | MipsBGTZL   of rs * imm * string
   | MipsBLEZ    of rs * imm * string
+  | MipsBLEZL   of rs * imm * string
   | MipsBLTZ    of rs * imm * string
+  | MipsBLTZL   of rs * imm * string
   | MipsBNE     of rs * rt  * imm * string
   | MipsBNEL    of rs * rt  * imm * string
   | MipsDIV     of rs * rt
