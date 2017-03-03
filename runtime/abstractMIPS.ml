@@ -457,6 +457,9 @@ let or_ =
 let nor = 
   r_instruction (us"nor") aint32_nor
 
+let xor = 
+  r_instruction (us"xor") aint32_xor
+
 let sllv =
   r_instruction (us"sllv") aint32_sllv
 
