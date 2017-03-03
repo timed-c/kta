@@ -651,3 +651,6 @@ let rec aint32_test_equal v1 v2 =
 
 let aint32_test_greater_than_equal v1 v2 =
   aint32_test_less_than_equal v2 v1
+
+let aint32_test_greater_than v1 v2 =
+  aint32_test_less_than v2 v1

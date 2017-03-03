@@ -746,6 +746,52 @@ let blezds rs label ms =
                    true true aint32_test_less_than_equal rs zero label ms
 
 
+                   
+(* Instruction: bltz
+   From official MIPS32 manual: 
+   "Branch on Less Than Zero
+   To test a GPR then do a PC-relative conditional branch." *)
+
+let bltz rs label ms =
+  branch_main (us"bltz")
+                   true false aint32_test_less_than rs zero label ms
+
+    
+(* Same as above, but with branch delay slots enabled *)    
+let bltzds rs label ms =
+  branch_main (us"bltzds")
+                   true true aint32_test_less_than rs zero label ms
+
+(* Instruction: bgez
+   From official MIPS32 manual: 
+   "Branch on Greater Than or Equal to Zero
+   To test a GPR then do a PC-relative conditional branch." *)
+let bgez rs label ms =
+  branch_main (us"bgez")
+                   true false aint32_test_greater_than_equal rs zero label ms
+
+    
+(* Same as above, but with branch delay slots enabled *)    
+let bgezds rs label ms =
+  branch_main (us"bgezds")
+                   true true aint32_test_greater_than_equal rs zero label ms
+
+
+(* Instruction: bgtz
+   From official MIPS32 manual: 
+   "Branch on Greater Than to Zero
+   To test a GPR then do a PC-relative conditional branch." *)
+let bgtz rs label ms =
+  branch_main (us"bgtz")
+                   true false aint32_test_greater_than rs zero label ms
+
+    
+(* Same as above, but with branch delay slots enabled *)    
+let bgtzds rs label ms =
+  branch_main (us"bgtzds")
+                   true true aint32_test_greater_than rs zero label ms
+
+
 let lui rt imm ms =
   if !dbg then prn_inst ms (us"lui ");
   let ps = ms.pstate in
