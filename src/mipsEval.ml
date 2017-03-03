@@ -150,6 +150,18 @@ let rec step bigendian prog state hookfunc hookval is_a_delay_slot =
        let (mem,i,_) = getmemptr state prog ((Int32.to_int (reg rs)) + imm) 1 in
        wreg rt (Int32.of_int (int_of_char (Bytes.get mem i)));
        pc 4; hook() 
+  | MipsLH(rt,imm,rs) -> 
+     let (mem,i,_) = getmemptr state prog ((Int32.to_int (reg rs)) + imm) 2 in
+     wreg rt (MipsUtils.get_16_bits bigendian mem
+                                    (Utils.sign_extension i 16));
+     pc 4; hook()
+
+  | MipsLHU(rt,imm,rs) -> 
+       let (mem,i,_) = getmemptr state prog ((Int32.to_int (reg rs)) + imm) 2 in
+       wreg rt (MipsUtils.get_16_bits bigendian mem
+                                    (i land 0xff));
+       pc 4; hook()
+
   | MipsLUI(rt,imm) ->
        wreg rt (Int32.shift_left (Int32.of_int imm) 16); pc 4; hook()
   | MipsLW(rt,imm,rs) -> 
@@ -205,6 +217,10 @@ let rec step bigendian prog state hookfunc hookval is_a_delay_slot =
   | MipsSB(rt,imm,rs) ->
       let (mem,i,_) = getmemptr state prog ((Int32.to_int (reg rs)) + imm) 1 in
       Bytes.set mem i (char_of_int ((Int32.to_int (reg rt)) land 0xff));
+      pc 4; hook()    
+  | MipsSH(rt,imm,rs) ->
+      let (mem,i,_) = getmemptr state prog ((Int32.to_int (reg rs)) + imm) 2 in
+      MipsUtils.set_16_bits bigendian mem i (Int32.of_int ((Int32.to_int (reg rt)) land 0xffff));
       pc 4; hook()    
   | MipsSW(rt,imm,rs) ->
       let (mem,i,_) = getmemptr state prog ((Int32.to_int (reg rs)) + imm) 4 in
@@ -266,6 +282,8 @@ let debug_print inst pc prog state is_a_delay_slot terminate (acc,prev_regfile) 
     | MipsJAL(_,_) -> (0,0,0)
     | MipsLB(rt,imm,rs) -> (rt,rs,0)
     | MipsLBU(rt,_,rs) -> (rt,rs,0)
+    | MipsLH(rt,imm,rs) -> (rt,rs,0)
+    | MipsLHU(rt,_,rs) -> (rt,rs,0)
     | MipsLUI(rt,_) -> (rt,0,0)
     | MipsLW(rt,_,rs) -> (rt,rs,0)
     | MipsMFHI(rd) -> (rd,0,0)
@@ -290,7 +308,8 @@ let debug_print inst pc prog state is_a_delay_slot terminate (acc,prev_regfile) 
     | MipsSRAV(rd,rs,rt) -> (rd,rs,rt)  
     | MipsSRL(rd,rt,_) -> (rd,rt,0)  
     | MipsSRLV(rd,rs,rt) -> (rd,rs,rt)  
-    | MipsSB(rt,_,rs) -> (rt,rs,0) 
+    | MipsSB(rt,_,rs) -> (rt,rs,0)
+    | MipsSH(rt,_,rs) -> (rt,rs,0) 
     | MipsSW(rt,_,rs) -> (rt,rs,0)    
     | MipsSWL(rt,_,rs) -> (rt,rs,0)    
     | MipsSUB(rd,rs,rt) -> (rd,rs,rt) 

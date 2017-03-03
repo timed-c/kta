@@ -33,6 +33,8 @@ type inst =
   | MipsJAL     of addr * string
   | MipsLB      of rt * imm * rs
   | MipsLBU     of rt * imm * rs
+  | MipsLH      of rt * imm * rs
+  | MipsLHU     of rt * imm * rs
   | MipsLUI     of rt * imm
   | MipsLW      of rt * imm * rs
   | MipsMFHI    of rd 
@@ -56,6 +58,7 @@ type inst =
   | MipsSRL     of rd * rt  * shamt
   | MipsSRLV    of rd * rt  * rs
   | MipsSB      of rt * imm * rs
+  | MipsSH      of rt * imm * rs
   | MipsSW      of rt * imm * rs
   | MipsSWL     of rt * imm * rs
   | MipsSUB     of rd * rs  * rt

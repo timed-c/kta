@@ -46,6 +46,14 @@ val add_branch_symbols : MipsAst.program -> MipsAst.program
     the instructions in fields 'code' field of the program.
 *)
 
+val get_16_bits : bool -> bytes -> int -> int32 
+(** [get_16_bits bigendian b i] reads out a 16-bit value
+    from byte array [b] at index [i]. *)
+
+val set_16_bits : bool -> bytes -> int -> int32 -> unit
+(** [set_16_bits bigendian b i v] writes 16-bit value [v]
+    to a byte array [b] at index [i]. *)
+
 val get_32_bits : bool -> bytes -> int -> int32 
 (** [get_32_bits bigendian b i] reads out a 32-bit value
     from byte array [b] at index [i]. *)

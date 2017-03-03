@@ -71,9 +71,12 @@ let decode_inst bininst =
            | 2  -> MipsMUL(rd(),rs(),rt())
            | _  -> MipsUnknown(bininst))
   | 32 -> MipsLB(rt(),imm(),rs())
+  | 33 -> MipsLH(rt(),imm(),rs())
   | 35 -> MipsLW(rt(),imm(),rs())
   | 36 -> MipsLBU(rt(),imm(),rs())
+  | 37 -> MipsLHU(rt(),imm(),rs())
   | 40 -> MipsSB(rt(),imm(),rs())
+  | 41 -> MipsSH(rt(),imm(),rs())
   | 42 -> MipsSWL(rt(),imm(),rs())
   | 43 -> MipsSW(rt(),imm(),rs())
   | _ -> MipsUnknown(bininst)      
@@ -233,6 +236,8 @@ let pprint_inst_general inst com reg int2str delayslot dash =
   | MipsJAL(addr,s)       -> (istrds "jal") ^. (address addr s)
   | MipsLB(rt,imm,rs)     -> (istr "lb") ^. (rtis rt imm rs)
   | MipsLBU(rt,imm,rs)    -> (istr "lbu") ^. (rtis rt imm rs)
+  | MipsLH(rt,imm,rs)     -> (istr "lh") ^. (rtis rt imm rs)
+  | MipsLHU(rt,imm,rs)    -> (istr "lhu") ^. (rtis rt imm rs)
   | MipsLUI(rt,imm)       -> (istr "lui") ^. (rti rt imm)
   | MipsLW(rt,imm,rs)     -> (istr "lw") ^. (rtis rt imm rs)
   | MipsMFHI(rd)          -> (istr "mfhi") ^. (reg rd)
@@ -258,6 +263,7 @@ let pprint_inst_general inst com reg int2str delayslot dash =
   | MipsSRL(rd,rt,shamt)  -> (istr "srl") ^. (dta rd rt shamt)
   | MipsSRLV(rd,rt,rs)    -> (istr "srlv") ^. (rdts rd rt rs)
   | MipsSB(rt,imm,rs)     -> (istr "sb") ^. (rtis rt imm rs)
+  | MipsSH(rt,imm,rs)     -> (istr "sh") ^. (rtis rt imm rs)
   | MipsSW(rt,imm,rs)     -> (istr "sw") ^. (rtis rt imm rs)
   | MipsSWL(rt,imm,rs)    -> (istr "swl") ^. (rtis rt imm rs)
   | MipsSUB(rd,rs,rt)     -> (istr "sub") ^. (rdst rd rs rt)
@@ -376,6 +382,25 @@ let get_shift array index shift =
 let set_shift array index shift value =
   Bytes.set array index (char_of_int (((Int32.to_int value) lsr shift) land 0xff))
 
+(* ---------------------------------------------------------------------*)
+let get_16_bits bigendian array i =
+    if bigendian then
+      Int32.logor (get_shift array (i) 8)
+                  (get_shift array (i+1) 0)
+    else
+      Int32.logor (get_shift array (i+1) 8)
+                  (get_shift array (i) 0)
+
+
+(* ---------------------------------------------------------------------*)
+let set_16_bits bigendian array i v =
+  if bigendian then (
+    set_shift array (i) 8 v;
+    set_shift array (i+1) 0 v;
+  )
+  else(
+    set_shift array (i+1) 8 v;
+    set_shift array (i) 0 v)
 
 (* ---------------------------------------------------------------------*)
 let get_32_bits bigendian array i =
