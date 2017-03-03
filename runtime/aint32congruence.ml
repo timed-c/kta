@@ -86,20 +86,38 @@ let aint32_pprint debug v =
 let aint32_print_debug v =
   uprint_endline (aint32_pprint true v)
 
-
-let rec aint32_mem_byte byte v =
-(*  let interv_get_byte byte (l1,s1,n1) =
-     let get_byte i = i lsr (byte lsl 3)  in
-     (get_byte l1, get_byte h1) in
- *)
+(*big/little endian*)                 
+let rec aint32_mem_byte byte signed v =
+  let get_byte byte (l,s,n) =
+    let shift_val signed v =
+      let newv = v lsr (byte lsl 3) in
+      newv
+    in
+     let l = shift_val signed l in
+     let s = shift_val false s in
+     let h = shift_val signed (high l s n) in
+     let n = number h l s in 
+     (l, s, n) in
   match v with
+  | Interval(v) -> Interval(get_byte byte v)
   | _ -> Any
           
-(*  | Any -> Any
-  | Interval(v1) -> Interval(interv_get_byte byte v1)
-  | IntervalList(l,sp) ->
-     IntervalList(List.map (interv_get_byte byte) l,sp)
-(*big/little endian*)
+let rec aint32_mem_update_byte byte newv oldv =
+(*  let interv_set_byte byte (l1,s1,n1) (ol1,os1,on1) =
+    let set_byte newv oldv =
+      let newi = newv lsl (byte lsl 3)  in
+      let mask = 0xff lsl (byte lsl 3)  in
+      ((oldv land (lnot mask)) lor newi)
+    in
+     (set_byte l1 ol1, set_byte h1 oh1) in
+ *)
+  match newv,oldv with
+  | _,_ -> Any
+(*  | _,Any -> Any
+  | Interval(nv1),Interval(v1) -> Interval(interv_set_byte byte nv1 v1)
+  | Interval(nv1),IntervalList(l,sp) ->
+     IntervalList(List.map (interv_set_byte byte nv1) l,sp)
+  | _,_ -> raise Exception_aint32
  *)
           
 let rec aint32_mem_update_byte byte newv oldv =
@@ -630,3 +648,6 @@ let rec aint32_test_equal v1 v2 =
   | IntervalList(l1,_), IntervalList(l2,_) ->
     aint32_test_equal (Interval(interval_merge_list l1))
                          (Interval(interval_merge_list l2))
+
+let aint32_test_greater_than_equal v1 v2 =
+  aint32_test_less_than_equal v2 v1

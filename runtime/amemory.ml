@@ -48,13 +48,23 @@ let get_memval addr mem =
     let v = getmem_internal addr mem in
     (set_memval addr v mem, v)
 
+      
 let get_memval_byte addr mem byte =
   let m,v = get_memval addr mem in
-  (m,aint32_mem_byte byte v)
+  (m, aint32_mem_byte byte false v)
+
+let get_memval_hword addr mem hword =
+  let m,v = get_memval addr mem in
+  (m, aint32_any)
 
 let set_memval_byte addr v mem byte =
   let m,oldv = get_memval addr mem in
   let newv = aint32_mem_update_byte byte v oldv in
+  set_memval addr newv mem
+
+let set_memval_hword addr v mem hword =
+  let m,oldv = get_memval addr mem in
+  let newv = aint32_any in
   set_memval addr newv mem
 
 let mem_join memlist =

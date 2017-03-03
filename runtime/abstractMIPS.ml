@@ -823,7 +823,7 @@ let sb rt imm rs ms =
   let ticks = 1 in
   let proc_ps ps = 
     let r = ps.reg in
-    let imm4,byte = (imm / 4) lsl 2, imm mod 4 in
+    let imm4,byte = (imm lsr 2) lsl 2, imm land 0x3 in
     let (r,v_rt) = getreg rt r in
     let (r,v_rs) = getreg rs r in
     let con_v_rs = aint32_to_int32 v_rs in
@@ -836,6 +836,32 @@ let sb rt imm rs ms =
     in
     if !dbg then(
       prn_inst ms (us"sb " ^. 
+                     (reg2ustr rt) ^. us"=" ^. (preg rt r) ^.
+                       us(sprintf " imm=%d(" imm) ^.
+                         (reg2ustr rs) ^. us"=" ^. (preg rs r) ^. us")")) else ();
+    ps |> updatemem r m |> tick ticks |> nobranch
+  in
+  let ps = proc_branches proc_ps ms.pstate in
+  ps |> to_mstate ms 
+
+                  (*TODO(Romy):Not implemented*)
+let sh rt imm rs ms =
+  let ticks = 1 in
+  let proc_ps ps = 
+    let r = ps.reg in
+    let imm2,hword = (imm lsr 1) lsl 1, imm land 0x1 in
+    let (r,v_rt) = getreg rt r in
+    let (r,v_rs) = getreg rs r in
+    let con_v_rs = aint32_to_int32 v_rs in
+    let m =
+      match con_v_rs with
+        (* updated the whole memory to Any - overapproximation *)
+      | None -> mem_to_any ps.mem 
+      | Some (con_v_rs) ->
+         set_memval_hword (imm2 + con_v_rs) v_rt ps.mem hword
+    in
+    if !dbg then(
+      prn_inst ms (us"sh " ^. 
                      (reg2ustr rt) ^. us"=" ^. (preg rt r) ^.
                        us(sprintf " imm=%d(" imm) ^.
                          (reg2ustr rs) ^. us"=" ^. (preg rs r) ^. us")")) else ();
@@ -875,7 +901,7 @@ let lb rt imm rs ms =
   let ticks = 1 in
   let proc_ps ps =
     let r = ps.reg in
-    let imm4,byte = (imm lsr 2) lsl 2, imm mod 4 in
+    let imm4, byte = (imm lsr 2) lsl 2, imm land 0x3 in 
     let (r,v_rt) = getreg rt r in
     let (r,v_rs) = getreg rs r in
     let con_v_rs = aint32_to_int32 v_rs in
@@ -898,6 +924,36 @@ let lb rt imm rs ms =
                                               
 (*TODO(Romy):Not implemented*)
 let lbu rt imm rs ms = lb rt imm rs ms
+
+
+(*TODO(Romy):Not implemented*)
+let lh rt imm rs ms = 
+  let ticks = 1 in
+  let proc_ps ps =
+    let r = ps.reg in
+    let imm2, hword = (imm lsr 1) lsl 1, imm land 0x1 in 
+    let (r,v_rt) = getreg rt r in
+    let (r,v_rs) = getreg rs r in
+    let con_v_rs = aint32_to_int32 v_rs in
+    let (m,v) =
+      match con_v_rs with
+      | None -> (ps.mem, Any)
+      | Some (con_v_rs) ->
+         get_memval_hword (imm2 + con_v_rs) ps.mem hword
+    in
+    let r' = setreg rt v r in
+    if !dbg then(
+      prn_inst ms (us"lh " ^. 
+                     (reg2ustr rt) ^. us"=" ^. (preg rt r') ^.
+                       us(sprintf " imm=%d(" imm) ^.
+                         (reg2ustr rs) ^. us"=" ^. (preg rs r) ^. us")")) else ();
+    ps |> updatemem r' m |> tick ticks |> nobranch
+  in
+  let ps = proc_branches proc_ps ms.pstate in
+  ps |> to_mstate ms
+                                              
+(*TODO(Romy):Not implemented*)
+let lhu rt imm rs ms = lh rt imm rs ms
 
 let slt_main signed r v_rs v_rt rd rs rt ms =
   let ticks = 1 in
