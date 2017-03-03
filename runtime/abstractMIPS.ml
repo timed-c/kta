@@ -185,7 +185,7 @@ let init_pstate =
 }
 
 (** Join two program states, assuming they have the same program counter value *)
-let join_pstates ps1 ps2 =
+let rec join_pstates ps1 ps2 =
   match ps1, ps2 with
   | Nobranch ps1, Nobranch ps2 ->
      Nobranch
@@ -195,12 +195,11 @@ let join_pstates ps1 ps2 =
          bcet  = min ps1.bcet ps2.bcet;
          wcet  = max ps1.wcet ps2.wcet;
        }
-(* this should not happen, cannot join states while
-   an sbranch is not split (??)
-*)
-  | _,_ -> failwith (sprintf "ERROR: Should not happen - join_pstates")
-
-                 
+  | _, _ ->
+     failwith (sprintf "ERROR: Should not happen - join_pstates")
+(*  | ps, Sbranch (l,(ps1,ps2)) | Sbranch (l,(ps1,ps2)), ps ->
+     Sbranch (l, (join_pstates ps ps1, join_pstates ps ps2))
+ *)               
 (* ---------------  INPUT ARGUMENT HANDLING -----------------*)
                  
 (** Returns a new program state that is updated with input from
@@ -363,7 +362,7 @@ let dequeue ms =
          {ms with cblock=blockid; pstate=ps; batch=max_batch_size pss; prio=rest;}
     (* This should never happen. It should end with a terminating 
            block id zero block. *)    
-    | _ -> should_not_happen 2)
+    | _ ->  should_not_happen 2)
   
   
 (* ------------------------ CONTINUATION  -------------------------*)
@@ -406,7 +405,7 @@ let rec proc_branches proc_ps ps =
     | Some ps -> Some (proc_branches proc_ps ps)
   in
   match ps with
-  | Nobranch ps -> proc_ps ps
+  | Nobranch ps -> proc_ps ps 
   | Sbranch (l, (ps1, ps2)) -> Sbranch (l, (proc_option_ps ps1,
                                             proc_option_ps ps2))
      
@@ -902,32 +901,38 @@ let lbu rt imm rs ms = lb rt imm rs ms
 
 let slt_main signed r v_rs v_rt rd rs rt ms =
   let ticks = 1 in
-  let update_pstate tf ps rd_v r =
-    match tf with
-      | Some(sval,tval) ->
-         Some (Nobranch ({ps with reg = setreg rd rd_v
-                                     (setreg rs sval
-                                             (setreg rt tval r))} |> tick ticks))
-      | None -> None
+  let proc_ps st rd_v ps =
+    match st with
+    | Some(sval,tval) -> Some
+                           (Nobranch
+                              ({ps with reg =
+                                          setreg rd rd_v
+                                                 (setreg rs sval
+                                                         (setreg rt tval r))} |> tick ticks))
+    | None -> None
   in
   let (t,f) = (if signed then aint32_test_less_than else
                aint32_test_less_than_unsigned) v_rs v_rt in
-  let ps =
-    match ms.pstate with
-    | Nobranch ps -> ps
-    | _ -> should_not_happen 7
-  in  
   let rd_v = match t,f with
     | _,None -> aint32_const 1
     | None,_ -> aint32_const 0
     | _,_ -> aint32_interval 0 1
   in
   let r' = setreg rd rd_v r in
-  let pst = update_pstate t ps rd_v r in
-  let psf = update_pstate f ps rd_v r in
+  (*
+    let ps =
+    match ms.pstate with
+    | Nobranch ps -> ps
+    | _ -> should_not_happen 7
+    in
+   *)
+  let ps = ms.pstate in
+  let ps = proc_branches (fun ps -> Sbranch(0,
+                                     (proc_ps t rd_v ps,
+                                      proc_ps f rd_v ps))
+                         ) ps
+  in
   
-  let ps = Sbranch (0,(pst, psf)) in
-
   if !dbg then
     prn_inst ms ((if signed then us"slt " else us"sltu ") ^.
                    (reg2ustr rd) ^. us"=" ^. (preg rd r') ^. us" " ^.
