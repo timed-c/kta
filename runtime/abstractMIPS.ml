@@ -852,10 +852,23 @@ let jal label ms =
 
 let jalds label ms =
   if !dbg then prn_inst ms (us"jalds " ^. us(ms.bbtable.(label).name));
-  proc_branches
+  match ms.pstate with
+  | Nobranch ps ->
+     printf "jalds nobranch\n%!";
+     Sbranch (label, (Some (Nobranch ps), None)) |> to_mstate ms
+  | Sbranch(l,(Some ps1,None))  ->
+     printf "jalds sbranch ps1 %d\n%!" l;
+     proc_branches
+       (fun ps -> Sbranch (label, (Some (Nobranch ps), None)))
+       ps1 |> to_mstate ms
+  | Sbranch(l,_) ->
+     printf "jalds sbranch unknown %d\n%!" l;
+     ms
+(*  proc_branches
     (fun ps -> Sbranch (label, (Some (Nobranch ps), None)))
     ms.pstate |> to_mstate ms
-    
+ *)
+       
 let jds label ms =
   if !dbg then prn_inst ms (us"jds " ^. us(ms.bbtable.(label).name));
   proc_branches
