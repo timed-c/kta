@@ -195,11 +195,9 @@ let rec join_pstates ps1 ps2 =
          bcet  = min ps1.bcet ps2.bcet;
          wcet  = max ps1.wcet ps2.wcet;
        }
-  | _, _ ->
-     failwith (sprintf "ERROR: Should not happen - join_pstates")
-(*  | ps, Sbranch (l,(ps1,ps2)) | Sbranch (l,(ps1,ps2)), ps ->
-     Sbranch (l, (join_pstates ps ps1, join_pstates ps ps2))
- *)               
+  | Sbranch(l,_), _ | _, Sbranch(l,_)->
+     failwith (sprintf "ERROR: Should not happen - join_pstates branch to label %d" l)
+
 (* ---------------  INPUT ARGUMENT HANDLING -----------------*)
                  
 (** Returns a new program state that is updated with input from
@@ -291,7 +289,7 @@ let pprint_true_false_choice t f =
 (* ---------------  BASIC BLOCKS AND PRIORITY QUEUE -----------------*)           
     
 (* Enqueue a basic block *)  
-let enqueue blockid ps ms =  
+let enqueue blockid ps ms =
   let bi = ms.bbtable.(blockid) in
   let dist = bi.dist in
   let rec work queue = 
@@ -313,11 +311,20 @@ let enqueue blockid ps ms =
         (dist,blockid,[ps])::qs
     )
   in
-    {ms with prio = work ms.prio}
+  {ms with prio = work ms.prio}
   
 
+
 let max_batch_size pss =
-  if List.length pss > !config_max_batch_size then
+  let rec no_sbranches pss =
+    match pss with
+    | [] -> true
+    | ps::pss ->
+       match ps with
+       | Nobranch _ -> no_sbranches pss
+       | Sbranch _ -> false
+  in
+  if (List.length pss > !config_max_batch_size && no_sbranches pss) then
     [List.fold_left join_pstates (List.hd pss) (List.tl pss)]
   else
     pss
@@ -357,9 +364,9 @@ let dequeue ms =
          {ms with
            cblock=blockid; pstate=ps; batch=max_batch_size pss; prio=[];
            cstack = (ms.bbtable.(blockid).nextid,rest)::ms.cstack}
-       else
+       else(
          (* No, just get the last batch *)
-         {ms with cblock=blockid; pstate=ps; batch=max_batch_size pss; prio=rest;}
+         {ms with cblock=blockid; pstate=ps; batch=max_batch_size pss; prio=rest;})
     (* This should never happen. It should end with a terminating 
            block id zero block. *)    
     | _ ->  should_not_happen 2)
@@ -386,6 +393,9 @@ let continue ms =
 let to_mstate ms ps =
   {ms with pstate = ps}
 
+let to_mstate2 ps ms =
+  {ms with pstate = ps}
+
 let tick n ps =  
   {ps with bcet = ps.bcet + n; wcet = ps.wcet + n} 
 
@@ -408,8 +418,7 @@ let rec proc_branches proc_ps ps =
   | Nobranch ps -> proc_ps ps 
   | Sbranch (l, (ps1, ps2)) -> Sbranch (l, (proc_option_ps ps1,
                                             proc_option_ps ps2))
-     
-
+                      
 
 (* ------------------------ INSTRUCTIONS -------------------------*)
 
@@ -432,7 +441,8 @@ let r_instruction str binop rd rs rt ms =
   in
   let ps = proc_branches proc_ps ms.pstate in
   ps |> to_mstate ms
-  
+
+      
 let add =
   r_instruction (us"add") aint32_add
 
@@ -467,7 +477,13 @@ let srlv =
   r_instruction (us"srlv") aint32_srlv
 
 
+(* Shift Word Right Arithmetic Variable
+   Copies the sign bit.
+*)
+let srav =
+  r_instruction (us"srav") aint32_srav
 
+                
 (* TODO: handle 64-bit. Right now, we only use 32-bit multiplication. *)    
 let mult rs rt ms =
   let ticks = 1 in
@@ -491,7 +507,7 @@ let div rs rt ms =
     let (r,v_rs) = getreg rs r in
     let (r,v_rt) = getreg rt r in
     let r = setreg internal_lo (aint32_div v_rs v_rt) r in
-    let r = setreg internal_hi (aint32_any) r in
+    let r = setreg internal_hi (aint32_mod v_rs v_rt) r in
     ps |>  update r |> tick ticks |> nobranch
   in
   let ps = proc_branches proc_ps ms.pstate in
@@ -500,7 +516,14 @@ let div rs rt ms =
 
 (* TODO(Romy): Unsigned implementation *)
 let divu rs rt ms = div rs rt ms
-                  
+
+(* Trap if equal - Not implemented 
+   Just increases the ticks *)
+let teq rs rt code ms =
+  let ticks = 1 in
+  let ps = proc_branches (fun ps -> ps |> tick ticks |> nobranch) ms.pstate in
+  ps |> to_mstate ms
+
 let process_ps rd rt aint32_f ticks dbg_f ps ms =
   let proc_ps ps =
     let r = ps.reg in
@@ -531,9 +554,28 @@ let mfhi rd ms =
   let ticks = 1 in
   let ps = ms.pstate in
   let ps = process_ps rd internal_hi (fun v-> v) ticks dbg_f ps ms in
-  if !dbg then prn_inst ms (us"mfhi ");
   ps |> to_mstate ms
-      
+
+let mtlo rs ms =
+  let dbg_f rd rt r rnew ms =
+    prn_inst ms (us "mtlo");
+  in
+  let ticks = 1 in
+  let ps = ms.pstate in
+  let ps = process_ps internal_lo rs (fun v-> v) ticks dbg_f ps ms in
+  ps |> to_mstate ms
+  
+  
+let mthi rs ms =
+  let dbg_f rs rt r rnew ms =
+    prn_inst ms (us "mthi");
+  in
+  let ticks = 1 in
+  let ps = ms.pstate in
+  let ps = process_ps internal_hi rs (fun v-> v) ticks dbg_f ps ms in
+  ps |> to_mstate ms
+
+                  
 
 let dbg_imm_f instr imm imm_str rd rt r rnew ms =
   prn_inst ms (us instr ^. us" " ^. 
@@ -606,18 +648,21 @@ let sra rd rt shamt ms =
 
 (* used by next and branch_equality *)
 let enq tlabel flabel pst psf ms =
+  (*TODO(Romy):to_mstate: maybe not necessary*)
   match pst, psf with
         | None, Some(psf) ->
-           continue (ms |> enqueue flabel (psf))
+           continue (psf |> to_mstate ms |> enqueue flabel psf)
         | Some(pst), None ->
-           continue (ms |> enqueue tlabel (pst))
+           continue (pst |> to_mstate ms |> enqueue tlabel pst)
         | Some(pst), Some(psf) ->
-           continue (ms |> enqueue tlabel (pst) |> enqueue flabel (psf))
+           let ms = pst |> to_mstate ms |> enqueue tlabel pst in
+           let ms = psf |> to_mstate ms |> enqueue flabel psf in
+           continue ms
         | None, None -> should_not_happen 4
 
       
 let branch_main str equal dslot op rs rt label ms =
-  let print_dbg tf ps =
+  let prin_dbg tf ps =
     let r = ps.reg in
     let bi = ms.bbtable.(ms.cblock) in
     prn_inst ms (us tf ^. (if equal then us"beq " else us"bne ") ^.
@@ -664,16 +709,16 @@ let branch_main str equal dslot op rs rt label ms =
        information in ms.sbranch *)      
     let bi = ms.bbtable.(ms.cblock) in
     let pst, psf = if equal then (psf, pst) else (pst, psf) in 
-    (*    if !dbg then
+    if !dbg then
       (
         match pst with
         | None -> prn_inst ms str;
-        | Some pst -> print_dbg "T: " pst;
+        | Some pst -> prn_inst ms str; (*print_dbg "T: " pst;*)
         match psf with
         | None -> prn_inst ms str;
-        | Some psf -> print_dbg "F: " psf;
+        | Some psf -> prn_inst ms str; (*print_dbg "F: " psf;*)
       );
- *)  
+  
     if dslot then 
       {ms with pstate = Sbranch (label, (pst, psf))}
     else
@@ -825,7 +870,6 @@ let lui rt imm ms =
   let ps = proc_branches proc_ps ps in
   ps |> to_mstate ms
 
-
   
       
 (* Count cycles for the return. The actual jump is performed
@@ -854,27 +898,35 @@ let jalds label ms =
   if !dbg then prn_inst ms (us"jalds " ^. us(ms.bbtable.(label).name));
   match ms.pstate with
   | Nobranch ps ->
-     printf "jalds nobranch\n%!";
      Sbranch (label, (Some (Nobranch ps), None)) |> to_mstate ms
   | Sbranch(l,(Some ps1,None))  ->
-     printf "jalds sbranch ps1 %d\n%!" l;
+     proc_branches
+       (fun ps -> Sbranch (label, (Some (Nobranch ps), None)))
+       ps1 |> to_mstate ms
+  | Sbranch(0,(Some ps1, _)) | Sbranch (0,(_,Some ps1))->
      proc_branches
        (fun ps -> Sbranch (label, (Some (Nobranch ps), None)))
        ps1 |> to_mstate ms
   | Sbranch(l,_) ->
-     printf "jalds sbranch unknown %d\n%!" l;
-     ms
-(*  proc_branches
-    (fun ps -> Sbranch (label, (Some (Nobranch ps), None)))
-    ms.pstate |> to_mstate ms
- *)
+     should_not_happen 5
+
        
 let jds label ms =
   if !dbg then prn_inst ms (us"jds " ^. us(ms.bbtable.(label).name));
-  proc_branches
-    (fun ps -> Sbranch (label, (Some (Nobranch ps), None)))
-    ms.pstate |> to_mstate ms
-    
+  match ms.pstate with
+  | Nobranch ps ->
+     Sbranch (label, (Some (Nobranch ps), None)) |> to_mstate ms
+  | Sbranch(l,(Some ps1,None))  ->
+     proc_branches
+       (fun ps -> Sbranch (label, (Some (Nobranch ps), None)))
+       ps1 |> to_mstate ms
+  | Sbranch(0,(Some ps1, _)) | Sbranch (0,(_, Some ps1)) ->
+     proc_branches
+       (fun ps -> Sbranch (label, (Some (Nobranch ps), None)))
+       ps1 |> to_mstate ms
+  | Sbranch(l,_) ->
+     should_not_happen 6
+  
 let sw rt imm rs ms =
   let ticks = 1 in
   let proc_ps ps = 
@@ -900,7 +952,7 @@ let sw rt imm rs ms =
   ps |> to_mstate ms 
 
 
-(*TODO(Romy):Not implemented*)
+(*TODO(Romy): Not implemented*)
 let sb rt imm rs ms =
   let ticks = 1 in
   let proc_ps ps = 
@@ -926,7 +978,7 @@ let sb rt imm rs ms =
   let ps = proc_branches proc_ps ms.pstate in
   ps |> to_mstate ms 
 
-                  (*TODO(Romy):Not implemented*)
+(*TODO(Romy): Not implemented*)
 let sh rt imm rs ms =
   let ticks = 1 in
   let proc_ps ps = 
@@ -978,7 +1030,7 @@ let lw rt imm rs ms =
   let ps = proc_branches proc_ps ps in
   ps |> to_mstate ms 
 
-(*TODO(Romy):Not implemented*)
+(*TODO(Romy): Not implemented*)
 let lb rt imm rs ms = 
   let ticks = 1 in
   let proc_ps ps =
@@ -1004,11 +1056,11 @@ let lb rt imm rs ms =
   let ps = proc_branches proc_ps ms.pstate in
   ps |> to_mstate ms
                                               
-(*TODO(Romy):Not implemented*)
+(*TODO(Romy): Not implemented*)
 let lbu rt imm rs ms = lb rt imm rs ms
 
 
-(*TODO(Romy):Not implemented*)
+(*TODO(Romy): Not implemented*)
 let lh rt imm rs ms = 
   let ticks = 1 in
   let proc_ps ps =
@@ -1034,10 +1086,10 @@ let lh rt imm rs ms =
   let ps = proc_branches proc_ps ms.pstate in
   ps |> to_mstate ms
                                               
-(*TODO(Romy):Not implemented*)
+(*TODO(Romy): Not implemented*)
 let lhu rt imm rs ms = lh rt imm rs ms
 
-let slt_main signed r v_rs v_rt rd rs rt ms =
+let slt_main signed r v_rs v_rt rd rs rt ps ms =
   let ticks = 1 in
   let proc_ps st rd_v ps =
     match st with
@@ -1064,11 +1116,9 @@ let slt_main signed r v_rs v_rt rd rs rt ms =
     | _ -> should_not_happen 7
     in
    *)
-  let ps = ms.pstate in
-  let ps = proc_branches (fun ps -> Sbranch(0,
-                                     (proc_ps t rd_v ps,
-                                      proc_ps f rd_v ps))
-                         ) ps
+  let ps = Sbranch(0,
+                   (proc_ps t rd_v ps,
+                    proc_ps f rd_v ps))
   in
   
   if !dbg then
@@ -1087,7 +1137,7 @@ let slt rd rs rt ms =
   let proc_ps ps =
     let (r,v_rs) = getreg rs ps.reg in
     let (r,v_rt) = getreg rt r in
-    slt_main true r v_rs v_rt rd rs rt ms 
+    slt_main true r v_rs v_rt rd rs rt ps ms 
   in    
   proc_branches proc_ps ps |> to_mstate ms
     
@@ -1096,7 +1146,7 @@ let sltu rd rs rt ms =
   let proc_ps ps =
     let (r,v_rs) = getreg rs ps.reg in
     let (r,v_rt) = getreg rt r in
-    slt_main false r v_rs v_rt rd rs rt ms 
+    slt_main false r v_rs v_rt rd rs rt ps ms 
   in    
   proc_branches proc_ps ps |> to_mstate ms
 
@@ -1104,7 +1154,7 @@ let slti rd rs imm ms =
   let ps = ms.pstate in
   let proc_ps ps =
     let (r,v_rs) = getreg rs ps.reg in
-    slt_main true r v_rs (aint32_const imm) rd rs zero ms
+    slt_main true r v_rs (aint32_const imm) rd rs zero ps ms
   in
   proc_branches proc_ps ps |> to_mstate ms
                                       
@@ -1114,7 +1164,7 @@ let sltiu rd rs imm ms =
   let ps = ms.pstate in
   let proc_ps ps =
     let (r,v_rs) = getreg rs ps.reg in
-    slt_main true r v_rs (aint32_const imm) rd rs zero ms
+    slt_main true r v_rs (aint32_const imm) rd rs zero ps ms
   in
   proc_branches proc_ps ps |> to_mstate ms
   
@@ -1207,7 +1257,7 @@ let print_mstate ms =
      printf "BCET:  %d cycles\n" ps.bcet;
      printf "WCET:  %d cycles\n" ps.wcet;
      uprint_endline (pprint_pstate 32 ps)
-  | _ -> should_not_happen 12
+  | Sbranch(l,_) -> should_not_happen 12
                
 type options_t =
   | OpDebug

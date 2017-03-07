@@ -27,6 +27,7 @@ let fail_aint32() = failwith "Error: aint32 error that should not happen."
 let lowval = -2147483648
 let highval = 2147483647
 let aint32_any = Any
+                   
 exception AnyException
 
 let gcd a b =
@@ -165,6 +166,7 @@ let aint32_add v1 v2 =
     else (l,s,n)
   ) v1 v2
 
+
                
 let aint32_sub v1 v2 =
   aint32_binop (fun (l1,s1,n1) (l2,s2,n2) ->
@@ -274,6 +276,20 @@ let aint32_srlv v1 v2 =
       else if (n1 = 0 && n2 = 0) then (l1 lsr l2, 0, 1)
       else (l,s,n)
     ) v1 v2
+               
+(* TODO(Romy): tighen - Copied from aint32_srlv*)
+let aint32_srav v1 v2 =
+  aint32_binop (fun (l1,s1,n1) (l2,s2,n2) ->
+      let h1 = high l1 s1 n1 in
+      let h2 = high l2 s2 n2 in
+      let l = l1 asr l2 in
+      let h = h1 asr h2 in
+      let s = 1 in 
+      let n = number h l s in
+      if l<lowval || h>highval then raise AnyException
+      else if (n1 = 0 && n2 = 0) then (l1 asr l2, 0, 1)
+      else (l,s,n)
+    ) v1 v2
 
 
 let aint32_div v1 v2 =
@@ -288,6 +304,29 @@ let aint32_div v1 v2 =
         let n = number h l s in
         if l<lowval || h>highval then raise AnyException
         else (l,s,n)
+    ) v1 v2
+
+let aint32_mod v1 v2 =
+  aint32_binop (fun (l1,s1,n1) (l2,s2,n2) ->
+      let h1 = high l1 s1 n1 in
+      let h2 = high l2 s2 n2 in
+      if (l2<=0 && h2 >=0) then raise Division_by_zero
+      else
+        if (n1 = 1 && n2 = 1) then (l1 mod l2, 0, 1)
+        else
+          (* very conservative *)
+          let s2_n = max 1 s2 in
+          let k = max (max (abs l1) (abs (l2-s2_n)))
+                      (max (abs h1) (abs (h2-s2_n))) in
+          let l,h = 
+            if (l1>0 && l2>0) then (0, k)
+            else if (h1<0 && h2<0) then (-k,0)
+            else (-k,k)
+          in
+          let s = if h = l then 0 else 1 in 
+          let n = number h l s in
+          if l<lowval || h>highval then raise AnyException
+          else (l,s,n)
     ) v1 v2
 
     
@@ -374,12 +413,12 @@ let test_equal (l1,s1,n1) (l2,s2,n2) =
                   else s1 in
       (* Two cases for false *)
       ([((h2,0,1),(h2,0,1))],                          (* TRUE *)
-       [((l1+s1,ns1,nn1),(l2,s2,n2));((l1,s1,n1),(l2,s2,n2-1))])    (* FALSE *)
+       [((l1+s1,ns1,nn1),(l2,s2,n2));((l1,s1,n1),(l2,s2,max 1 (n2-1)))])    (* FALSE *)
     else if l2 < h2 && l1 = h1 then
       (*  22222
               1  *)  
       ([((h2,0,1),(h2,0,1))],                          (* TRUE *)
-       [((l1,s1,n1),(l2,s2,n2-1))])                        (* FALSE *)
+       [((l1,s1,n1),(l2,s2,max 1 (n2-1)))])                        (* FALSE *)
     else if l2 = h2 && l1 < h1 then
         let nn1 = n1-1 in
         let ns1 = if nn1 = 1 then 0
@@ -466,11 +505,13 @@ let rec aint32_test_less_than v1 v2 =
      let h1 = high l1 s1 n1 in
      let h2 = high l2 s2 n2 in
      ((if l1 < h2 then
-         let h11 = min h1 (h2-s2) in
+         let h11 = min h1 (h2-(max s2 1)) in
          let l22 = if s2 = 0 || l2 > (l1 + s1)
                    then l2
                    else l2 + ((l1 + s1 - l2) / s2) * s2
          in
+         let s1 = if h11 = l1 then 0 else s1 in
+         let s2 = if l22 = h2 then 0 else s2 in
          Some(Interval(l1,s1,number h11 l1 s1), Interval(l22,s2,number h2 l22 s2))
       else None),
      (if h1 >= l2 then
@@ -479,6 +520,8 @@ let rec aint32_test_less_than v1 v2 =
                   else l1 + ((l2 - l1) / s1) * s1
         in          
         let h22 = min h2 h1 in
+        let s1 = if l11 = h1 then 0 else s1 in
+        let s2 = if l2 = h22 then 0 else s2 in
         Some(Interval(l11,s1,number h1 l11 s1), Interval(l2,s2,number h22 l2 s2))        
       else None))
   | Interval(v1),IntervalList(l1,_) | IntervalList(l1,_), Interval(v1) ->
@@ -496,12 +539,15 @@ let rec aint32_test_less_than_unsigned v1 v2 =
      let h2 = high l2 s2 n2 in
      if l1 < 0 || l2 < 0 then (Some(Any,Any),Some(Any,Any))
      else
+       (*TODO(Romy): check again (max s 1)*)
        ((if l1 < h2 then
-           let h11 = min h1 (h2-s2) in
-           let l22 = if s2 = 0 || l2 > (l1 + s1)
+           let h11 = min h1 (h2-(max s2 1)) in
+           let s1 = if h11 = l1 then 0 else s1 in
+           let l22 = if s2 = 0 || l2 > (l1 + (max s1 1))
                      then l2
-                     else l2 + ((l1 + s1 - l2) / s2) * s2
+                     else l2 + ((l1 + (max s1 1) - l2) / s2) * s2
            in
+           let s2 = if l22 = h2 then 0 else s2 in
            Some(Interval(l1,s1,number h11 l1 s1), Interval(l22,s2,number h11 l2 s2))
          else None),
         (if h1 >= l2 then
@@ -509,7 +555,9 @@ let rec aint32_test_less_than_unsigned v1 v2 =
                   then l1
                   else l1 + ((l2 - l1) / s1) * s1
            in
+           let s1 = if h1 = l11 then 0 else s1 in
            let h22 = min h1 h2 in
+           let s2 = if h22 = l2 then 0 else s2 in
            Some(Interval(l11,s1,number h1 l11 s2), Interval(l2,s2, number h22 l2 s2 ))        
          else None))
   | Interval(v1),IntervalList(l1,_) | IntervalList(l1,_), Interval(v1) ->
@@ -572,10 +620,12 @@ let rec aint32_test_less_than_equal v1 v2 =
      let h2 = high l2 s2 n2 in
      ((if l1 <= h2 then
          let h11 = min h1 h2 in
-         let l22 = if s2 = 0 || l2 > (l1 + s1)
+         let s1 = if l1 = h11 then 0 else s1 in 
+         let l22 = if s2 = 0 || l2 > (l1 + (max s1 1))
                    then l2
-                   else l2 + ((l1 + s1 - l2) / s2) * s2
+                   else l2 + ((l1 + (max s1 1) - l2) / s2) * s2
          in
+         let s2 = if l22 = h2 then 0 else s2 in
          Some(Interval(l1,s1,number h11 l1 s1), Interval(l22,s2, number h2 l22 s2))
       else None),
      (if h1 > l2 then
@@ -583,7 +633,9 @@ let rec aint32_test_less_than_equal v1 v2 =
                   then l1
                   else l1 + ((l2 - l1) / s1) * s1
         in
-        let h22 = min (h1-s1) h2 in
+        let h22 = min (h1-(max s1 1)) h2 in
+        let s2 = if l2 = h22 then 0 else s2 in
+        let s1 = if l11 = h1 then 0 else s1 in
         Some(Interval(l11,s1,number h1 l11 s1), Interval(l2,s2,high h22 l2 s2))        
       else None))
   | Interval(v1),IntervalList(l1,_) | IntervalList(l1,_), Interval(v1) ->
@@ -599,7 +651,8 @@ let rec aint32_test_less_than_equal v1 v2 =
    branch *)
 let rec aint32_test_equal v1 v2 =
   match v1,v2 with
-  | Any,_|_,Any -> (Some(Any,Any),Some(Any,Any))
+  | Any,Any -> (Some(v1,v1),Some(Any,Any))
+  | Any,v | v,Any -> (Some(v1,v1),Some(Any,Any))
   (* Case when we just compare two intervals. May generate safe pair lists *)
   | Interval(v1),Interval(v2) ->
     let mkval vlst =
@@ -650,7 +703,9 @@ let rec aint32_test_equal v1 v2 =
                          (Interval(interval_merge_list l2))
 
 let aint32_test_greater_than_equal v1 v2 =
-  aint32_test_less_than_equal v2 v1
+  let av2,av1 = aint32_test_less_than_equal v2 v1 in
+  (av1,av2)
 
 let aint32_test_greater_than v1 v2 =
-  aint32_test_less_than v2 v1
+  let av2,av1 = aint32_test_less_than v2 v1 in
+  (av1,av2)
