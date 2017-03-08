@@ -202,9 +202,10 @@ let aint32_and_f (l1,s1,n1) (l2,s2,n2) =
 
   let h = if h1*h2<0 then max h1 h2
           else min h1 h2 in
-
+  let s = if h=l then 0 else 1 in
+  let n = number h l s in
   if l<lowval || h>highval then raise AnyException
-  else (l,1,h)
+  else (l,s,n)
                                      
 let aint32_and v1 v2 =
   aint32_binop aint32_and_f v1 v2
