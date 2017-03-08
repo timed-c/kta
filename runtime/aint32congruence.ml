@@ -189,23 +189,25 @@ let aint32_and_f (l1,s1,n1) (l2,s2,n2) =
       else leading_ones_internal l (n lsl 1)
     in
     leading_ones_internal l (-1) in
-  
-  let h1 = high l1 s1 n1 in
+  if n1 = 1 && n2 = 1 then
+    (l1 land l2, 0, 1)
+  else
+    let h1 = high l1 s1 n1 in
 
-  let h2 = high l2 s2 n2 in
+    let h2 = high l2 s2 n2 in
                                
-  let l = if l1 >= 0 && l2 >= 0 then 0
-          else if l1*l2 < 0 then
-            if h1>0 && h2>0 then 0
-            else 0 (*TODO(Romy): (maybe) tighten*)
-          else leading_ones (min l1 l2) in
+    let l = if l1 >= 0 && l2 >= 0 then 0
+            else if l1*l2 < 0 then
+              if h1>0 && h2>0 then 0
+              else 0 (*TODO(Romy): (maybe) tighten*)
+            else leading_ones (min l1 l2) in
 
-  let h = if h1*h2<0 then max h1 h2
-          else min h1 h2 in
-  let s = if h=l then 0 else 1 in
-  let n = number h l s in
-  if l<lowval || h>highval then raise AnyException
-  else (l,s,n)
+    let h = if h1*h2<0 then max h1 h2
+            else min h1 h2 in
+    let s = if h=l then 0 else 1 in
+    let n = number h l s in
+    if l<lowval || h>highval then raise AnyException
+    else (l,s,n)
                                      
 let aint32_and v1 v2 =
   aint32_binop aint32_and_f v1 v2
