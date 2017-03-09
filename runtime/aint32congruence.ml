@@ -201,7 +201,6 @@ let aint32_and_f (l1,s1,n1) (l2,s2,n2) =
               if h1>0 && h2>0 then 0
               else 0 (*TODO(Romy): (maybe) tighten*)
             else leading_ones (min l1 l2) in
-
     let h = if h1*h2<0 then max h1 h2
             else min h1 h2 in
     let s = if h=l then 0 else 1 in
@@ -384,7 +383,7 @@ let test_equal (l1,s1,n1) (l2,s2,n2) =
         let ns2 = if nn2 = 1 then 0
                     else s2 in
         ([((h1,0,1),(h1,0,1))],                          (* TRUE *)
-         [((l1,s1,n1),(l2+s2,ns2,nn2));((l1,s1,n1-1),(l2,s2,n2))])    (* FALSE *)
+         [((l1,s1,n1),(l2+s2,ns2,nn2));((l1,s1,max 1 (n1-1)),(l2,s2,n2))])    (* FALSE *)
       else if l1 < h1 && l2 = h2 then
       (*  11111
 
