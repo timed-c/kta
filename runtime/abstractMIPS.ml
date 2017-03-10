@@ -389,11 +389,7 @@ let continue ms =
   bi.func ms 
 
 
-    
 let to_mstate ms ps =
-  {ms with pstate = ps}
-
-let to_mstate2 ps ms =
   {ms with pstate = ps}
 
 let tick n ps =  
