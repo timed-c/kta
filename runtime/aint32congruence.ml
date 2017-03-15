@@ -222,18 +222,19 @@ let aint32_or_f v1 v2 =
 let aint32_or v1 v2 =
   aint32_binop aint32_or_f v1 v2
     
-let aint32_nor_f t1 t2 =
-  aint32_and_f (aint32_not_f t1) (aint32_not_f t2)
-
 let aint32_nor v1 v2 =
-  aint32_binop (aint32_nor_f) v1 v2
+  aint32_binop (fun t1 t2 ->
+      aint32_and_f
+        (aint32_not_f t1)
+        (aint32_not_f t2)) v1 v2
 
-let aint32_xor_f t1 t2 =
-  aint32_or_f
-    (aint32_and_f (aint32_not_f t1) t2)
-    (aint32_and_f t1 (aint32_not_f t2))
               
 let aint32_xor v1 v2 =
+  let aint32_xor_f t1 t2 =
+    aint32_or_f
+      (aint32_and_f (aint32_not_f t1) t2)
+      (aint32_and_f t1 (aint32_not_f t2))
+  in
   aint32_binop aint32_xor_f v1 v2
 
                
