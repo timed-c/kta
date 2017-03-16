@@ -45,7 +45,8 @@ let high l s n = l+s*(n-1)
 let number h l s =
   if s = 0 then 1
   else (h-l)/s+1
-                       
+
+let dec_num n = max 1 (n-1) 
 (*n*)
 let interval_merge (l1,s1,n1) (l2,s2,n2) =
   let h1 = high l1 s1 n1 in
@@ -403,21 +404,21 @@ let test_equal (l1,s1,n1) (l2,s2,n2) =
        *)
       if l1 < h1 && l2 < h2 then
       (* Two cases for false *)
-        let nn2 = n2-1 in
+        let nn2 = dec_num n2 in
         let ns2 = if nn2 = 1 then 0
                     else s2 in
         ([((h1,0,1),(h1,0,1))],                          (* TRUE *)
-         [((l1,s1,n1),(l2+s2,ns2,nn2));((l1,s1,max 1 (n1-1)),(l2,s2,n2))])    (* FALSE *)
+         [((l1,s1,n1),(l2+s2,ns2,nn2));((l1,s1,dec_num n1),(l2,s2,n2))])    (* FALSE *)
       else if l1 < h1 && l2 = h2 then
       (*  11111
 
               2  *)  
         ([((h1,0,1),(h1,0,1))],                          (* TRUE *)
-         [((l1,s1,max 1 (n1-1)),(l2,s2,n2))])                        (* FALSE *)
+         [((l1,s1,dec_num n1),(l2,s2,n2))])                        (* FALSE *)
       else if l1 = h1 && l2 < h2 then
       (*      1
               22222 *)
-        let nn2 = n2-1 in
+        let nn2 = dec_num n2 in
         let ns2 = if nn2 = 1 then 0
                   else s2 in
         ([((h1,0,1),(h1,0,1))],                          (* TRUE *)
@@ -434,19 +435,19 @@ let test_equal (l1,s1,n1) (l2,s2,n2) =
           22222 
       *)
       if l1 < h1 && l2 < h2 then
-        let nn1 = n1-1 in
+        let nn1 = dec_num n1 in
         let ns1 = if nn1 = 1 then 0
                   else s1 in
       (* Two cases for false *)
       ([((h2,0,1),(h2,0,1))],                          (* TRUE *)
-       [((l1+s1,ns1,nn1),(l2,s2,n2));((l1,s1,n1),(l2,s2,max 1 (n2-1)))])    (* FALSE *)
+       [((l1+s1,ns1,nn1),(l2,s2,n2));((l1,s1,n1),(l2,s2,dec_num n2))])    (* FALSE *)
     else if l2 < h2 && l1 = h1 then
         (*  22222
               1  *)  
       ([((h2,0,1),(h2,0,1))],                          (* TRUE *)
-       [((l1,s1,n1),(l2,s2,max 1 (n2-1)))]                        (* FALSE *)
+       [((l1,s1,n1),(l2,s2,dec_num n2))]                        (* FALSE *)
         )    else if l2 = h2 && l1 < h1 then
-        let nn1 = max 1 n1-1 in
+        let nn1 = dec_num n1 in
         let ns1 = if nn1 = 1 then 0
                   else s1 in
         (*      2
