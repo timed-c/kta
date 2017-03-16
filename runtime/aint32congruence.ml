@@ -70,8 +70,13 @@ let aint32_to_int32 v =
     
 let aint32_pprint debug v =
   let prn (l,s,n) =
-    if n = 1 then us (sprintf "%d:%d:%d " l s n)
-    else us (sprintf "[%d,%d]:%d:%d " l (high l s n) s n)
+    match (l,s,n) with
+    | l,0,1 -> us (sprintf "%d " l)
+    | l,_,1 | l,0,_-> failwith (sprintf "Error: aint32_pprint - trying to print a constant, but the parameters don't match %d:%d:%d" l s n)
+    | l,1,n ->
+       us (sprintf "[%d,%d] " l (high l s n))
+    | l,s,n ->
+       us (sprintf "[%d,%d,%d] " l s (high l s n))
   in  
   match v with
   | Any -> us"Any"
