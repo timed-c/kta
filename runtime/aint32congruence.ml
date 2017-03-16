@@ -72,6 +72,7 @@ let aint32_pprint debug v =
   let prn (l,s,n) =
     match (l,s,n) with
     | l,0,1 -> us (sprintf "%d " l)
+    (* Debugging Error *)
     | l,_,1 | l,0,_-> failwith (sprintf "Error: aint32_pprint - trying to print a constant, but the parameters don't match %d:%d:%d" l s n)
     | l,1,n ->
        us (sprintf "[%d,%d] " l (high l s n))
@@ -108,7 +109,7 @@ let rec aint32_mem_byte byte signed v =
   | Interval(v) -> Interval(get_byte byte v)
   | _ -> Any
           
-let rec aint32_mem_update_byte byte newv oldv =
+let rec aint32_mem_update_byte byte newv oldv = Any
 (*  let interv_set_byte byte (l1,s1,n1) (ol1,os1,on1) =
     let set_byte newv oldv =
       let newi = newv lsl (byte lsl 3)  in
@@ -116,17 +117,17 @@ let rec aint32_mem_update_byte byte newv oldv =
       ((oldv land (lnot mask)) lor newi)
     in
      (set_byte l1 ol1, set_byte h1 oh1) in
- *)
+ 
   match newv,oldv with
   | _,_ -> Any
-(*  | _,Any -> Any
+  | _,Any -> Any
   | Interval(nv1),Interval(v1) -> Interval(interv_set_byte byte nv1 v1)
   | Interval(nv1),IntervalList(l,sp) ->
      IntervalList(List.map (interv_set_byte byte nv1) l,sp)
   | _,_ -> raise Exception_aint32
  *)
           
-let rec aint32_mem_update_byte byte newv oldv =
+let rec aint32_mem_update_byte byte newv oldv = Any
 (*  let interv_set_byte byte (l1,s1,n1) (ol1,os1,on1) =
     let set_byte newv oldv =
       let newi = newv lsl (byte lsl 3)  in
@@ -134,10 +135,8 @@ let rec aint32_mem_update_byte byte newv oldv =
       ((oldv land (lnot mask)) lor newi)
     in
      (set_byte l1 ol1, set_byte h1 oh1) in
- *)
   match newv,oldv with
-  | _,_ -> Any
-(*  | _,Any -> Any
+  | _,Any -> Any
   | Interval(nv1),Interval(v1) -> Interval(interv_set_byte byte nv1 v1)
   | Interval(nv1),IntervalList(l,sp) ->
      IntervalList(List.map (interv_set_byte byte nv1) l,sp)
@@ -248,19 +247,32 @@ let aint32_xor v1 v2 =
 
                
 let aint32_mul v1 v2 =
-  aint32_binop (fun (l1,s1,n1) (l2,s2,n2) ->
-      let h1 = high l1 s1 n1 in
-      let h2 = high l2 s2 n2 in
-      let l = min (min (l1*l2) (l1*h2)) (min (h1*l2) (h1*h2)) in
-      let h = max (max (l1*l2) (l1*h2)) (max (h1*l2) (h1*h2)) in
-      let s = match ((l1,s1,n1),(l2,s2,n2)) with
-        | ((_,0,1),(_,0,1)) -> 0
-        | ((li,0,1),(_,si,_)) | ((_,si,_),(li,0,1)) -> abs (li*si)
-        | ((l1,s1,n1),(l2,s2,n2))-> gcd (abs (l2*s1)) (gcd (abs (l1*s2)) (s1*s2)) in
-      let n = number h l s in
-    if l<lowval || h>highval then raise AnyException
-    else (l,s,n)
-  ) v1 v2
+  aint32_binop (
+      fun v1 v2 ->
+      let (l,s,n,h) =
+        match v1,v2 with
+        | (l1,0,1),(l2,0,1) ->
+           let l = l1 * l2 in
+           (l, 0, 1, l)
+      (* Multiply constant with interval *)
+        | (l1,0,1),(l2,s2,n) | ((l2,s2,n),(l1,0,1)) ->
+           let h2 = high l2 s2 n in
+           let l = min (l1*l2) (l1*h2) in
+           let s = abs (l1*s2) in
+           let h = high l s n in
+           (l,s,n,h)
+        | ((l1,s1,n1),(l2,s2,n2)) -> 
+           let h1 = high l1 s1 n1 in
+           let h2 = high l2 s2 n2 in
+           let l = min (min (l1*l2) (l1*h2)) (min (h1*l2) (h1*h2)) in
+           let h = max (max (l1*l2) (l1*h2)) (max (h1*l2) (h1*h2)) in
+           let s = gcd (abs (l2*s1)) (gcd (abs (l1*s2)) (s1*s2)) in
+           let n = number h l s in
+           (l,s,n,h)
+      in
+      if l<lowval || h>highval then raise AnyException
+      else (l,s,n)
+    ) v1 v2
 
 let aint32_sllv v1 v2 =
   aint32_binop (fun (l1,s1,n1) (l2,s2,n2) ->
@@ -282,24 +294,24 @@ let aint32_srlv v1 v2 =
       let h2 = high l2 s2 n2 in
       let l = l1 lsr l2 in
       let h = h1 lsr h2 in
-      let s = 1 in (* TODO(Romy): tighten *)
+      let s = if h = l then 0 else 1 in 
       let n = number h l s in
       if l<lowval || h>highval then raise AnyException
-      else if (n1 = 0 && n2 = 0) then (l1 lsr l2, 0, 1)
+      else if (n1 = 1 && n2 = 1) then (l1 lsr l2, 0, 1)
       else (l,s,n)
     ) v1 v2
                
-(* TODO(Romy): tighen - Copied from aint32_srlv*)
+(* TODO(Romy): tighen - Copy of aint32_srlv*)
 let aint32_srav v1 v2 =
   aint32_binop (fun (l1,s1,n1) (l2,s2,n2) ->
       let h1 = high l1 s1 n1 in
       let h2 = high l2 s2 n2 in
       let l = l1 asr l2 in
       let h = h1 asr h2 in
-      let s = 1 in 
+      let s = if h = l then 0 else 1 in 
       let n = number h l s in
       if l<lowval || h>highval then raise AnyException
-      else if (n1 = 0 && n2 = 0) then (l1 asr l2, 0, 1)
+      else if (n1 = 1 && n2 = 1) then (l1 asr l2, 0, 1)
       else (l,s,n)
     ) v1 v2
 
@@ -310,12 +322,14 @@ let aint32_div v1 v2 =
       let h2 = high l2 s2 n2 in
       if (l2<=0 && h2 >=0) then raise Division_by_zero
       else
-        let l = min (min (l1/l2) (l1/h2)) (min (h1/l2) (h1/h2)) in
-        let h = max (max (l1/l2) (l1/h2)) (max (h1/l2) (h1/h2)) in
-        let s = if h = l then 0 else 1 in 
-        let n = number h l s in
-        if l<lowval || h>highval then raise AnyException
-        else (l,s,n)
+        if (n1 = 1 && n2 = 1) then (l1/l2, 0, 1)
+        else
+          let l = min (min (l1/l2) (l1/h2)) (min (h1/l2) (h1/h2)) in
+          let h = max (max (l1/l2) (l1/h2)) (max (h1/l2) (h1/h2)) in
+          let s = if h = l then 0 else 1 in 
+          let n = number h l s in
+          if l<lowval || h>highval then raise AnyException
+          else (l,s,n)
     ) v1 v2
 
 let aint32_mod v1 v2 =
@@ -427,12 +441,12 @@ let test_equal (l1,s1,n1) (l2,s2,n2) =
       ([((h2,0,1),(h2,0,1))],                          (* TRUE *)
        [((l1+s1,ns1,nn1),(l2,s2,n2));((l1,s1,n1),(l2,s2,max 1 (n2-1)))])    (* FALSE *)
     else if l2 < h2 && l1 = h1 then
-      (*  22222
+        (*  22222
               1  *)  
       ([((h2,0,1),(h2,0,1))],                          (* TRUE *)
-       [((l1,s1,n1),(l2,s2,max 1 (n2-1)))])                        (* FALSE *)
-    else if l2 = h2 && l1 < h1 then
-        let nn1 = n1-1 in
+       [((l1,s1,n1),(l2,s2,max 1 (n2-1)))]                        (* FALSE *)
+        )    else if l2 = h2 && l1 < h1 then
+        let nn1 = max 1 n1-1 in
         let ns1 = if nn1 = 1 then 0
                   else s1 in
         (*      2
@@ -526,7 +540,8 @@ let rec aint32_test_less_than v1 v2 =
          let s2 = if l22 = h2 then 0 else s2 in
          Some(Interval(l1,s1,number h11 l1 s1), Interval(l22,s2,number h2 l22 s2))
       else None),
-     (if h1 >= l2 then
+      (if h1 >= l2 then
+         (printf "lalal\n%!";
         let l11 = if s1 = 0 || l1 > l2
                   then l1
                   else l1 + ((l2 - l1) / s1) * s1
@@ -535,7 +550,7 @@ let rec aint32_test_less_than v1 v2 =
         let s1 = if l11 = h1 then 0 else s1 in
         let s2 = if l2 = h22 then 0 else s2 in
         Some(Interval(l11,s1,number h1 l11 s1), Interval(l2,s2,number h22 l2 s2))        
-      else None))
+         )else None))
   | Interval(v1),IntervalList(l1,_) | IntervalList(l1,_), Interval(v1) ->
     aint32_test_less_than (Interval(v1)) (Interval(interval_merge_list l1))
   | IntervalList(l1,_), IntervalList(l2,_) ->
@@ -716,9 +731,9 @@ let rec aint32_test_equal v1 v2 =
                          (Interval(interval_merge_list l2))
 
 let aint32_test_greater_than_equal v1 v2 =
-  let av2,av1 = aint32_test_less_than_equal v2 v1 in
-  (av1,av2)
+  let t,f = aint32_test_less_than v1 v2 in
+  (f,t)
 
 let aint32_test_greater_than v1 v2 =
-  let av2,av1 = aint32_test_less_than v2 v1 in
-  (av1,av2)
+  let t,f = aint32_test_less_than_equal v1 v2 in
+  (f,t)

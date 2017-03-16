@@ -688,13 +688,13 @@ let branch_main str equal dslot op rs rt label ms =
     
     let pst,psf = update_pstate ps rs rt tbranch, update_pstate ps rs rt fbranch in
     if !dbg then prn_inst ms str;
-    if !dbg then (
+    (*if !dbg then (
         let r = ps.reg in
         prn_inst ms ((if equal then us"beq " else us"bne ") ^.
         (reg2ustr rs) ^. us"=" ^. (preg rs r) ^. us" " ^.
         (reg2ustr rt) ^. us"=" ^. (preg rt r) ^. us" " ^.
         us(ms.bbtable.(label).name) ^. us" " ^. us(ms.bbtable.(bi.nextid).name) ^.
-          us" " ^. pprint_true_false_choice tbranch fbranch ^. us" (sbranch)"));
+          us" " ^. pprint_true_false_choice tbranch fbranch ^. us" (sbranch)"));*)
     if dslot then
       {ms with pstate = Sbranch (label, (pst, psf))}
     else
