@@ -314,12 +314,11 @@ let pprint_ocaml_cps_from_cfgmap nice_output name cfgmap prog =
     |> List.split |> snd
     else cfglst
   in
-  let gp_address = MipsAst.Sym2Addr.find "_gp" prog.sym2addr in
   (* Intro header *)
   let intro =
     us"open AbstractMIPS\n\n" ^.
       us"open Printf\n\n" ^.
-        us (sprintf "let gp_addr=%d\n" gp_address) ^.
+        us (sprintf "let gp_addr=%d\n" prog.gp) ^.
           us"(* -- Basic Block Identifiers -- *)\n\n"
   in
   
