@@ -42,6 +42,7 @@ let main =
   let bcet,wcet = compile_file "test/demo/fact.c" "fact" ["a0=[1,6]"] 3 false in
   Utest.test_int "fact.c: Optimized." bcet 3;
   Utest.test_int "fact.c: Optimized." wcet 30;
+  (* NS.C *)
   let bcet,wcet = compile_file "test/wcet_tests/mdh/ns.c" "foo" ["a0=[1,10]"] 0 false in
   Utest.test_int "ns.c: BCET Not Optimized." bcet 114;
   Utest.test_int "ns.c: WCET Not Optimized." wcet 24250;
@@ -54,5 +55,59 @@ let main =
   let bcet,wcet = compile_file "test/wcet_tests/mdh/ns.c" "foo" ["a0=[1,10]"] 3 false in
   Utest.test_int "ns.c: BCET Optimized: -O3." bcet 29;
   Utest.test_int "ns.c: WCET Optimized: -O3." wcet 1394;
+  (* FAC.C *)
+(*
+  let bcet,wcet = compile_file "test/wcet_tests/mdh/fac.c" "fac" ["a0=[1,10]"] 0 false in
+  Utest.test_int "fac.c: BCET Not Optimized." bcet ?;
+  Utest.test_int "fac.c: WCET Not Optimized." wcet ?;
+ *)
+  let bcet,wcet = compile_file "test/wcet_tests/mdh/fac.c" "fac" ["a0=[1,10]"] 1 false in
+  Utest.test_int "fac.c: BCET Optimized: -O1." bcet 16;
+  Utest.test_int "fac.c: WCET Optimized: -O1." wcet 133;
+  let bcet,wcet = compile_file "test/wcet_tests/mdh/fac.c" "fac" ["a0=[1,10]"] 2 false in
+  Utest.test_int "fac.c: BCET Optimized: -O2." bcet 9;
+  Utest.test_int "fac.c: WCET Optimized: -O2." wcet 54;
+  let bcet,wcet = compile_file "test/wcet_tests/mdh/fac.c" "fac" ["a0=[1,10]"] 3 false in
+  Utest.test_int "fac.c: BCET Optimized: -O3." bcet 9;
+  Utest.test_int "fac.c: WCET Optimized: -O3." wcet 54;
+  (* RECURSION.C *)
+  let bcet,wcet = compile_file "test/wcet_tests/mdh/recursion.c" "kalle" ["a0=[0,10]"] 0 false in
+  Utest.test_int "recursion.c (kalle): BCET Not Optimized." bcet 15;
+  Utest.test_int "recursion.c (kalle): WCET Not Optimized." wcet 185;
+  let bcet,wcet = compile_file "test/wcet_tests/mdh/recursion.c" "kalle" ["a0=[0,10]"] 1 false in
+  Utest.test_int "recursion.c (kalle): BCET Optimized: -O1." bcet 3;
+  Utest.test_int "recursion.c (kalle): WCET Optimized: -O1." wcet 73;
+  let bcet,wcet = compile_file "test/wcet_tests/mdh/recursion.c" "kalle" ["a0=[0,10]"] 2 false in
+  Utest.test_int "recursion.c (kalle): BCET Optimized: -O2." bcet 3;
+  Utest.test_int "recursion.c (kalle): WCET Optimized: -O2." wcet 25;
+  let bcet,wcet = compile_file "test/wcet_tests/mdh/recursion.c" "kalle" ["a0=[0,10]"] 3 false in
+  Utest.test_int "recursion.c (kalle): BCET Optimized: -O3." bcet 23;
+  Utest.test_int "recursion.c (kalle): WCET Optimized: -O3." wcet 33;
+
+  let bcet,wcet = compile_file "test/wcet_tests/mdh/recursion.c" "anka" ["a0=[0,10]"] 0 false in
+  Utest.test_int "recursion.c (anka): BCET Not Optimized." bcet 15;
+  Utest.test_int "recursion.c (anka): WCET Not Optimized." wcet 185;
+  let bcet,wcet = compile_file "test/wcet_tests/mdh/recursion.c" "anka" ["a0=[0,10]"] 1 false in
+  Utest.test_int "recursion.c (anka): BCET Optimized: -O1." bcet 3;
+  Utest.test_int "recursion.c (anka): WCET Optimized: -O1." wcet 73;
+  let bcet,wcet = compile_file "test/wcet_tests/mdh/recursion.c" "anka" ["a0=[0,10]"] 2 false in
+  Utest.test_int "recursion.c (anka): BCET Optimized: -O2." bcet 3;
+  Utest.test_int "recursion.c (anka): WCET Optimized: -O2." wcet 28;
+  let bcet,wcet = compile_file "test/wcet_tests/mdh/recursion.c" "anka" ["a0=[0,10]"] 3 false in
+  Utest.test_int "recursion.c (anka): BCET Optimized: -O3." bcet 3;
+  Utest.test_int "recursion.c (anka): WCET Optimized: -O3." wcet 47;
+
+ (* let bcet,wcet = compile_file "test/wcet_tests/mdh/recursion.c" "fib" ["a0=[0,10]"] 0 false in
+  Utest.test_int "recursion.c (fib): BCET Not Optimized." bcet 15;
+  Utest.test_int "recursion.c (fib): WCET Not Optimized." wcet 185;*)
+  let bcet,wcet = compile_file "test/wcet_tests/mdh/recursion.c" "fib" ["a0=[0,10]"] 1 false in
+  Utest.test_int "recursion.c (fib): BCET Optimized: -O1." bcet 3;
+  Utest.test_int "recursion.c (fib): WCET Optimized: -O1." wcet 1675;
+  let bcet,wcet = compile_file "test/wcet_tests/mdh/recursion.c" "fib" ["a0=[0,10]"] 2 false in
+  Utest.test_int "recursion.c (fib): BCET Optimized: -O2." bcet 11;
+  Utest.test_int "recursion.c (fib): WCET Optimized: -O2." wcet 1386;
+  let bcet,wcet = compile_file "test/wcet_tests/mdh/recursion.c" "fib" ["a0=[0,10]"] 3 false in
+  Utest.test_int "recursion.c (fib): BCET Optimized: -O3." bcet 3;
+  Utest.test_int "recursion.c (fib): WCET Optimized: -O3." wcet 993;
 
   Utest.result()
