@@ -20,9 +20,9 @@ Go to directory `/runtime`, which contains all OCaml files that will be compiled
 
 The first step is to generate the continuation passing style OCaml assembly code. We compile the file `test/demo/fact.c` using KTA, but write the output file to the runtime directory. 
 
-The KTH command that we will use is called `wet`. By executing command
+The KTA command that we will use is called `wcet`. By executing command
 
-	>>kta wcet ../test/demo/fact.c fact -compile -optimize -cpsocaml > tmp.ml
+	>>kta wcet ../test/demo/fact.c fact -compile -optimize 3 -cpsocaml > tmp.ml
 	
 we generate a file `tmp.ml` that contains the continuation passing style code for performing abstract execution of the factorial function. 
 
@@ -30,7 +30,7 @@ Please take a look at `tmp.ml`. Compare the generated code with the MIPS code th
 
 If we now want to perform WCET analysis on the factorial function, we need to compile and execute `tmp.ml`. We can do this using the following command
 
-	>>ocamlbuild tmp.native -lib Str -- a0=[5,5]
+	>>ocamlbuild tmp.native -lib str -- -args a0=[5,5]
 
 The output is as follows
 
@@ -50,7 +50,7 @@ The output is as follows
  
  If we instead execute the program as follows
  
-	>>ocamlbuild tmp.native -lib Str -- a0=[3,5]
+	>>ocamlbuild tmp.native -lib str -- a0=[3,5]
  
  it means that the input value is an abstract interval value, between values 3 and 5. 
  
@@ -70,6 +70,33 @@ The output is as follows
  
  Note now that the WCET is 25 cycles, but the BCET is 15 cycles. Note also that we got an abstract interval value for the return value. Depending on the input value (3, 4, or 5), we will get an output value between 6 and 120.
  
+### Automatic procedure
+There is an alternative way to run the KTA wcet analysis tool in one command. In that case an environment variable, KTA_WCET_RUNTIME_PATH, is used for the runtime path.
+The steps are the following:
+ 
+	>> export KTA_WCET_RUNTIME_PATH=/path/to/runtime
+
+The KTA command, with $KTA_PATH=/path/to/kta, is:
+
+	>> kta wcet $KTA_PATH/test/demo/fact.c fact -compile -optimize 3 -args a0=[3,5]
+
+ and the output:
+
+	Counter: 0
+	BCET:  15 cycles
+	WCET:  25 cycles
+	at = Any          v0 = [6,120]      v1 = 1            a0 = 1            
+	a1 = Any          a2 = Any          a3 = Any          t0 = Any          
+	t1 = Any          t2 = Any          t3 = Any          t4 = Any          
+	t5 = Any          t6 = Any          t7 = Any          s0 = Any          
+	s1 = Any          s2 = Any          s3 = Any          s4 = Any          
+	s5 = Any          s6 = Any          s7 = Any          t8 = Any          
+	t9 = Any          k0 = Any          k1 = Any          gp = 4231232      
+	sp = 2147483640   fp = Any          ra = Any          
+	Time Elapsed 0.000000s
+
+
+	
  
 # Code structure
 
