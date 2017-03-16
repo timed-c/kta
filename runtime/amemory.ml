@@ -63,7 +63,7 @@ let set_memval_byte addr v mem byte =
   set_memval addr newv mem
 
 let set_memval_hword addr v mem hword =
-  let m,oldv = get_memval addr mem in
+  (*let m,oldv = get_memval addr mem in*)
   let newv = aint32_any in
   set_memval addr newv mem
 

@@ -658,7 +658,7 @@ let enq tlabel flabel pst psf ms =
 
       
 let branch_main str equal dslot op rs rt label ms =
-  let prin_dbg tf ps =
+  (*let prin_dbg tf ps =
     let r = ps.reg in
     let bi = ms.bbtable.(ms.cblock) in
     prn_inst ms (us tf ^. (if equal then us"beq " else us"bne ") ^.
@@ -667,6 +667,7 @@ let branch_main str equal dslot op rs rt label ms =
                        us(ms.bbtable.(label).name) ^. us" " ^. us(ms.bbtable.(bi.nextid).name) ^.
                          us" " ^. us" (sbranch)")
   in
+  *)
   match ms.pstate with
   | Nobranch ps -> (
     (* Ordinary branch equality check *)
