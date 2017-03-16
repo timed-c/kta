@@ -542,7 +542,6 @@ let rec aint32_test_less_than v1 v2 =
          Some(Interval(l1,s1,number h11 l1 s1), Interval(l22,s2,number h2 l22 s2))
       else None),
       (if h1 >= l2 then
-         (printf "lalal\n%!";
         let l11 = if s1 = 0 || l1 > l2
                   then l1
                   else l1 + ((l2 - l1) / s1) * s1
@@ -550,7 +549,7 @@ let rec aint32_test_less_than v1 v2 =
         let h22 = min h2 h1 in
         let s1 = if l11 = h1 then 0 else s1 in
         let s2 = if l2 = h22 then 0 else s2 in
-        Some(Interval(l11,s1,number h1 l11 s1), Interval(l2,s2,number h22 l2 s2))        
+        Some(Interval(l11,s1,number h1 l11 s1), Interval(l2,s2,number h22 l2 s2)        
          )else None))
   | Interval(v1),IntervalList(l1,_) | IntervalList(l1,_), Interval(v1) ->
     aint32_test_less_than (Interval(v1)) (Interval(interval_merge_list l1))
