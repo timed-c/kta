@@ -74,7 +74,7 @@
 
 
 
-long int a[64][64], b[64], x[64];
+long int a[50][50], b[50], x[50];
 
 int ludcmp(int nmax, int n);
 
@@ -90,7 +90,7 @@ int ludcmp(int nmax, int n);
 
 void main()
 {
-  int      i, j, nmax = 64, n = 8, chkerr;
+  int      i, j, nmax = 50, n = 5, chkerr;
   long int /* eps, */ w;
 
   /* eps = 1.0e-6; */
@@ -103,8 +103,7 @@ void main()
         {
           a[i][j] = (i + 1) + (j + 1);
           if(i == j)            /* only once per loop pass */
-//             a[i][j] *= 2.0;
-            a[i][j] *= 2;
+            a[i][j] *= 2.0;
           w += a[i][j];
         }
       b[i] = w;
@@ -117,7 +116,7 @@ void main()
 int ludcmp(int nmax, int n)
 {
   int i, j, k;
-  long w, y[64];
+  long w, y[100];
 
   /* if(n > 99 || eps <= 0.0) return(999); */
   for(i = 0; i < n; i++)
