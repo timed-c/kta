@@ -654,8 +654,9 @@ let rec aint32_test_less_than_equal v1 v2 =
    branch *)
 let rec aint32_test_equal v1 v2 =
   match v1,v2 with
-  | Any,Any -> (Some(v1,v1),Some(Any,Any))
-  | Any,v | v,Any -> (Some(v1,v1),Some(Any,Any))
+  | Any,Any -> (Some(Any,Any),Some(Any,Any))
+  | Any,v ->  (Some(v,v),Some(Any,v))
+  | v,Any ->  (Some(v,v),Some(v,Any))
   (* Case when we just compare two intervals. May generate safe pair lists *)
   | Interval(v1),Interval(v2) ->
     let mkval vlst =
