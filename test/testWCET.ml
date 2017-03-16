@@ -33,10 +33,9 @@ let main =
   let bcet,wcet = compile_file "test/demo/array_mul.c" "array_mul" ["a0=[1,2]";"a1=[1,4]";"a2=[1,3]"] 0 false in
   Utest.test_int "array_mul.c: Non optimized." bcet 98;
   Utest.test_int "array_mul.c: Non optimized." wcet 1279;
-(*  let bcet,wcet = compile_file "test/demo/array_mul.c" "array_mul" ["a0=[1,2]";"a1=[1,4]";"a2=[1,3]"] true false in
-  Utest.test_int "array_mul.c: Optimized." bcet 36;
-  Utest.test_int "array_mul.c: Optimized." wcet 308;
-*)
+  let bcet,wcet = compile_file "test/demo/array_mul.c" "array_mul" ["a0=[1,2]";"a1=[1,4]";"a2=[1,3]"] 3 false in
+  Utest.test_int "array_mul.c: Optimized." bcet 41;
+  Utest.test_int "array_mul.c: Optimized." wcet 282;
   let bcet,wcet = compile_file "test/demo/fact.c" "fact" ["a0=[1,6]"] 0 false in
   Utest.test_int "fact.c: Not optimized." bcet 15;
   Utest.test_int "fact.c: Not optimized." wcet 70;
