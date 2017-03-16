@@ -52,8 +52,6 @@ push_ucamlib:
 test:
 	@ocamlbuild -Is $(DIRS) maintest.native --
 	@rm -f maintest.native
-
-wcet_reg_test:
 	@ocamlbuild -lib str -Is $(DIRS) testWCET.native --
 	@rm -f testWCET.native
 
