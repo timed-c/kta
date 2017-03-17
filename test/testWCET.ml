@@ -177,5 +177,101 @@ let main =
   let bcet,wcet = compile_file "test/wcet_tests/mdh/fibcall.c" "fib" ["a0=[0,100]"] 3 false in
   Utest.test_int "fibcall.c (fib): BCET Optimized: -O3." bcet 3;
   Utest.test_int "fibcall.c (fib): WCET Optimized: -O3." wcet 174;
+
+  (* NSICHNEU.C - main: not same - compares array elements that are 
+     not defined *)
+  printf "\ntesting nsichneu.c\n%!";
+  (* -O0 inf loop or too slow *)
+  (*printf "\ntesting nsichneu.c\n%!";
+  let bcet,wcet = compile_file "test/wcet_tests/mdh/nsichneu.c" "main" [] 0 false in
+  Utest.test_int "nsichneu.c (main): BCET Optimized: -O1." bcet ?;
+  Utest.test_int "nsichneu.c (main): WCET Optimized: -O1." wcet ?;
+   *)
+  let bcet,wcet = compile_file "test/wcet_tests/mdh/nsichneu.c" "main" [] 1 false in
+  Utest.test_int "nsichneu.c (main): BCET Optimized: -O1." bcet 766;
+  Utest.test_int "nsichneu.c (main): WCET Optimized: -O1." wcet 10552;
+
+  let bcet,wcet = compile_file "test/wcet_tests/mdh/nsichneu.c" "main" [] 2 false in
+  Utest.test_int "nsichneu.c (main): BCET Optimized: -O2." bcet 767;
+  Utest.test_int "nsichneu.c (main): WCET Optimized: -O2." wcet 10333;
+
+  let bcet,wcet = compile_file "test/wcet_tests/mdh/nsichneu.c" "main" [] 3 false in
+  Utest.test_int "nsichneu.c (main): BCET Optimized: -O3." bcet 767;
+  Utest.test_int "nsichneu.c (main): WCET Optimized: -O3." wcet 10333;
   
+  (* FDCT.C - Forward Discrete Cosine Transform - WCET = BCET *)
+  printf "\ntesting fdct.c\n%!";
+
+  let bcet,wcet = compile_file "test/wcet_tests/mdh/fdct.c" "main" [] 0 false in
+  Utest.test_int "fdct.c (main): BCET=WCET Not Optimized." bcet wcet;
+  Utest.test_int "fdct.c (main): WCET Not Optimized." wcet 5238;
+  let bcet,wcet = compile_file "test/wcet_tests/mdh/fdct.c" "main" [] 1 false in
+  Utest.test_int "fdct.c (main): BCET=WCET Optimized: -O1." bcet wcet;
+  Utest.test_int "fdct.c (main): WCET Optimized: -O1." wcet 2599;
+  let bcet,wcet = compile_file "test/wcet_tests/mdh/fdct.c" "main" [] 2 false in
+  Utest.test_int "fdct.c (main): BCET=WCET Optimized: -O2." bcet wcet;
+  Utest.test_int "fdct.c (main): WCET Optimized: -O2." wcet 3230;
+  let bcet,wcet = compile_file "test/wcet_tests/mdh/fdct.c" "main" [] 3 false in
+  Utest.test_int "fdct.c (main): BCET=WCET Optimized: -O3." bcet wcet;
+  Utest.test_int "fdct.c (main): WCET Optimized: -O3." wcet 3223;
+
+  (* CNT.C - Count Non-negative Numbers - WCET = BCET *)
+  printf "\ntesting cnt.c\n%!";
+
+  let bcet,wcet = compile_file "test/wcet_tests/mdh/cnt.c" "main" [] 0 false in
+  Utest.test_int "cnt.c (main): BCET=WCET Not Optimized." bcet wcet;
+  Utest.test_int "cnt.c (main): WCET Not Optimized." wcet 6527;
+  (* should_not_happen 1 error - problem with distance? *)
+  (*let bcet,wcet = compile_file "test/wcet_tests/mdh/cnt.c" "main" [] 1 false in
+  Utest.test_int "cnt.c (main): BCET=WCET Optimized: -O1." bcet wcet;
+  Utest.test_int "cnt.c (main): WCET Optimized: -O1." wcet 2599;
+   *)
+  let bcet,wcet = compile_file "test/wcet_tests/mdh/cnt.c" "main" [] 2 false in
+  Utest.test_int "cnt.c (main): BCET=WCET Optimized: -O2." bcet wcet;
+  Utest.test_int "cnt.c (main): WCET Optimized: -O2." wcet 1776;
+  let bcet,wcet = compile_file "test/wcet_tests/mdh/cnt.c" "main" [] 3 false in
+  Utest.test_int "cnt.c (main): BCET=WCET Optimized: -O3." bcet wcet;
+  Utest.test_int "cnt.c (main): WCET Optimized: -O3." wcet 2125;
+
+  (* FIR.C - Coefficients not considered (Any) - WCET = BCET *)
+  printf "\ntesting fir.c\n%!";
+
+  let bcet,wcet = compile_file "test/wcet_tests/mdh/fir.c" "main" [] 0 false in
+  Utest.test_int "fir.c (main): BCET=WCET Not Optimized." bcet wcet;
+  Utest.test_int "fir.c (main): WCET Not Optimized." wcet 504994;
+  let bcet,wcet = compile_file "test/wcet_tests/mdh/fir.c" "main" [] 1 false in
+  Utest.test_int "fir.c (main): BCET=WCET Optimized: -O1." bcet wcet;
+  Utest.test_int "fir.c (main): WCET Optimized: -O1." wcet 197;
+  let bcet,wcet = compile_file "test/wcet_tests/mdh/fir.c" "main" [] 2 false in
+  Utest.test_int "fir.c (main): BCET=WCET Optimized: -O2." bcet wcet;
+  Utest.test_int "fir.c (main): WCET Optimized: -O2." wcet 197;
+  let bcet,wcet = compile_file "test/wcet_tests/mdh/fir.c" "main" [] 3 false in
+  Utest.test_int "fir.c (main): BCET=WCET Optimized: -O3." bcet wcet;
+  Utest.test_int "fir.c (main): WCET Optimized: -O3." wcet 197;
+
+  (* PRIME.C - prime: returns bool, main: returns bool *)
+  printf "\ntesting prime.c\n%!";
+  let bcet,wcet = compile_file "test/wcet_tests/mdh/prime.c" "prime" ["a0=[0,100]"] 0 false in
+  Utest.test_int "prime.c (prime): BCET Not Optimized." bcet 47;
+  Utest.test_int "prime.c (prime): WCET Not Optimized." wcet 176;
+  let bcet,wcet = compile_file "test/wcet_tests/mdh/prime.c" "prime" ["a0=[0,100]"] 1 false in
+  Utest.test_int "prime.c (prime): BCET Optimized: -O1." bcet 4;
+  Utest.test_int "prime.c (prime): WCET Optimized: -O1." wcet 4;
+  (* Syntax error in OCaml, prime.part.0:
+    let prime.part.0 ms = ms                |>
+      sltiu   v0 a0 9                       |>
+      bnelds  v0 zero ex6_                  |>
+      next
+      ...
+    Works if manualy renamed
+  *)
+  (*
+  let bcet,wcet = compile_file "test/wcet_tests/mdh/prime.c" "prime" ["a0=[0,100]"] 2 false in
+  Utest.test_int "prime.c (prime): BCET Optimized: -O2." bcet 3;
+  Utest.test_int "prime.c (prime): WCET Optimized: -O2." wcet 174;
+  *)
+  let bcet,wcet = compile_file "test/wcet_tests/mdh/prime.c" "prime" ["a0=[0,100]"] 3 false in
+  Utest.test_int "prime.c (prime): BCET Optimized: -O3." bcet 4;
+  Utest.test_int "prime.c (prime): WCET Optimized: -O3." wcet 4;
+
   Utest.result()
