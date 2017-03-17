@@ -49,9 +49,13 @@ type progstate = {
 
 type branchprogstate =
   | Nobranch of progstate
-  | Sbranch of (blockid *
+  | Branch of (blockid *
                   (branchprogstate option *
                      branchprogstate option))
+
+  | Sbranch of (branchprogstate option *
+                  branchprogstate option *
+                    branchprogstate option)
 
 (** Basic block ID na_ means "not applicable". *)
 let  na_ = -1
@@ -187,7 +191,10 @@ let init_pstate =
 (** Join two program states, assuming they have the same program counter value *)
 let rec join_pstates ps1 ps2 =
   match ps1, ps2 with
-  | Nobranch ps1, Nobranch ps2 ->
+  | Nobranch ps1, Nobranch ps2
+    | Sbranch (Some (Nobranch ps1),_,_), Nobranch ps2
+    | Nobranch ps1, Sbranch (Some (Nobranch ps2),_,_)
+    | Sbranch (Some (Nobranch ps1),_,_), Sbranch (Some (Nobranch ps2),_,_) ->
      Nobranch
        {
          reg   = areg_join [ps1.reg;ps2.reg];
@@ -195,7 +202,9 @@ let rec join_pstates ps1 ps2 =
          bcet  = min ps1.bcet ps2.bcet;
          wcet  = max ps1.wcet ps2.wcet;
        }
-  | Sbranch(l,_), _ | _, Sbranch(l,_)->
+  | Sbranch _ , _ | _, Sbranch _ ->
+     failwith (sprintf "ERROR: Should not happen - join_pstates sbranch")
+  | Branch(l,_), _ | _, Branch(l,_)->
      failwith (sprintf "ERROR: Should not happen - join_pstates branch to label %d" l)
 
 (* ---------------  INPUT ARGUMENT HANDLING -----------------*)
@@ -322,7 +331,7 @@ let max_batch_size pss =
     | ps::pss ->
        match ps with
        | Nobranch _ -> no_sbranches pss
-       | Sbranch _ -> false
+       | Sbranch _ | Branch _ -> false
   in
   if (List.length pss > !config_max_batch_size && no_sbranches pss) then
     [List.fold_left join_pstates (List.hd pss) (List.tl pss)]
@@ -412,9 +421,25 @@ let rec proc_branches proc_ps ps =
   in
   match ps with
   | Nobranch ps -> proc_ps ps 
-  | Sbranch (l, (ps1, ps2)) -> Sbranch (l, (proc_option_ps ps1,
+  | Branch (l, (ps1, ps2)) -> Branch (l, (proc_option_ps ps1,
                                             proc_option_ps ps2))
-                      
+  | Sbranch (psold, ps1, ps2) -> Sbranch (proc_option_ps psold, proc_option_ps ps1, proc_option_ps ps2)
+
+let rec proc_slt proc_ps ps =
+  let proc_option_ps ps =
+    match ps with
+    | None -> None
+    | Some ps -> Some (proc_branches proc_ps ps)
+  in
+  match ps with
+  | Nobranch ps -> proc_ps ps 
+  | Branch (l, (ps1, ps2)) -> Branch (l, (proc_option_ps ps1,
+                                          proc_option_ps ps2))
+  | Sbranch (psold, ps1, ps2) ->
+     match psold with
+     | Some ps -> proc_branches proc_ps ps
+     | None -> should_not_happen 14
+     
 
 (* ------------------------ INSTRUCTIONS -------------------------*)
 
@@ -658,16 +683,6 @@ let enq tlabel flabel pst psf ms =
 
       
 let branch_main str equal dslot op rs rt label ms =
-  (*let prin_dbg tf ps =
-    let r = ps.reg in
-    let bi = ms.bbtable.(ms.cblock) in
-    prn_inst ms (us tf ^. (if equal then us"beq " else us"bne ") ^.
-                   (reg2ustr rs) ^. us"=" ^. (preg rs r) ^. us" " ^.
-                     (reg2ustr rt) ^. us"=" ^. (preg rt r) ^. us" " ^.
-                       us(ms.bbtable.(label).name) ^. us" " ^. us(ms.bbtable.(bi.nextid).name) ^.
-                         us" " ^. us" (sbranch)")
-  in
-  *)
   match ms.pstate with
   | Nobranch ps -> (
     (* Ordinary branch equality check *)
@@ -685,7 +700,6 @@ let branch_main str equal dslot op rs rt label ms =
       | Some(sval,tval) -> Some (Nobranch { ps with reg = setreg rs sval (setreg rt tval ps.reg)})
       | None -> None
     in
-    
     let pst,psf = update_pstate ps rs rt tbranch, update_pstate ps rs rt fbranch in
     if !dbg then prn_inst ms str;
     (*if !dbg then (
@@ -696,17 +710,18 @@ let branch_main str equal dslot op rs rt label ms =
         us(ms.bbtable.(label).name) ^. us" " ^. us(ms.bbtable.(bi.nextid).name) ^.
           us" " ^. pprint_true_false_choice tbranch fbranch ^. us" (sbranch)"));*)
     if dslot then
-      {ms with pstate = Sbranch (label, (pst, psf))}
+      {ms with pstate = Branch (label, (pst, psf))}
     else
       enq label bi.nextid pst psf ms
   )
-  | Sbranch (_, (pst, psf)) -> (
+  | Sbranch (psold, pst, psf) -> (
     (* Special branch handling when beq or bne is checking with $0 and  
        there is another instruction such as slt that has written 
        information in ms.sbranch *)      
     let bi = ms.bbtable.(ms.cblock) in
     let pst, psf = if equal then (psf, pst) else (pst, psf) in 
-    if !dbg then
+    if !dbg then prn_inst ms str;
+    (*if !dbg then
       (
         match pst with
         | None -> prn_inst ms str;
@@ -715,12 +730,13 @@ let branch_main str equal dslot op rs rt label ms =
         | None -> prn_inst ms str;
         | Some psf -> prn_inst ms str; (*print_dbg "F: " psf;*)
       );
-  
+     *)
     if dslot then 
-      {ms with pstate = Sbranch (label, (pst, psf))}
+      {ms with pstate = Branch (label, (pst, psf))}
     else
       enq label bi.nextid pst psf ms
   )
+  | Branch _ -> failwith "Nested Branch."
 
 (* Instruction: beq
    From official MIPS32 manual: 
@@ -895,16 +911,12 @@ let jalds label ms =
   if !dbg then prn_inst ms (us"jalds " ^. us(ms.bbtable.(label).name));
   match ms.pstate with
   | Nobranch ps ->
-     Sbranch (label, (Some (Nobranch ps), None)) |> to_mstate ms
-  | Sbranch(l,(Some ps1,None))  ->
+     Branch (label, (Some (Nobranch ps), None)) |> to_mstate ms
+  | Sbranch(_,Some ps1,_) | Sbranch(_,_,Some ps1) -> (*??*)
      proc_branches
-       (fun ps -> Sbranch (label, (Some (Nobranch ps), None)))
+       (fun ps -> Branch (label, (Some (Nobranch ps), None)))
        ps1 |> to_mstate ms
-  | Sbranch(0,(Some ps1, _)) | Sbranch (0,(_,Some ps1))->
-     proc_branches
-       (fun ps -> Sbranch (label, (Some (Nobranch ps), None)))
-       ps1 |> to_mstate ms
-  | Sbranch(l,_) ->
+  | Sbranch _ | Branch _ ->
      should_not_happen 5
 
        
@@ -912,16 +924,12 @@ let jds label ms =
   if !dbg then prn_inst ms (us"jds " ^. us(ms.bbtable.(label).name));
   match ms.pstate with
   | Nobranch ps ->
-     Sbranch (label, (Some (Nobranch ps), None)) |> to_mstate ms
-  | Sbranch(l,(Some ps1,None))  ->
+     Branch (label, (Some (Nobranch ps), None)) |> to_mstate ms
+  | Sbranch(_,Some ps1,_) | Sbranch(_,_,Some ps1) ->
      proc_branches
-       (fun ps -> Sbranch (label, (Some (Nobranch ps), None)))
+       (fun ps -> Branch (label, (Some (Nobranch ps), None)))
        ps1 |> to_mstate ms
-  | Sbranch(0,(Some ps1, _)) | Sbranch (0,(_, Some ps1)) ->
-     proc_branches
-       (fun ps -> Sbranch (label, (Some (Nobranch ps), None)))
-       ps1 |> to_mstate ms
-  | Sbranch(l,_) ->
+  | Sbranch _ | Branch _ -> 
      should_not_happen 6
   
 let sw rt imm rs ms =
@@ -1098,6 +1106,9 @@ let slt_main signed r v_rs v_rt rd rs rt ps ms =
                                                          (setreg rt tval r))} |> tick ticks))
     | None -> None
   in
+  let proc_ps_old rd_v ps =
+    Some (Nobranch ({ps with reg = setreg rd rd_v r} |> tick ticks))
+  in
   let (t,f) = (if signed then aint32_test_less_than else
                aint32_test_less_than_unsigned) v_rs v_rt in
   let rd_v = match t,f with
@@ -1113,9 +1124,9 @@ let slt_main signed r v_rs v_rt rd rs rt ps ms =
     | _ -> should_not_happen 7
     in
    *)
-  let ps = Sbranch(0,
-                   (proc_ps t rd_v ps,
-                    proc_ps f rd_v ps))
+  let ps = Sbranch(proc_ps_old rd_v ps,
+                   proc_ps t (aint32_const 1) ps,
+                   proc_ps f (aint32_const 0) ps)
   in
   
   if !dbg then
@@ -1136,7 +1147,7 @@ let slt rd rs rt ms =
     let (r,v_rt) = getreg rt r in
     slt_main true r v_rs v_rt rd rs rt ps ms 
   in    
-  proc_branches proc_ps ps |> to_mstate ms
+  proc_slt proc_ps ps |> to_mstate ms
     
 let sltu rd rs rt ms = 
   let ps = ms.pstate in
@@ -1145,7 +1156,7 @@ let sltu rd rs rt ms =
     let (r,v_rt) = getreg rt r in
     slt_main false r v_rs v_rt rd rs rt ps ms 
   in    
-  proc_branches proc_ps ps |> to_mstate ms
+  proc_slt proc_ps ps |> to_mstate ms
 
 let slti rd rs imm ms =
   let ps = ms.pstate in
@@ -1153,7 +1164,7 @@ let slti rd rs imm ms =
     let (r,v_rs) = getreg rs ps.reg in
     slt_main true r v_rs (aint32_const imm) rd rs zero ps ms
   in
-  proc_branches proc_ps ps |> to_mstate ms
+  proc_slt proc_ps ps |> to_mstate ms
                                       
 (* TODO: right now, stliu is just a copy of slti. It must 
    be update to also include correct handling of unsigned integers! *)    
@@ -1163,7 +1174,7 @@ let sltiu rd rs imm ms =
     let (r,v_rs) = getreg rs ps.reg in
     slt_main true r v_rs (aint32_const imm) rd rs zero ps ms
   in
-  proc_branches proc_ps ps |> to_mstate ms
+  proc_slt proc_ps ps |> to_mstate ms
   
 
       
@@ -1182,8 +1193,12 @@ let next ms =
       let ms' = enqueue bi.nextid ms.pstate ms in
       (* Continue and process next block *)
       continue ms'
-   | Sbranch (label,(pst,psf)) ->
+   | Branch (label,(pst,psf)) ->
       enq label bi.nextid pst psf ms
+   | Sbranch sb ->
+      let ms' = enqueue bi.nextid (Sbranch sb) ms in
+      continue ms'
+
   )  
     
 
@@ -1247,14 +1262,20 @@ let _ = if !dbg && !dbg_trace then Printexc.record_backtrace true else ()
 
 (** Print main state info *)
 let print_mstate ms =
+  let print_pstate ps =
+    printf "Counter: %d\n" !counter;
+    printf "BCET:  %d cycles\n" ps.bcet;
+    printf "WCET:  %d cycles\n" ps.wcet;
+    uprint_endline (pprint_pstate 32 ps)
+  in
   let ps = ms.pstate in
   match ps with
-  | Nobranch ps ->
-     printf "Counter: %d\n" !counter;
-     printf "BCET:  %d cycles\n" ps.bcet;
-     printf "WCET:  %d cycles\n" ps.wcet;
-     uprint_endline (pprint_pstate 32 ps)
-  | Sbranch(l,_) -> should_not_happen 12
+  | Nobranch ps -> print_pstate ps
+  | Sbranch (psold,ps1,ps2) -> should_not_happen 15
+(*     (match psold with
+     | Some (Nobranch ps) -> print_pstate ps
+     | _ -> should_not_happen 15)*)
+  | Branch _ -> should_not_happen 12
                
 type options_t =
   | OpDebug

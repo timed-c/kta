@@ -86,9 +86,8 @@ let main =
   Utest.test_int "recursion.c (kalle): BCET Optimized: -O2." bcet 3;
   Utest.test_int "recursion.c (kalle): WCET Optimized: -O2." wcet 25;
   let bcet,wcet = compile_file "test/wcet_tests/mdh/recursion.c" "kalle" ["a0=[0,10]"] 3 false in
-  Utest.test_int "recursion.c (kalle): BCET Optimized: -O3." bcet 23;
-  Utest.test_int "recursion.c (kalle): WCET Optimized: -O3." wcet 33;
-
+  Utest.test_int "recursion.c (kalle): BCET Optimized: -O3." bcet 3;
+  Utest.test_int "recursion.c (kalle): WCET Optimized: -O3." wcet 25;
   let bcet,wcet = compile_file "test/wcet_tests/mdh/recursion.c" "anka" ["a0=[0,10]"] 0 false in
   Utest.test_int "recursion.c (anka): BCET Not Optimized." bcet 15;
   Utest.test_int "recursion.c (anka): WCET Not Optimized." wcet 185;
@@ -101,10 +100,11 @@ let main =
   let bcet,wcet = compile_file "test/wcet_tests/mdh/recursion.c" "anka" ["a0=[0,10]"] 3 false in
   Utest.test_int "recursion.c (anka): BCET Optimized: -O3." bcet 3;
   Utest.test_int "recursion.c (anka): WCET Optimized: -O3." wcet 47;
-
- (* let bcet,wcet = compile_file "test/wcet_tests/mdh/recursion.c" "fib" ["a0=[0,10]"] 0 false in
+(*
+  let bcet,wcet = compile_file "test/wcet_tests/mdh/recursion.c" "fib" ["a0=[0,10]"] 0 false in
   Utest.test_int "recursion.c (fib): BCET Not Optimized." bcet 15;
-  Utest.test_int "recursion.c (fib): WCET Not Optimized." wcet 185;*)
+  Utest.test_int "recursion.c (fib): WCET Not Optimized." wcet 185;
+ *)
   let bcet,wcet = compile_file "test/wcet_tests/mdh/recursion.c" "fib" ["a0=[0,10]"] 1 false in
   Utest.test_int "recursion.c (fib): BCET Optimized: -O1." bcet 3;
   Utest.test_int "recursion.c (fib): WCET Optimized: -O1." wcet 1675;
@@ -114,7 +114,7 @@ let main =
   let bcet,wcet = compile_file "test/wcet_tests/mdh/recursion.c" "fib" ["a0=[0,10]"] 3 false in
   Utest.test_int "recursion.c (fib): BCET Optimized: -O3." bcet 3;
   Utest.test_int "recursion.c (fib): WCET Optimized: -O3." wcet 993;
-
+ 
   (* BSORT100.C - Different Values due to initialization - -O1 looks weird *)
   printf "\ntesting bsort100.c\n%!";
 
@@ -182,7 +182,7 @@ let main =
      not defined *)
   printf "\ntesting nsichneu.c\n%!";
   (* -O0 inf loop or too slow *)
-  (*printf "\ntesting nsichneu.c\n%!";
+  (*
   let bcet,wcet = compile_file "test/wcet_tests/mdh/nsichneu.c" "main" [] 0 false in
   Utest.test_int "nsichneu.c (main): BCET Optimized: -O1." bcet ?;
   Utest.test_int "nsichneu.c (main): WCET Optimized: -O1." wcet ?;
@@ -241,14 +241,15 @@ let main =
   Utest.test_int "fir.c (main): WCET Not Optimized." wcet 504994;
   let bcet,wcet = compile_file "test/wcet_tests/mdh/fir.c" "main" [] 1 false in
   Utest.test_int "fir.c (main): BCET=WCET Optimized: -O1." bcet wcet;
-  Utest.test_int "fir.c (main): WCET Optimized: -O1." wcet 197;
+  Utest.test_int "fir.c (main): WCET Optimized: -O1." wcet 4504; 
   let bcet,wcet = compile_file "test/wcet_tests/mdh/fir.c" "main" [] 2 false in
   Utest.test_int "fir.c (main): BCET=WCET Optimized: -O2." bcet wcet;
-  Utest.test_int "fir.c (main): WCET Optimized: -O2." wcet 197;
+  Utest.test_int "fir.c (main): WCET Optimized: -O2." wcet 4503;
+  
   let bcet,wcet = compile_file "test/wcet_tests/mdh/fir.c" "main" [] 3 false in
   Utest.test_int "fir.c (main): BCET=WCET Optimized: -O3." bcet wcet;
-  Utest.test_int "fir.c (main): WCET Optimized: -O3." wcet 197;
-
+  Utest.test_int "fir.c (main): WCET Optimized: -O3." wcet 4503;
+  
   (* PRIME.C - prime: returns bool, main: returns bool *)
   printf "\ntesting prime.c\n%!";
   let bcet,wcet = compile_file "test/wcet_tests/mdh/prime.c" "prime" ["a0=[0,100]"] 0 false in
@@ -256,7 +257,7 @@ let main =
   Utest.test_int "prime.c (prime): WCET Not Optimized." wcet 176;
   let bcet,wcet = compile_file "test/wcet_tests/mdh/prime.c" "prime" ["a0=[0,100]"] 1 false in
   Utest.test_int "prime.c (prime): BCET Optimized: -O1." bcet 4;
-  Utest.test_int "prime.c (prime): WCET Optimized: -O1." wcet 4;
+  Utest.test_int "prime.c (prime): WCET Optimized: -O1." wcet 21;
   (* Syntax error in OCaml, prime.part.0:
     let prime.part.0 ms = ms                |>
       sltiu   v0 a0 9                       |>
@@ -267,11 +268,11 @@ let main =
   *)
   (*
   let bcet,wcet = compile_file "test/wcet_tests/mdh/prime.c" "prime" ["a0=[0,100]"] 2 false in
-  Utest.test_int "prime.c (prime): BCET Optimized: -O2." bcet 3;
-  Utest.test_int "prime.c (prime): WCET Optimized: -O2." wcet 174;
+  Utest.test_int "prime.c (prime): BCET Optimized: -O2." bcet ?;
+  Utest.test_int "prime.c (prime): WCET Optimized: -O2." wcet ?;
   *)
   let bcet,wcet = compile_file "test/wcet_tests/mdh/prime.c" "prime" ["a0=[0,100]"] 3 false in
   Utest.test_int "prime.c (prime): BCET Optimized: -O3." bcet 4;
-  Utest.test_int "prime.c (prime): WCET Optimized: -O3." wcet 4;
+  Utest.test_int "prime.c (prime): WCET Optimized: -O3." wcet 20;
 
   Utest.result()
