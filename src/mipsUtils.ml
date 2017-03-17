@@ -27,6 +27,8 @@ let decode_inst bininst =
            | 7  -> MipsSRAV(rd(),rt(),rs())
            | 8  -> MipsJR(rs())
            | 9  -> MipsJALR(rs())
+           | 10 -> MipsMOVZ(rd(),rs(),rt())
+           | 11 -> MipsMOVN(rd(),rs(),rt())
            | 16 -> MipsMFHI(rd())
            | 17 -> MipsMTHI(rs())
            | 18 -> MipsMFLO(rd())
@@ -72,8 +74,16 @@ let decode_inst bininst =
   | 22 -> MipsBLEZL(rs(),imm(),"")
   | 23 -> MipsBGTZL(rs(),imm(),"")
   | 28 -> (match funct() with
+           | 0  -> MipsMADD(rs(),rt())
            | 2  -> MipsMUL(rd(),rs(),rt())
+           | 32 -> MipsCLZ(rd(),rs()) (* rd() = rt() *)
            | _  -> MipsUnknown(bininst))
+  | 31  -> (match funct() with
+            (* lsb = shamt() = pos, msb = rd() = size-1 *)
+           | 0  -> MipsEXT(rt(),rs(),rd(),shamt()+1)
+            (* lsb = shamt() = pos, msb = rd() = pos+size-1 *)
+           | 4  -> MipsINS(rt(),rs(),rd(),shamt()+rd()+1)
+           | _  -> MipsUnknown(bininst)) 
   | 32 -> MipsLB(rt(),imm(),rs())
   | 33 -> MipsLH(rt(),imm(),rs())
   | 35 -> MipsLW(rt(),imm(),rs())
@@ -206,7 +216,9 @@ let rparan = us")"
 let pprint_inst_general inst com reg int2str delayslot dash = 
   let rdst rd rs rt = (reg rd) ^. com ^. (reg rs) ^. com ^. (reg rt) in
   let rdts rd rt rs = rdst rd rt rs in
+  let rstps rt rs pos size = (reg rt) ^. com ^. (reg rs) ^. com ^. int2str pos ^. com ^. int2str size in
   let rst rs rt = (reg rs) ^. com ^. (reg rt) in
+  let rds rd rs = (reg rd) ^. com ^. (reg rs) in
   let rtsi rt rs imm = (reg rt) ^. com ^. (reg rs) ^. com ^. int2str imm in
   let rtsis rt rs imm s = (reg rt) ^. com ^. (reg rs) ^. com ^. 
                   if String.length s <> 0 then us (dash s) else int2str imm in
@@ -238,6 +250,9 @@ let pprint_inst_general inst com reg int2str delayslot dash =
   | MipsBLTZL(rs,imm,s)   -> (istrds "bltzl") ^. (rsis rs imm s)    
   | MipsBNE(rs,rt,imm,s)  -> (istrds "bne") ^. (rtsis rs rt imm s)    
   | MipsBNEL(rs,rt,imm,s) -> (istrds "bnel") ^. (rtsis rs rt imm s)
+  | MipsCLZ(rd,rs)        -> (istr "clz") ^. (rds rd rs)
+  | MipsEXT(rt,rs,pos,siz)-> (istr "ext") ^. (rstps rt rs pos siz)
+  | MipsINS(rt,rs,pos,siz)-> (istr "ins") ^. (rstps rt rs pos siz)
   | MipsJALR(rs)          -> (istrds "jalr") ^. (reg rs)
   | MipsJR(rs)            -> (istrds "jr") ^. (reg rs)
   | MipsJ(addr,s)         -> (istrds "j") ^. (address addr s)
@@ -250,11 +265,14 @@ let pprint_inst_general inst com reg int2str delayslot dash =
   | MipsLW(rt,imm,rs)     -> (istr "lw") ^. (rtis rt imm rs)
   | MipsMFHI(rd)          -> (istr "mfhi") ^. (reg rd)
   | MipsMFLO(rd)          -> (istr "mflo") ^. (reg rd)
+  | MipsMOVN(rd,rs,rt)    -> (istr "movn") ^. (rdst rd rs rt)
+  | MipsMOVZ(rd,rs,rt)    -> (istr "movz") ^. (rdst rd rs rt)
   | MipsMTHI(rs)          -> (istr "mthi") ^. (reg rs)
   | MipsMTLO(rs)          -> (istr "mtlo") ^. (reg rs)
   | MipsMUL(rd,rs,rt)     -> (istr "mul") ^. (rdst rd rs rt)
   | MipsMULT(rs,rt)       -> (istr "mult") ^. (rst rs rt)
   | MipsMULTU(rs,rt)      -> (istr "multu") ^. (rst rs rt)
+  | MipsMADD(rs,rt)       -> (istr "madd") ^. (rst rs rt)
   | MipsDIV(rs,rt)        -> (istr "div") ^. (rst rs rt)
   | MipsDIVU(rs,rt)       -> (istr "divu") ^. (rst rs rt)
   | MipsNOR(rd,rs,rt)     -> (istr "nor") ^. (rdst rd rs rt)

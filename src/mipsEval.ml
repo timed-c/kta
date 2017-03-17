@@ -258,8 +258,14 @@ let rec step bigendian prog state hookfunc hookval is_a_delay_slot =
        wreg rd (Int32.logxor (reg rs) (reg rt)); pc 4; hook()
   | MipsXORI(rt,rs,imm) -> 
        wreg rt (Int32.logxor (reg rs) (Int32.of_int imm)); pc 4; hook()
-  | MipsUnknown(_) -> failwith ("Unknown instruction: " ^
-                      Ustring.to_utf8 (MipsUtils.pprint_inst inst))
+  | MipsEXT(_)
+    | MipsINS(_)
+    | MipsMADD(_)
+    | MipsMOVZ(_)
+    | MipsMOVN(_)
+    | MipsCLZ(_)
+    | MipsUnknown(_) -> failwith ("Unknown instruction: " ^
+                                    Ustring.to_utf8 (MipsUtils.pprint_inst inst))
    
 
 
@@ -333,7 +339,13 @@ let debug_print inst pc prog state is_a_delay_slot terminate (acc,prev_regfile) 
     | MipsTEQ(rs,rt,code) -> (0,rs,rt)
     | MipsXOR(rd,rs,rt) -> (rd,rs,rt)   
     | MipsXORI(rt,rs,_) -> (rt,rs,0)   
-    | MipsUnknown(_) -> (0,0,0)
+    | MipsINS(_)
+      | MipsEXT(_)
+      | MipsMADD(_)
+      | MipsMOVZ(_)
+      | MipsMOVN(_)
+      | MipsCLZ(_)
+      | MipsUnknown(_) -> (0,0,0)
   in
   let pad_right str int =
     Ustring.concat (us"\n") 

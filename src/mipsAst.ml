@@ -9,7 +9,9 @@ type code = int (* 10 bits of information *)
 type imm = int (* Stored sign extended in the AST *)
 type addr = int
 type shamt = int
- 
+type pos = int
+type size = int
+              
 type inst =
   | MipsADD     of rd * rs  * rt
   | MipsADDI    of rt * rs  * imm
@@ -29,8 +31,11 @@ type inst =
   | MipsBLTZL   of rs * imm * string
   | MipsBNE     of rs * rt  * imm * string
   | MipsBNEL    of rs * rt  * imm * string
+  | MipsCLZ     of rd * rs
   | MipsDIV     of rs * rt
   | MipsDIVU    of rs * rt
+  | MipsEXT     of rt * rs  * pos * size
+  | MipsINS     of rt * rs  * pos * size
   | MipsJALR    of rs
   | MipsJR      of rs
   | MipsJ       of addr * string
@@ -41,8 +46,11 @@ type inst =
   | MipsLHU     of rt * imm * rs
   | MipsLUI     of rt * imm
   | MipsLW      of rt * imm * rs
+  | MipsMADD    of rs * rt
   | MipsMFHI    of rd 
   | MipsMFLO    of rd 
+  | MipsMOVN    of rd * rs  * rt
+  | MipsMOVZ    of rd * rs  * rt
   | MipsMTHI    of rs 
   | MipsMTLO    of rs 
   | MipsMUL     of rd * rs  * rt
