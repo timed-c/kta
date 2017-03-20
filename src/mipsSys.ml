@@ -280,11 +280,17 @@ let get_init_state_vals ?(bigendian=false) prog initfunc statelist =
 
 
 (* ---------------------------------------------------------------------*)
-let wcet_compile fname debug program_code args =
+let wcet_compile fname debug bsconfig program_code args =
   let remove_file fname = if Sys.file_exists fname then
                             Sys.remove fname
                           else () in  
-  let flags = if debug then " -debug " else "" in
+  let bsconfigflag =
+    match bsconfig with
+    | None -> ""
+    | Some i -> sprintf " -bsconfig %d " i
+  in
+  let flags = (if debug then " -debug " else "")
+              ^ bsconfigflag in
   let args = List.fold_left (fun x -> (^) (x ^ " ")) " -args " args in
   let ocamlargs = " -lib str -- " ^ flags ^ args in
   let ocamlflnm = "temp_1214325_" ^ fname in

@@ -1292,13 +1292,15 @@ let print_mstate ms =
 type options_t =
   | OpDebug
   | OpArgs
-  | OpEnEID
+  | OpConfigBatchSize
 
 open Ustring.Op
        
 let options =
   [ (OpDebug, Uargs.No, us"-debug", us"",
      us"Enable debug");
+    (OpConfigBatchSize, Uargs.Int, us"-bsconfig", us"",
+     us"Configure maximum batch size");
     (OpArgs, Uargs.StrList, us"-args", us"<args>",
      us"Accepts Initial Intervals for Registers a0, a1, a2 and a3");  ]
     
@@ -1307,6 +1309,8 @@ let analyze startblock bblocks gp_addr defaultargs =
   let (ops, args) = Uargs.parse args options in
   let debug = Uargs.has_op OpDebug ops in
   enable_debug debug;
+  if Uargs.has_op OpConfigBatchSize ops then
+    (set_max_batch_size (Uargs.int_op OpConfigBatchSize ops));
   let args =
     if Uargs.has_op OpArgs ops then
       Uargs.strlist_op OpArgs ops |> List.map Ustring.to_utf8
