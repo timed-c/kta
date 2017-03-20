@@ -482,6 +482,29 @@ let test_equal (l1,s1,n1) (l2,s2,n2) =
       ([((h2,0,1),(h2,0,1))],                          (* TRUE *)
        [])                                           (* FALSE *)
     )
+      (* TODO(Romy): Not tested *)
+  (*
+  else if l1 <= l2 && h1 >= h2 then
+    (if s1 = 0 then
+           printf "test equal: Should not happen\n%!";
+     let tl1 = l1 + ((l2 - l1) / s1) * s1 in
+     let th1 = l1 + ((h2 - l1) / s1) * s1 in
+     let ts1 = if tl1 = th1 then 0 else s2 in 
+     let tn1 = number th1 tl1 ts1 in 
+     ([((tl1,ts1,tn1),(l2,s2,n2))],                   (* TRUE *)
+      [((l1,s1,n1),(l2,s2,n2))])                     (* FALSE *)
+    )
+  else if l2 <= l1 && h2 >= h1 then(
+    (if s2 = 0 then
+      printf "test equal: Should not happen\n%!";
+     let tl2 = l2 + ((l1 - l2) / s2) * s2 in
+     let th2 = l2 + ((h1 - l2) / s2) * s2 in
+     let ts2 = if tl2 = th2 then 0 else s2 in
+     let tn2 = number th2 tl2 ts2 in 
+     ([((l1,s1,n1),(tl2,ts2,tn2))],                   (* TRUE *)
+      [((l1,s1,n1),(l2,s2,n2))])                     (* FALSE *)
+    ))
+ *)
   else
       (* More overlapping than one. Conservative, both 
          cases. TODO: Make the true-branch less 
@@ -685,7 +708,7 @@ let rec aint32_test_less_than_equal v1 v2 =
         let h22 = min (h1-(max s1 1)) h2 in
         let s2 = if l2 = h22 then 0 else s2 in
         let s1 = if l11 = h1 then 0 else s1 in
-        Some(Interval(l11,s1,number h1 l11 s1), Interval(l2,s2,high h22 l2 s2))        
+        Some(Interval(l11,s1,number h1 l11 s1), Interval(l2,s2,number h22 l2 s2))        
       else None))
   | Interval(v1),IntervalList(l1,_) | IntervalList(l1,_), Interval(v1) ->
     aint32_test_less_than_equal (Interval(v1)) (Interval(interval_merge_list l1))

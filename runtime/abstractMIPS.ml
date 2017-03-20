@@ -527,8 +527,25 @@ let mult rs rt ms =
   (*if !dbg then prn_inst ms (us"mult ");*)
   ps |> to_mstate ms 
 
-(* copy of the mult *)
-let div rs rt ms =
+(* Multiply ADD - no support for internal_hi *)
+let madd rs rt ms = 
+  let ticks = 1 in
+  let proc_ps ps = 
+    let r = ps.reg in
+    let (r,v_rs) = getreg rs r in
+    let (r,v_rt) = getreg rt r in
+    let (r,v_ilo) = getreg internal_lo r in
+    (* No support for internal_hi *)
+    (*let v_ihi = getreg internal_hi r in*)
+    let v_rd = aint32_mul v_rs v_rt in
+    let r = setreg internal_lo (aint32_add v_rd v_ilo) r in
+    let r = setreg internal_hi (aint32_any) r in
+    ps |> update r |> tick ticks |> nobranch
+  in
+  let ps = proc_branches proc_ps ms.pstate in
+  ps |> to_mstate ms
+
+    let div rs rt ms =
   let ticks = 1 in
   let proc_ps ps = 
     let r = ps.reg in
@@ -678,6 +695,47 @@ let sra rd rt shamt ms =
   let ps = process_ps rd rt (fun v -> aint32_div v mval) ticks dbg_f ps ms in 
   ps |> to_mstate ms 
 
+(* EXT - not implemented. *)
+let ext rt rs pos size ms =
+  let ticks = 1 in
+  let proc_ps ps =
+    {ps with reg = setreg rt aint32_any ps.reg} |> tick ticks |> nobranch
+  in
+  let ps = proc_branches proc_ps ms.pstate in
+  ps |> to_mstate ms
+
+(* INS - not implemented. *)
+let ins rs rt pos size ms =
+  let ticks = 1 in
+  let proc_ps ps =
+    {ps with reg = setreg rt aint32_any ps.reg} |> tick ticks |> nobranch
+  in
+  let ps = proc_branches proc_ps ms.pstate in
+  ps |> to_mstate ms
+
+(* INS - not implemented. *)
+let clz rd rs ms =
+  let ticks = 1 in
+  let proc_ps ps =
+    {ps with reg = setreg rd aint32_any ps.reg} |> tick ticks |> nobranch
+  in
+  proc_branches proc_ps ms.pstate |> to_mstate ms
+
+(* MOVZ - not implemented. *)                                               
+let movz rd rs rt ms =
+  let ticks = 1 in
+  let proc_ps ps =
+    {ps with reg = setreg rd aint32_any ps.reg} |> tick ticks |> nobranch
+  in
+  proc_branches proc_ps ms.pstate |> to_mstate ms
+
+(* MOVZ - not implemented. *) 
+let movn rd rs rt ms =
+  let ticks = 1 in
+  let proc_ps ps =
+    {ps with reg = setreg rd aint32_any ps.reg} |> tick ticks |> nobranch
+  in
+  proc_branches proc_ps ms.pstate |> to_mstate ms
 
 (* used by next and branch_equality *)
 let enq tlabel flabel pst psf ms =
@@ -714,13 +772,13 @@ let branch_main str equal dslot op rs rt label ms =
     in
     let pst,psf = update_pstate ps rs rt tbranch, update_pstate ps rs rt fbranch in
     if !dbg then prn_inst ms str;
-    (*if !dbg then (
+    if !dbg then (
         let r = ps.reg in
         prn_inst ms ((if equal then us"beq " else us"bne ") ^.
         (reg2ustr rs) ^. us"=" ^. (preg rs r) ^. us" " ^.
         (reg2ustr rt) ^. us"=" ^. (preg rt r) ^. us" " ^.
         us(ms.bbtable.(label).name) ^. us" " ^. us(ms.bbtable.(bi.nextid).name) ^.
-          us" " ^. pprint_true_false_choice tbranch fbranch ^. us" (sbranch)"));*)
+          us" " ^. pprint_true_false_choice tbranch fbranch ^. us" (sbranch)"));
     if dslot then
       {ms with pstate = Branch (label, (pst, psf))}
     else
@@ -869,7 +927,6 @@ let bgezlds rs label ms =
 let bgtz rs label ms =
   branch_main (us"bgtz")
                    true false aint32_test_greater_than rs zero label ms
-
     
 (* Same as above, but with branch delay slots enabled *)    
 let bgtzds rs label ms =
@@ -1037,11 +1094,11 @@ let lw rt imm rs ms =
          get_memval (imm + con_v_rs) ps.mem
     in
     let r' = setreg rt v r in
-    if !dbg then(
-      prn_inst ms (us"lw " ^. 
-                     (reg2ustr rt) ^. us"=" ^. (preg rt r') ^.
-                       us(sprintf " imm=%d(" imm) ^.
-                         (reg2ustr rs) ^. us"=" ^. (preg rs r) ^. us")")) else ();
+    if !dbg then
+      (prn_inst ms (us"lw " ^. 
+                      (reg2ustr rt) ^. us"=" ^. (preg rt r') ^.
+                        us(sprintf " imm=%d(" imm) ^.
+                          (reg2ustr rs) ^. us"=" ^. (preg rs r) ^. us")")) else ();
     ps |> updatemem r' m |> tick ticks |> nobranch
   in
   let ps = proc_branches proc_ps ps in
