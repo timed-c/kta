@@ -46,6 +46,8 @@ type inst =
   | MipsLHU     of rt * imm * rs
   | MipsLUI     of rt * imm
   | MipsLW      of rt * imm * rs
+  | MipsLWL     of rt * imm * rs
+  | MipsLWR     of rt * imm * rs
   | MipsMADD    of rs * rt
   | MipsMFHI    of rd 
   | MipsMFLO    of rd 

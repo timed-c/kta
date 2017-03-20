@@ -737,6 +737,22 @@ let movn rd rs rt ms =
   in
   proc_branches proc_ps ms.pstate |> to_mstate ms
 
+(* LWL - not implemented. *) 
+let lwl rt imm rs ms =
+  let ticks = 1 in
+  let proc_ps ps =
+    {ps with reg = setreg rt aint32_any ps.reg} |> tick ticks |> nobranch
+  in
+  proc_branches proc_ps ms.pstate |> to_mstate ms
+
+(* LWL - not implemented. *) 
+let lwr rt imm rs ms =
+  let ticks = 1 in
+  let proc_ps ps =
+    {ps with reg = setreg rt aint32_any ps.reg} |> tick ticks |> nobranch
+  in
+  proc_branches proc_ps ms.pstate |> to_mstate ms
+
 (* used by next and branch_equality *)
 let enq tlabel flabel pst psf ms =
   (*TODO(Romy):to_mstate: maybe not necessary*)

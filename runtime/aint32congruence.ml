@@ -395,7 +395,6 @@ let aint32_join v1 v2 =
   | Interval(v1),IntervalList(lst,_) | IntervalList(lst,_),Interval(v1) ->
     Interval(interval_merge_list (v1::lst))
   | IntervalList(l1,_),IntervalList(l2,_) ->
-    printf "Merge B:  %d  %d\n" (List.length l1) (List.length l2);
     Interval(interval_merge (interval_merge_list l1) (interval_merge_list l2)) 
 
              
