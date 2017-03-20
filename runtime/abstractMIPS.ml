@@ -514,10 +514,15 @@ let mult rs rt ms =
     let (r,v_rt) = getreg rt r in
     let r = setreg internal_lo (aint32_mul v_rs v_rt) r in
     let r = setreg internal_hi (aint32_any) r in
+    if !dbg then prn_inst ms ((us "mult ") ^.
+                                (reg2ustr internal_lo) ^. us"=" ^. (preg internal_lo r) ^.
+                                  (reg2ustr internal_hi) ^. us"=" ^. (preg internal_hi r) ^.
+                                    (reg2ustr rs) ^. us"=" ^. (preg rs r) ^.
+                                      (reg2ustr rt) ^. us"=" ^. (preg rt r));
     ps |>  update r |> tick ticks |> nobranch
   in
   let ps =  proc_branches proc_ps ms.pstate in
-  if !dbg then prn_inst ms (us"mult ");
+  (*if !dbg then prn_inst ms (us"mult ");*)
   ps |> to_mstate ms 
 
 (* copy of the mult *)
@@ -529,10 +534,15 @@ let div rs rt ms =
     let (r,v_rt) = getreg rt r in
     let r = setreg internal_lo (aint32_div v_rs v_rt) r in
     let r = setreg internal_hi (aint32_mod v_rs v_rt) r in
+    if !dbg then prn_inst ms ((us "div ") ^.
+                                (reg2ustr internal_lo) ^. us"=" ^. (preg internal_lo r) ^.
+                                  (reg2ustr internal_hi) ^. us"=" ^. (preg internal_hi r) ^.
+                                    (reg2ustr rs) ^. us"=" ^. (preg rs r) ^.
+                                      (reg2ustr rt) ^. us"=" ^. (preg rt r));
     ps |>  update r |> tick ticks |> nobranch
   in
   let ps = proc_branches proc_ps ms.pstate in
-  if !dbg then prn_inst ms (us"div ");
+  (*if !dbg then prn_inst ms (us"div ");*)
   ps |> to_mstate ms
 
 (* TODO(Romy): Unsigned implementation *)

@@ -81,7 +81,7 @@ let aint32_pprint debug v =
        us (sprintf "[%d,%d,%d] " l s (high l s n))
   in  
   match v with
-  | Any -> us"Any"
+  | Any -> us"Any "
   | Interval(l,s,n) -> prn (l,s,n)
   | IntervalList(lst,sp) ->
     us(if debug && sp != nopair then sprintf "{%d}" sp else "") ^.
