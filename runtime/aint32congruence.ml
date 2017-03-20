@@ -73,8 +73,8 @@ let aint32_pprint debug v =
   let prn (l,s,n) =
     match (l,s,n) with
     | l,0,1 -> us (sprintf "%d " l)
-    (* Debugging Error *)
-    | l,_,1 | l,0,_-> failwith (sprintf "Error: aint32_pprint - trying to print a constant, but the parameters don't match %d:%d:%d" l s n)
+    (* TODO(Romy): change to Error - failwith *)
+    | l,_,1 | l,0,_-> us (sprintf "Error: aint32_pprint - trying to print a constant, but the parameters don't match %d:%d:%d" l s n)
     | l,1,n ->
        us (sprintf "[%d,%d] " l (high l s n))
     | l,s,n ->
@@ -260,6 +260,7 @@ let aint32_mul v1 v2 =
            let h2 = high l2 s2 n in
            let l = min (l1*l2) (l1*h2) in
            let s = abs (l1*s2) in
+           let n = if s = 0 then 1 else n in
            let h = high l s n in
            (l,s,n,h)
         | ((l1,s1,n1),(l2,s2,n2)) -> 
@@ -316,45 +317,66 @@ let aint32_srav v1 v2 =
       else (l,s,n)
     ) v1 v2
 
-
+               
 let aint32_div v1 v2 =
-  aint32_binop (fun (l1,s1,n1) (l2,s2,n2) ->
-      let h1 = high l1 s1 n1 in
-      let h2 = high l2 s2 n2 in
-      if (l2<=0 && h2 >=0) then raise Division_by_zero
-      else
-        if (n1 = 1 && n2 = 1) then (l1/l2, 0, 1)
-        else
-          let l = min (min (l1/l2) (l1/h2)) (min (h1/l2) (h1/h2)) in
-          let h = max (max (l1/l2) (l1/h2)) (max (h1/l2) (h1/h2)) in
-          let s = if h = l then 0 else 1 in 
-          let n = number h l s in
-          if l<lowval || h>highval then raise AnyException
-          else (l,s,n)
-    ) v1 v2
+  match v1, v2 with
+  | Any, Interval(l,0,1) ->
+     let h = highval/l in
+     let l = lowval/l in
+     let s = 1 in
+     let n = number h l s in
+     if l<lowval || h>highval then raise AnyException
+     else Interval(l, s, n)
+  | Any,_ | _,Any -> Any
+  | _ ->
+     aint32_binop (fun (l1,s1,n1) (l2,s2,n2) ->
+         let h1 = high l1 s1 n1 in
+         let h2 = high l2 s2 n2 in
+         if (l2<=0 && h2 >=0) then raise Division_by_zero
+         else
+           if (n1 = 1 && n2 = 1) then (l1/l2, 0, 1)
+           else
+             let l = min (min (l1/l2) (l1/h2)) (min (h1/l2) (h1/h2)) in
+             let h = max (max (l1/l2) (l1/h2)) (max (h1/l2) (h1/h2)) in
+             let s = if h = l then 0 else 1 in 
+             let n = number h l s in
+             if l<lowval || h>highval then raise AnyException
+             else (l,s,n)
+       ) v1 v2
 
 let aint32_mod v1 v2 =
-  aint32_binop (fun (l1,s1,n1) (l2,s2,n2) ->
-      let h1 = high l1 s1 n1 in
-      let h2 = high l2 s2 n2 in
-      if (l2<=0 && h2 >=0) then raise Division_by_zero
-      else
-        if (n1 = 1 && n2 = 1) then (l1 mod l2, 0, 1)
-        else
-          (* very conservative *)
-          let s2_n = max 1 s2 in
-          let k = max (max (abs l1) (abs (l2-s2_n)))
-                      (max (abs h1) (abs (h2-s2_n))) in
-          let l,h = 
-            if (l1>0 && l2>0) then (0, k)
-            else if (h1<0 && h2<0) then (-k,0)
-            else (-k,k)
-          in
-          let s = if h = l then 0 else 1 in 
-          let n = number h l s in
-          if l<lowval || h>highval then raise AnyException
-          else (l,s,n)
-    ) v1 v2
+  match v1, v2 with
+  | Any, Interval(l,s,n) ->
+     let h = high l s n in
+     let modl = min l (-h) in
+     let modh = max h (-l) in
+     let mods = 1 in
+     let modn = number modh modl mods in 
+     if modl<lowval || modh>highval then raise AnyException
+     else Interval(modl, mods, modn)
+  | Any,_ | _,Any -> Any
+  | _ ->
+     aint32_binop (fun (l1,s1,n1) (l2,s2,n2) ->
+         let h1 = high l1 s1 n1 in
+         let h2 = high l2 s2 n2 in
+         if (l2<=0 && h2 >=0) then raise Division_by_zero
+         else
+           if (n1 = 1 && n2 = 1) then (l1 mod l2, 0, 1)
+           else
+             (* very conservative *)
+             let s2_n = max 1 s2 in
+             let k = max (max (abs l1) (abs (l2-s2_n)))
+                         (max (abs h1) (abs (h2-s2_n))) in
+             let l,h = 
+               if (l1>0 && l2>0) then (0, k)
+               else if (h1<0 && h2<0) then (-k,0)
+               else (-k,k)
+             in
+             let s = if h = l then 0 else 1 in 
+             let n = number h l s in
+             if l<lowval || h>highval then raise AnyException
+             else (l,s,n)
+       ) v1 v2
 
     
 let aint32_const v =

@@ -457,7 +457,8 @@ let r_instruction str binop rd rs rt ms =
            (us" " ^. 
               (reg2ustr rd) ^. us"=" ^. (preg rd r') ^. us" " ^.
                 (reg2ustr rs) ^. us"=" ^. (preg rs r) ^. us" " ^.
-                  (reg2ustr rt) ^. us"=" ^. (preg rt r) ) else ();
+                  (reg2ustr rt) ^. us"=" ^. (preg rt r) )
+       else ();
        ps |> update r' |> tick ticks |> nobranch
   in
   let ps = proc_branches proc_ps ms.pstate in
@@ -514,7 +515,8 @@ let mult rs rt ms =
     let (r,v_rt) = getreg rt r in
     let r = setreg internal_lo (aint32_mul v_rs v_rt) r in
     let r = setreg internal_hi (aint32_any) r in
-    if !dbg then prn_inst ms ((us "mult ") ^.
+    if !dbg then prn_inst ms ((us "mult ")
+                              ^.
                                 (reg2ustr internal_lo) ^. us"=" ^. (preg internal_lo r) ^.
                                   (reg2ustr internal_hi) ^. us"=" ^. (preg internal_hi r) ^.
                                     (reg2ustr rs) ^. us"=" ^. (preg rs r) ^.
