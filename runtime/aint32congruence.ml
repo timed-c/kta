@@ -571,7 +571,9 @@ let split_rev lst =
   *)        
 let rec aint32_test_less_than v1 v2 =
   match v1,v2 with
-  | Any,_|_,Any -> (Some(Any,Any),Some(Any,Any))
+  | Any,Any -> (Some(Any,Any),Some(Any,Any))
+  | Any,_ -> (Some(Any,v2),Some(Any,v2))
+  | _,Any -> (Some(v1,Any),Some(v1,Any))
   | Interval((l1,s1,n1)), Interval((l2,s2,n2)) ->
      let h1 = high l1 s1 n1 in
      let h2 = high l2 s2 n2 in
@@ -604,7 +606,9 @@ let rec aint32_test_less_than v1 v2 =
 (* Same as the above, but conservative for negative numbers *)      
 let rec aint32_test_less_than_unsigned v1 v2 =
   match v1,v2 with
-  | Any,_|_,Any -> (Some(Any,Any),Some(Any,Any))
+  | Any,Any -> (Some(Any,Any),Some(Any,Any))
+  | Any,_ -> (Some(Any,v2),Some(Any,v2))
+  | _,Any -> (Some(v1,Any),Some(v1,Any))
   | Interval((l1,s1,n1)), Interval((l2,s2,n2)) ->
      let h1 = high l1 s1 n1 in
      let h2 = high l2 s2 n2 in
@@ -685,7 +689,9 @@ let rec aint32_test_less_than_unsigned v1 v2 =
   *)        
 let rec aint32_test_less_than_equal v1 v2 =
   match v1,v2 with
-  | Any,_|_,Any -> (Some(Any,Any),Some(Any,Any))
+  | Any,Any -> (Some(Any,Any),Some(Any,Any))
+  | Any,_ -> (Some(Any,v2),Some(Any,v2))
+  | _,Any -> (Some(v1,Any),Some(v1,Any))
   | Interval((l1,s1,n1)), Interval((l2,s2,n2)) ->
      let h1 = high l1 s1 n1 in
      let h2 = high l2 s2 n2 in
