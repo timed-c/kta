@@ -956,13 +956,17 @@ let bgtzlds rs label ms =
 
 
 let lui rt imm ms =
-  if !dbg then prn_inst ms (us"lui ");
   let ps = ms.pstate in
   let immi = (aint32_const (imm lsl 16)) in
   let ticks = 1 in
   let proc_ps ps =
     let r = ps.reg in
     let r = setreg rt immi r in
+    if !dbg then prn_inst ms
+                          (us"lui " ^.
+                             (reg2ustr rt) ^.
+                               us"=" ^. (preg rt r));
+
     ps |> update r |> tick ticks |> nobranch
   in
   let ps = proc_branches proc_ps ps in
