@@ -221,11 +221,11 @@ let main =
   let bcet,wcet = compile_file "test/wcet_tests/mdh/cnt.c" "main" [] 0 false None in
   Utest.test_int "cnt.c (main): BCET=WCET Not Optimized." bcet wcet;
   Utest.test_int "cnt.c (main): WCET Not Optimized." wcet 6527;
-  (* should_not_happen 1 error - problem with distance? *)
-  (*let bcet,wcet = compile_file "test/wcet_tests/mdh/cnt.c" "main" [] 1 false None in
+
+  let bcet,wcet = compile_file "test/wcet_tests/mdh/cnt.c" "main" [] 1 false None in
   Utest.test_int "cnt.c (main): BCET=WCET Optimized: -O1." bcet wcet;
-  Utest.test_int "cnt.c (main): WCET Optimized: -O1." wcet 2599;
-   *)
+  Utest.test_int "cnt.c (main): WCET Optimized: -O1." wcet 2300;
+  
   let bcet,wcet = compile_file "test/wcet_tests/mdh/cnt.c" "main" [] 2 false None in
   Utest.test_int "cnt.c (main): BCET=WCET Optimized: -O2." bcet wcet;
   Utest.test_int "cnt.c (main): WCET Optimized: -O2." wcet 1776;

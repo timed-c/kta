@@ -163,7 +163,12 @@ let make_cfg addr prog =
         | inst::MipsBLTZL(rs,imm,s)::rest -> (inst,s,List.rev (MipsBLTZL(rs,imm,new_sym)::rest))
         | _ -> failwith "should not happen"
       in
-      let block1 = {block with block_code = new_block_code; block_exit = ExitTypeNext(nextsym)} in
+      let new_exit_branch =
+        match block.block_exit with
+        | ExitTypeBrLikely(tid,fid) -> ExitTypeBrLikely(tid,nextsym)
+        | _ -> ExitTypeNext(nextsym)
+      in
+      let block1 = {block with block_code = new_block_code; block_exit = new_exit_branch} in
       let block2 = {block_addr = new_addr; block_code=[inst];
                     block_exit = ExitTypeNext(truebranch); block_dist=0} in
       let graph = BlockMap.add name block1 graph in
@@ -283,7 +288,7 @@ let pprint_bblock name block =
   let final = (match block.block_exit with
     | ExitTypeNext(_)  | ExitTypeBranch(_,_)  | ExitTypeJump(_) |
       ExitTypeCall(_,_) -> inden_inst ^.  us"next" ^. us"\n"
-    | ExitTypeBrLikely(_,_) -> inden_inst
+    | ExitTypeBrLikely(_,_) -> inden_inst ^.  us"next" ^. us"\n"
     | ExitTypeReturn -> inden_inst ^.  us"ret" ^. us"\n")
   in
     head ^. instlist (us"") block.block_code ^. final
