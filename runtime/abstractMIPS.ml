@@ -53,9 +53,10 @@ type branchprogstate =
                   (branchprogstate option *
                      branchprogstate option))
 
-  | Sbranch of (branchprogstate option *
-                  branchprogstate option *
-                    branchprogstate option)
+  | Sbranch of (registers *                   (* destination register *)
+                  branchprogstate option *    (* original programstate *)
+                    branchprogstate option *  (* special case when slt used in branch *)
+                      branchprogstate option) (* special case when slt used in branch *)
 
 (** Basic block ID na_ means "not applicable". *)
 let  na_ = -1
@@ -192,9 +193,9 @@ let init_pstate =
 let rec join_pstates ps1 ps2 =
   match ps1, ps2 with
   | Nobranch ps1, Nobranch ps2
-    | Sbranch (Some (Nobranch ps1),_,_), Nobranch ps2
-    | Nobranch ps1, Sbranch (Some (Nobranch ps2),_,_)
-    | Sbranch (Some (Nobranch ps1),_,_), Sbranch (Some (Nobranch ps2),_,_) ->
+    | Sbranch (_,Some (Nobranch ps1),_,_), Nobranch ps2
+    | Nobranch ps1, Sbranch (_,Some (Nobranch ps2),_,_)
+    | Sbranch (_,Some (Nobranch ps1),_,_), Sbranch (_,Some (Nobranch ps2),_,_) ->
      Nobranch
        {
          reg   = areg_join [ps1.reg;ps2.reg];
@@ -423,7 +424,7 @@ let rec proc_branches proc_ps ps =
   | Nobranch ps -> proc_ps ps 
   | Branch (l, (ps1, ps2)) -> Branch (l, (proc_option_ps ps1,
                                             proc_option_ps ps2))
-  | Sbranch (psold, ps1, ps2) -> Sbranch (proc_option_ps psold, proc_option_ps ps1, proc_option_ps ps2)
+  | Sbranch (rd, psold, ps1, ps2) -> Sbranch (rd, proc_option_ps psold, proc_option_ps ps1, proc_option_ps ps2)
 
 let rec proc_slt proc_ps ps =
   let proc_option_ps ps =
@@ -435,7 +436,7 @@ let rec proc_slt proc_ps ps =
   | Nobranch ps -> proc_ps ps 
   | Branch (l, (ps1, ps2)) -> Branch (l, (proc_option_ps ps1,
                                           proc_option_ps ps2))
-  | Sbranch (psold, ps1, ps2) ->
+  | Sbranch (rd, psold, ps1, ps2) ->
      match psold with
      | Some ps -> proc_branches proc_ps ps
      | None -> should_not_happen 14
@@ -513,8 +514,9 @@ let mult rs rt ms =
     let r = ps.reg in
     let (r,v_rs) = getreg rs r in
     let (r,v_rt) = getreg rt r in
-    let r = setreg internal_lo (aint32_mul v_rs v_rt) r in
-    let r = setreg internal_hi (aint32_any) r in
+    let (v_rhi,v_rlo) = aint64_mult v_rs v_rt in
+    let r = setreg internal_lo v_rlo r in
+    let r = setreg internal_hi v_rhi r in
     if !dbg then prn_inst ms ((us "mult ")
                               ^.
                                 (reg2ustr internal_lo) ^. us"=" ^. (preg internal_lo r) ^.
@@ -537,8 +539,8 @@ let madd rs rt ms =
     let (r,v_ilo) = getreg internal_lo r in
     (* No support for internal_hi *)
     (*let v_ihi = getreg internal_hi r in*)
-    let v_rd = aint32_mul v_rs v_rt in
-    let r = setreg internal_lo (aint32_add v_rd v_ilo) r in
+    let v_rlo = aint32_mul v_rs v_rt in
+    let r = setreg internal_lo (aint32_add v_rlo v_ilo) r in
     let r = setreg internal_hi (aint32_any) r in
     ps |> update r |> tick ticks |> nobranch
   in
@@ -770,7 +772,46 @@ let enq tlabel flabel pst psf ms =
       
 let branch_main str equal dslot op rs rt label ms =
   match ms.pstate with
-  | Nobranch ps -> (
+  | Sbranch (sbrd, psold, pst, psf) when sbrd = rs && rt = zero -> (
+    (* Special branch handling when beq or bne is checking with $0 and  
+       there is another instruction such as slt that has written 
+       information in ms.sbranch *)      
+    let bi = ms.bbtable.(ms.cblock) in
+    let pst, psf = if equal then (psf, pst) else (pst, psf) in 
+    
+    if !dbg then
+      (
+       (match pst with
+        | None -> prn_inst ms (str ^. us" None");
+        | Some (Nobranch ps) ->
+           let r = ps.reg in
+           prn_inst ms (str ^. us" T: " ^. (reg2ustr rs)
+                        ^. us"=" ^. (preg rs r) ^. us" " ^.
+                          (reg2ustr rt) ^. us"=" ^. (preg rt r) ^. us" " ^.
+                            us(ms.bbtable.(label).name) ^. us" "
+                            ^. us(ms.bbtable.(bi.nextid).name) ^.
+                                us" " ^. us" (sbranch)")
+        | _  -> (*TODO(Romy): Replace with error *)
+           printf "Error: should not happen branch_main\n%!";);
+        (match psf with
+        | None -> prn_inst ms (str ^. us" None");
+        | Some (Nobranch ps) ->
+           let r = ps.reg in
+           prn_inst ms (str ^. us " F: " ^.
+                          (reg2ustr rs) ^. us"=" ^. (preg rs r) ^. us" " ^.
+                            (reg2ustr rt) ^. us"=" ^. (preg rt r) ^. us" " ^.
+                              us(ms.bbtable.(label).name) ^. us" " ^. us(ms.bbtable.(bi.nextid).name) ^.
+                                us" " ^. us" (sbranch)")
+        | _  -> (*TODO(Romy): Replace with error *)
+           printf "Error: should not happen branch_main\n%!";);
+
+      );   
+    if dslot then 
+      {ms with pstate = Branch (label, (pst, psf))}
+    else
+      enq label bi.nextid pst psf ms
+  )
+  | Nobranch ps | Sbranch (_, Some (Nobranch ps), _, _) -> (
     (* Ordinary branch equality check *)
     let ps = tick 1 ps in    
     let r = ps.reg in
@@ -787,10 +828,9 @@ let branch_main str equal dslot op rs rt label ms =
       | None -> None
     in
     let pst,psf = update_pstate ps rs rt tbranch, update_pstate ps rs rt fbranch in
-    if !dbg then prn_inst ms str;
     if !dbg then (
         let r = ps.reg in
-        prn_inst ms ((if equal then us"beq " else us"bne ") ^.
+        prn_inst ms (str ^. us " " ^.
         (reg2ustr rs) ^. us"=" ^. (preg rs r) ^. us" " ^.
         (reg2ustr rt) ^. us"=" ^. (preg rt r) ^. us" " ^.
         us(ms.bbtable.(label).name) ^. us" " ^. us(ms.bbtable.(bi.nextid).name) ^.
@@ -800,29 +840,7 @@ let branch_main str equal dslot op rs rt label ms =
     else
       enq label bi.nextid pst psf ms
   )
-  | Sbranch (psold, pst, psf) -> (
-    (* Special branch handling when beq or bne is checking with $0 and  
-       there is another instruction such as slt that has written 
-       information in ms.sbranch *)      
-    let bi = ms.bbtable.(ms.cblock) in
-    let pst, psf = if equal then (psf, pst) else (pst, psf) in 
-    if !dbg then prn_inst ms str;
-    (*if !dbg then
-      (
-        match pst with
-        | None -> prn_inst ms str;
-        | Some pst -> prn_inst ms str; (*print_dbg "T: " pst;*)
-        match psf with
-        | None -> prn_inst ms str;
-        | Some psf -> prn_inst ms str; (*print_dbg "F: " psf;*)
-      );
-     *)
-    if dslot then 
-      {ms with pstate = Branch (label, (pst, psf))}
-    else
-      enq label bi.nextid pst psf ms
-  )
-  | Branch _ -> failwith "Nested Branch."
+  | Branch _ | Sbranch _ -> failwith "Nested Branch."
 
 (* Instruction: beq
    From official MIPS32 manual: 
@@ -1001,7 +1019,7 @@ let jalds label ms =
   match ms.pstate with
   | Nobranch ps ->
      Branch (label, (Some (Nobranch ps), None)) |> to_mstate ms
-  | Sbranch(_,Some ps1,_) | Sbranch(_,_,Some ps1) -> (*??*)
+  | Sbranch(_,_,Some ps1,_) | Sbranch(_,_,_,Some ps1) -> (*??*)
      proc_branches
        (fun ps -> Branch (label, (Some (Nobranch ps), None)))
        ps1 |> to_mstate ms
@@ -1014,7 +1032,7 @@ let jds label ms =
   match ms.pstate with
   | Nobranch ps ->
      Branch (label, (Some (Nobranch ps), None)) |> to_mstate ms
-  | Sbranch(_,Some ps1,_) | Sbranch(_,_,Some ps1) ->
+  | Sbranch(_,_,Some ps1,_) | Sbranch(_,_,_,Some ps1) ->
      proc_branches
        (fun ps -> Branch (label, (Some (Nobranch ps), None)))
        ps1 |> to_mstate ms
@@ -1213,7 +1231,8 @@ let slt_main signed r v_rs v_rt rd rs rt ps ms =
     | _ -> should_not_happen 7
     in
    *)
-  let ps = Sbranch(proc_ps_old rd_v ps,
+  let ps = Sbranch(rd,
+                   proc_ps_old rd_v ps,
                    proc_ps t (aint32_const 1) ps,
                    proc_ps f (aint32_const 0) ps)
   in
@@ -1360,7 +1379,7 @@ let print_mstate ms =
   let ps = ms.pstate in
   match ps with
   | Nobranch ps -> print_pstate ps
-  | Sbranch (psold,ps1,ps2) -> should_not_happen 15
+  | Sbranch (_,psold,ps1,ps2) -> should_not_happen 15
 (*     (match psold with
      | Some (Nobranch ps) -> print_pstate ps
      | _ -> should_not_happen 15)*)

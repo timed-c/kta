@@ -158,6 +158,7 @@ let aint32_binop op v1 v2 =
       Interval (op (interval_merge_list l1) (interval_merge_list l2))
   with AnyException -> Any
 
+
 (*n*)
 let aint32_add v1 v2 =
   aint32_binop (fun (l1,s1,n1) (l2,s2,n2) ->
@@ -218,6 +219,16 @@ let aint32_and_f (l1,s1,n1) (l2,s2,n2) =
      else (l,s,n)
                                      
 let aint32_and v1 v2 =
+  let is_power_2 l =
+    if l = 0 then false
+    else (l land (lnot (l-1)) = l)
+  in
+  let (v1,v2) = 
+    match v1,v2 with
+    | Any, Interval(l,0,1) when is_power_2 l -> (Interval(0,l,2),v2)
+    | Interval(l,0,1),Any when is_power_2 l -> (v1,Interval(0,l,2))
+    | _,_ -> (v1,v2)
+  in
   aint32_binop aint32_and_f v1 v2
 
 let aint32_not_f (l,s,n) =
@@ -246,34 +257,65 @@ let aint32_xor v1 v2 =
   in
   aint32_binop aint32_xor_f v1 v2
 
+
+let mul_f v1 v2 =
+  match v1,v2 with
+  | (l1,0,1),(l2,0,1) ->
+     let l = l1 * l2 in
+     (l, 0, 1)
+  (* Multiply constant with interval *)
+  | (l1,0,1),(l2,s2,n) | ((l2,s2,n),(l1,0,1)) ->
+     let h2 = high l2 s2 n in
+     let l = min (l1*l2) (l1*h2) in
+     let s = abs (l1*s2) in
+     let n = if s = 0 then 1 else n in
+     (l,s,n)
+  | ((l1,s1,n1),(l2,s2,n2)) -> 
+     let h1 = high l1 s1 n1 in
+     let h2 = high l2 s2 n2 in
+     let l = min (min (l1*l2) (l1*h2)) (min (h1*l2) (h1*h2)) in
+     let h = max (max (l1*l2) (l1*h2)) (max (h1*l2) (h1*h2)) in
+     let s = gcd (abs (l2*s1)) (gcd (abs (l1*s2)) (s1*s2)) in
+     let n = number h l s in
+     (l,s,n)
                
 let aint32_mul v1 v2 =
   aint32_binop (
       fun v1 v2 ->
-      let (l,s,n,h) =
-        match v1,v2 with
-        | (l1,0,1),(l2,0,1) ->
-           let l = l1 * l2 in
-           (l, 0, 1, l)
-      (* Multiply constant with interval *)
-        | (l1,0,1),(l2,s2,n) | ((l2,s2,n),(l1,0,1)) ->
-           let h2 = high l2 s2 n in
-           let l = min (l1*l2) (l1*h2) in
-           let s = abs (l1*s2) in
-           let n = if s = 0 then 1 else n in
-           let h = high l s n in
-           (l,s,n,h)
-        | ((l1,s1,n1),(l2,s2,n2)) -> 
-           let h1 = high l1 s1 n1 in
-           let h2 = high l2 s2 n2 in
-           let l = min (min (l1*l2) (l1*h2)) (min (h1*l2) (h1*h2)) in
-           let h = max (max (l1*l2) (l1*h2)) (max (h1*l2) (h1*h2)) in
-           let s = gcd (abs (l2*s1)) (gcd (abs (l1*s2)) (s1*s2)) in
-           let n = number h l s in
-           (l,s,n,h)
-      in
-      if l<lowval || h>highval then raise AnyException
+      let (l,s,n) = mul_f v1 v2 in
+      if l<lowval || (high l s n)>highval then raise AnyException
       else (l,s,n)
+    ) v1 v2
+
+  
+let aint64_binop op v1 v2 =
+  try 
+    match v1,v2 with
+    | Any,_|_,Any -> (Any,Any)
+    | Interval(vv1), Interval(vv2) ->
+       let (r1,r2) = op vv1 vv2 in
+       (Interval(r1), Interval(r2))
+    | Interval(vv1),IntervalList(lst,sp) | IntervalList(lst,sp), Interval(vv1) ->
+       let (r1,r2) = List.split (List.map (fun vv2 -> op vv1 vv2) lst) in
+       (IntervalList(r1,sp),IntervalList(r2,sp))
+    | IntervalList(l1,sp1), IntervalList(l2,sp2) when sp1 = sp2 ->
+       let (r1,r2) = List.split (List.rev (List.rev_map2 (fun v1 v2 -> op v1 v2) l1 l2)) in
+       (IntervalList(r1,sp1),IntervalList(r2,sp1))
+    | IntervalList(l1,_), IntervalList(l2,_) ->
+       let (r1,r2) = op (interval_merge_list l1) (interval_merge_list l2) in
+       (Interval(r1),Interval(r2))
+  with AnyException -> (Any,Any)
+
+let aint64_mult v1 v2 =
+  aint64_binop (
+      fun v1 v2 ->
+      let (l,s,n) = mul_f v1 v2 in
+      let h = high l s n in
+      if  l<lowval || h>highval then raise AnyException
+      (*Sign extension*)
+      else if l>=0 then ((0,0,1),(l,s,n))
+      else if h<0 then ((-1,0,1),(l,s,n))
+      else ((-1,1,2),(l,s,n))
     ) v1 v2
 
 let aint32_sllv v1 v2 =
@@ -579,9 +621,8 @@ let rec aint32_test_less_than v1 v2 =
      let h2 = high l2 s2 n2 in
      ((if l1 < h2 then
          let h11 = min h1 (h2-(max s2 1)) in
-         let l22 = if s2 = 0 || l2 > (l1 + s1)
-                   then l2
-                   else l2 + ((l1 + s1 - l2) / s2) * s2
+         let l22 = if s2 = 0 || l2 > (l1 + s1) then l2
+                   else max (l2 + s2) (l2 + ((l1 + s1 - l2) / s2) * s2)
          in
          let s1 = if h11 = l1 then 0 else s1 in
          let s2 = if l22 = h2 then 0 else s2 in
@@ -620,10 +661,11 @@ let rec aint32_test_less_than_unsigned v1 v2 =
            let s1 = if h11 = l1 then 0 else s1 in
            let l22 = if s2 = 0 || l2 > (l1 + (max s1 1))
                      then l2
-                     else l2 + ((l1 + (max s1 1) - l2) / s2) * s2
+                     else max (l2 + s2) (l2 + (((l1 + s1 - l2) / s2)) * s2)
            in
            let s2 = if l22 = h2 then 0 else s2 in
-           Some(Interval(l1,s1,number h11 l1 s1), Interval(l22,s2,number h11 l2 s2))
+           
+           Some(Interval(l1,s1,number h11 l1 s1), Interval(l22,s2,number h2 l2 s2))
          else None),
         (if h1 >= l2 then
            let l11 = if s1 = 0 || l1 > l2
@@ -700,7 +742,7 @@ let rec aint32_test_less_than_equal v1 v2 =
          let s1 = if l1 = h11 then 0 else s1 in 
          let l22 = if s2 = 0 || l2 > (l1 + (max s1 1))
                    then l2
-                   else l2 + ((l1 + (max s1 1) - l2) / s2) * s2
+                   else l2 + ((l1 + s1 - l2) / s2) * s2
          in
          let s2 = if l22 = h2 then 0 else s2 in
          Some(Interval(l1,s1,number h11 l1 s1), Interval(l22,s2, number h2 l22 s2))
@@ -708,7 +750,7 @@ let rec aint32_test_less_than_equal v1 v2 =
      (if h1 > l2 then
         let l11 = if s1 = 0 || l1 > l2
                   then l1
-                  else l1 + ((l2 - l1) / s1) * s1
+                  else max (l1 + s1) (l1 + ((l2 - l1 + s1) / s1) * s1)
         in
         let h22 = min (h1-(max s1 1)) h2 in
         let s2 = if l2 = h22 then 0 else s2 in

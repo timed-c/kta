@@ -87,7 +87,7 @@ let main =
   Utest.test_int "recursion.c (kalle): WCET Optimized: -O2." wcet 25;
   let bcet,wcet = compile_file "test/wcet_tests/mdh/recursion.c" "kalle" ["a0=[0,10]"] 3 false None in
   Utest.test_int "recursion.c (kalle): BCET Optimized: -O3." bcet 3;
-  Utest.test_int "recursion.c (kalle): WCET Optimized: -O3." wcet 25;
+  Utest.test_int "recursion.c (kalle): WCET Optimized: -O3." wcet 34;
   let bcet,wcet = compile_file "test/wcet_tests/mdh/recursion.c" "anka" ["a0=[0,10]"] 0 false None in
   Utest.test_int "recursion.c (anka): BCET Not Optimized." bcet 15;
   Utest.test_int "recursion.c (anka): WCET Not Optimized." wcet 185;
@@ -96,10 +96,10 @@ let main =
   Utest.test_int "recursion.c (anka): WCET Optimized: -O1." wcet 73;
   let bcet,wcet = compile_file "test/wcet_tests/mdh/recursion.c" "anka" ["a0=[0,10]"] 2 false None in
   Utest.test_int "recursion.c (anka): BCET Optimized: -O2." bcet 3;
-  Utest.test_int "recursion.c (anka): WCET Optimized: -O2." wcet 28;
+  Utest.test_int "recursion.c (anka): WCET Optimized: -O2." wcet 26;
   let bcet,wcet = compile_file "test/wcet_tests/mdh/recursion.c" "anka" ["a0=[0,10]"] 3 false None in
   Utest.test_int "recursion.c (anka): BCET Optimized: -O3." bcet 3;
-  Utest.test_int "recursion.c (anka): WCET Optimized: -O3." wcet 47;
+  Utest.test_int "recursion.c (anka): WCET Optimized: -O3." wcet 32;
 (*
   let bcet,wcet = compile_file "test/wcet_tests/mdh/recursion.c" "fib" ["a0=[0,10]"] 0 false None in
   Utest.test_int "recursion.c (fib): BCET Not Optimized." bcet 15;
@@ -122,8 +122,8 @@ let main =
   Utest.test_int "bsort100.c (main): BCET Not Optimized." bcet 4535;
   Utest.test_int "bsort100.c (main): WCET Not Optimized." wcet 251917;
   let bcet,wcet = compile_file "test/wcet_tests/mdh/bsort100.c" "main" [] 1 false None in
-  Utest.test_int "bsort100.c (main): BCET Optimized: -O1." bcet 1416;
-  Utest.test_int "bsort100.c (main): WCET Optimized: -O1." wcet 1713;
+  Utest.test_int "bsort100.c (main): BCET Optimized: -O1." bcet 1417;
+  Utest.test_int "bsort100.c (main): WCET Optimized: -O1." wcet 51010;
   let bcet,wcet = compile_file "test/wcet_tests/mdh/bsort100.c" "main" [] 2 false None in
   Utest.test_int "bsort100.c (main): BCET Optimized: -O2." bcet 1511;
   Utest.test_int "bsort100.c (main): WCET Optimized: -O2." wcet 55954;
@@ -241,14 +241,14 @@ let main =
   Utest.test_int "fir.c (main): WCET Not Optimized." wcet 504994;
   let bcet,wcet = compile_file "test/wcet_tests/mdh/fir.c" "main" [] 1 false None in
   Utest.test_int "fir.c (main): BCET=WCET Optimized: -O1." bcet wcet;
-  Utest.test_int "fir.c (main): WCET Optimized: -O1." wcet 4504; 
+  Utest.test_int "fir.c (main): WCET Optimized: -O1." wcet 225477; 
   let bcet,wcet = compile_file "test/wcet_tests/mdh/fir.c" "main" [] 2 false None in
   Utest.test_int "fir.c (main): BCET=WCET Optimized: -O2." bcet wcet;
-  Utest.test_int "fir.c (main): WCET Optimized: -O2." wcet 4503;
+  Utest.test_int "fir.c (main): WCET Optimized: -O2." wcet 225458;
   
   let bcet,wcet = compile_file "test/wcet_tests/mdh/fir.c" "main" [] 3 false None in
   Utest.test_int "fir.c (main): BCET=WCET Optimized: -O3." bcet wcet;
-  Utest.test_int "fir.c (main): WCET Optimized: -O3." wcet 4503;
+  Utest.test_int "fir.c (main): WCET Optimized: -O3." wcet 225458;
   
   (* PRIME.C - prime: returns bool, main: returns bool *)
   printf "\ntesting prime.c\n%!";
@@ -274,5 +274,138 @@ let main =
   let bcet,wcet = compile_file "test/wcet_tests/mdh/prime.c" "prime" ["a0=[0,100]"] 3 false None in
   Utest.test_int "prime.c (prime): BCET Optimized: -O3." bcet 4;
   Utest.test_int "prime.c (prime): WCET Optimized: -O3." wcet 20;
+
+  (* JFDCTINT.C - JPEG Integer Forward Discrete Cosine Transform - WCET = BCET *)
+  printf "\ntesting jfdctint.c\n%!";
+
+  let bcet,wcet = compile_file "test/wcet_tests/mdh/jfdctint.c" "main" [] 0 false None in
+  Utest.test_int "jfdctint.c (main): BCET=WCET Not Optimized." bcet wcet;
+  Utest.test_int "jfdctint.c (main): WCET Not Optimized." wcet 6858;
+  let bcet,wcet = compile_file "test/wcet_tests/mdh/jfdctint.c" "main" [] 1 false None in
+  Utest.test_int "jfdctint.c (main): BCET=WCET Optimized: -O1." bcet wcet;
+  Utest.test_int "jfdctint.c (main): WCET Optimized: -O1." wcet 3396; 
+  let bcet,wcet = compile_file "test/wcet_tests/mdh/jfdctint.c" "main" [] 2 false None in
+  Utest.test_int "jfdctint.c (main): BCET=WCET Optimized: -O2." bcet wcet;
+  Utest.test_int "jfdctint.c (main): WCET Optimized: -O2." wcet 3807;
+  
+  let bcet,wcet = compile_file "test/wcet_tests/mdh/jfdctint.c" "main" [] 3 false None in
+  Utest.test_int "jfdctint.c (main): BCET=WCET Optimized: -O3." bcet wcet;
+  Utest.test_int "jfdctint.c (main): WCET Optimized: -O3." wcet 3807;
+
+  (* ADPCM.C - Adaptive Differential Pulse Code Modulation 
+     Comment: BCET!=WCET due to ANY values (coefficients) split with div/mod 
+  *)
+  printf "\ntesting adpcm.c\n%!";
+
+  let bcet,wcet = compile_file "test/wcet_tests/mdh/adpcm.c" "main" [] 0 false None in
+  Utest.test_int "adpcm.c (main): BCET Not Optimized." bcet 26832;
+  Utest.test_int "adpcm.c (main): WCET Not Optimized." wcet 302369;
+  let bcet,wcet = compile_file "test/wcet_tests/mdh/adpcm.c" "main" [] 1 false None in
+  Utest.test_int "adpcm.c (main): BCET Optimized: -O1." bcet 3539;
+  Utest.test_int "adpcm.c (main): WCET Optimized: -O1." wcet 79501;
+  let bcet,wcet = compile_file "test/wcet_tests/mdh/adpcm.c" "main" [] 2 false None in
+  Utest.test_int "adpcm.c (main): BCET Optimized: -O2." bcet 9286;
+  Utest.test_int "adpcm.c (main): WCET Optimized: -O2." wcet 95639;
+  let bcet,wcet = compile_file "test/wcet_tests/mdh/adpcm.c" "main" [] 3 false None in
+  Utest.test_int "adpcm.c (main): BCET Optimized: -O3." bcet 8790;
+  Utest.test_int "adpcm.c (main): WCET Optimized: -O3." wcet 95127;
+
+  let bcet,wcet = compile_file "test/wcet_tests/mdh/adpcm.c" "my_cos" ["a0=[0,6282]"] 0 false None in
+  Utest.test_int "adpcm.c (my_cos): BCET Not Optimized." bcet 90;
+  Utest.test_int "adpcm.c (my_cos): WCET Not Optimized." wcet 116442;
+  let bcet,wcet = compile_file "test/wcet_tests/mdh/adpcm.c" "my_cos" ["a0=[0,6282]"] 1 false None in
+  Utest.test_int "adpcm.c (my_cos): BCET Optimized: -O1." bcet 27;
+  Utest.test_int "adpcm.c (my_cos): WCET Optimized: -O1." wcet 43659;
+  let bcet,wcet = compile_file "test/wcet_tests/mdh/adpcm.c" "my_cos" ["a0=[0,6282]"] 2 false None in
+  Utest.test_int "adpcm.c (my_cos): BCET Optimized: -O2." bcet 21;
+  Utest.test_int "adpcm.c (my_cos): WCET Optimized: -O2." wcet 36381;
+  let bcet,wcet = compile_file "test/wcet_tests/mdh/adpcm.c" "my_cos" ["a0=[0,6282]"] 3 false None in
+  Utest.test_int "adpcm.c (my_cos): BCET Optimized: -O3." bcet 21;
+  Utest.test_int "adpcm.c (my_cos): WCET Optimized: -O3." wcet 36381;
+  let bcet,wcet = compile_file "test/wcet_tests/mdh/adpcm.c" "my_sin" ["a0=[0,6282]"] 0 false None in
+  Utest.test_int "adpcm.c (my_sin): BCET Not Optimized." bcet 75;
+  Utest.test_int "adpcm.c (my_sin): WCET Not Optimized." wcet 153339;
+  let bcet,wcet = compile_file "test/wcet_tests/mdh/adpcm.c" "my_sin" ["a0=[0,6282]"] 1 false None in
+  Utest.test_int "adpcm.c (my_sin): BCET Optimized: -O1." bcet 21;
+  Utest.test_int "adpcm.c (my_sin): WCET Optimized: -O1." wcet 57495;
+  let bcet,wcet = compile_file "test/wcet_tests/mdh/adpcm.c" "my_sin" ["a0=[0,6282]"] 2 false None in
+  Utest.test_int "adpcm.c (my_sin): BCET Optimized: -O2." bcet 19;
+  Utest.test_int "adpcm.c (my_sin): WCET Optimized: -O2." wcet 47914;
+  let bcet,wcet = compile_file "test/wcet_tests/mdh/adpcm.c" "my_sin" ["a0=[0,6282]"] 3 false None in
+  Utest.test_int "adpcm.c (my_sin): BCET Optimized: -O3." bcet 19;
+  Utest.test_int "adpcm.c (my_sin): WCET Optimized: -O3." wcet 47914;
+
+  (* BS.C - Binary Search 
+
+     Comment: Doesn't depend on input.
+  *)
+  printf "\ntesting bs.c\n%!";
+
+  let bcet,wcet = compile_file "test/wcet_tests/mdh/bs.c" "binary_search" [] 0 false (Some 23) in
+  Utest.test_int "bs.c (binary_search): BCET Not Optimized." bcet 48;
+  Utest.test_int "bs.c (binary_search): WCET Not Optimized." wcet 143;
+  let bcet,wcet = compile_file "test/wcet_tests/mdh/bs.c" "binary_search" [] 1 false (Some 23) in
+  Utest.test_int "bs.c (binary_search): BCET Optimized: -O1." bcet 18;
+  Utest.test_int "bs.c (binary_search): WCET Optimized: -O1." wcet 45;
+  let bcet,wcet = compile_file "test/wcet_tests/mdh/bs.c" "binary_search" [] 2 false (Some 23) in
+  Utest.test_int "bs.c (binary_search): BCET Optimized: -O2." bcet 17;
+  Utest.test_int "bs.c (binary_search): WCET Optimized: -O2." wcet 47;
+  let bcet,wcet = compile_file "test/wcet_tests/mdh/bs.c" "binary_search" [] 3 false (Some 23) in
+  Utest.test_int "bs.c (binary_search): BCET Optimized: -O3." bcet 17;
+  Utest.test_int "bs.c (binary_search): WCET Optimized: -O3." wcet 47;
+
+  (* EDN.C - Simple Vector Algorithms (fir,jpeg discrete cosine transform)
+
+     Comment: main (BSET=WCET)
+  *)
+  printf "\ntesting edn.c\n%!";
+  (* -O0: Error: Undefined reference to `memcpy *)
+  (*
+  let bcet,wcet = compile_file "test/wcet_tests/mdh/edn.c" "main" [] 0 false None in
+  Utest.test_int "edn.c (main): BCET=WCET Not Optimized." bcet wcet;
+  Utest.test_int "edn.c (main): WCET Not Optimized." wcet 143;
+  *)
+  let bcet,wcet = compile_file "test/wcet_tests/mdh/edn.c" "main" [] 1 false None in
+  Utest.test_int "edn.c (main): BCET=WCET Optimized: -O1." bcet wcet;
+  Utest.test_int "edn.c (main): WCET Optimized: -O1." wcet 49274;
+  let bcet,wcet = compile_file "test/wcet_tests/mdh/edn.c" "main" [] 2 false None in
+  Utest.test_int "edn.c (main): BCET=WCET Optimized: -O2." bcet wcet;
+  Utest.test_int "edn.c (main): WCET Optimized: -O2." wcet 50884;
+  let bcet,wcet = compile_file "test/wcet_tests/mdh/edn.c" "main" [] 3 false None in
+  Utest.test_int "edn.c (main): BCET=WCET Optimized: -O3." bcet wcet;
+  Utest.test_int "edn.c (main): WCET Optimized: -O3." wcet 50213;
+
+  (* NDES.C
+
+     Comment: BCET!=WCET (SLT)
+  *)
+  printf "\ntesting ndes.c\n%!";
+
+  let bcet,wcet = compile_file "test/wcet_tests/mdh/ndes.c" "main" [] 0 false None in
+  Utest.test_int "ndes.c (main): BCET Not Optimized." bcet 53388;
+  Utest.test_int "ndes.c (main): WCET Not Optimized." wcet 101756;
+  let bcet,wcet = compile_file "test/wcet_tests/mdh/ndes.c" "main" [] 1 false None in
+  Utest.test_int "ndes.c (main): BCET Optimized: -O1." bcet 21826;
+  Utest.test_int "ndes.c (main): WCET Optimized: -O1." wcet 41840;
+  let bcet,wcet = compile_file "test/wcet_tests/mdh/ndes.c" "main" [] 2 false None in
+  Utest.test_int "ndes.c (main): BCET Optimized: -O2." bcet 19302;
+  Utest.test_int "ndes.c (main): WCET Optimized: -O2." wcet 46214;
+  let bcet,wcet = compile_file "test/wcet_tests/mdh/ndes.c" "main" [] 3 false None in
+  Utest.test_int "ndes.c (main): BCET Optimized: -O3." bcet 19061;
+  Utest.test_int "ndes.c (main): WCET Optimized: -O3." wcet 45958;
+
+  (* LCDNUM.C
+
+     Comment: Trivial loop, BCET!=WCET (SLT)
+  *)
+  printf "\ntesting lcdnum.c\n%!";
+  (* -O{0,1} Indirect Jumps Not Supported *)
+  let bcet,wcet = compile_file "test/wcet_tests/mdh/lcdnum.c" "main" [] 2 false None in
+  Utest.test_int "lcdnum.c (main): BCET Optimized: -O2." bcet 120;
+  Utest.test_int "lcdnum.c (main): WCET Optimized: -O2." wcet 125;
+  let bcet,wcet = compile_file "test/wcet_tests/mdh/lcdnum.c" "main" [] 3 false None in
+  Utest.test_int "lcdnum.c (main): BCET Optimized: -O3." bcet 45;
+  Utest.test_int "lcdnum.c (main): WCET Optimized: -O3." wcet 57;
+
 
   Utest.result()
