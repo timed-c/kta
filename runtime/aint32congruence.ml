@@ -406,9 +406,8 @@ let aint32_mod v1 v2 =
            if (n1 = 1 && n2 = 1) then (l1 mod l2, 0, 1)
            else
              (* very conservative *)
-             let s2_n = max 1 s2 in
-             let k = max (max (abs l1) (abs (l2-s2_n)))
-                         (max (abs h1) (abs (h2-s2_n))) in
+             let k = max (max (abs l1) ((abs l2)-1))
+                         (max (abs h1) ((abs h2)-1)) in
              let l,h = 
                if (l1>0 && l2>0) then (0, k)
                else if (h1<0 && h2<0) then (-k,0)
