@@ -16,6 +16,7 @@ let decode_inst bininst =
   let shamt() = (bininst lsr 6) land 0b11111 in
   let funct() = bininst land 0b111111 in
   let imm() = Utils.sign_extension (bininst land 0xffff) 16 in
+  let uimm() = bininst land 0xffff in
   let address() = bininst land 0x3ffffff in
   match op with
   | 0 -> (match funct() with
@@ -65,9 +66,9 @@ let decode_inst bininst =
   | 9  -> MipsADDIU(rt(),rs(),imm())
   | 10 -> MipsSLTI(rt(),rs(),imm())
   | 11 -> MipsSLTIU(rt(),rs(),imm())
-  | 12 -> MipsANDI(rt(),rs(),imm())
-  | 13 -> MipsORI(rt(),rs(),imm())
-  | 14 -> MipsXORI(rt(),rs(),imm())
+  | 12 -> MipsANDI(rt(),rs(),uimm())
+  | 13 -> MipsORI(rt(),rs(),uimm())
+  | 14 -> MipsXORI(rt(),rs(),uimm())
   | 15 -> MipsLUI(rt(),imm())
   | 20 -> MipsBEQL(rs(),rt(),imm(),"")
   | 21 -> MipsBNEL(rs(),rt(),imm(),"")
