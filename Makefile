@@ -2,7 +2,7 @@
 
 DIRS = src,test,ext/ucamlib/src
 
-.PHONY: all test clean wcet_reg_test
+.PHONY: all test clean
 
 # Init submodules if needed and make native version. 
 # The resulting executable can be found under /bin and /library (symlinks)
@@ -52,6 +52,8 @@ push_ucamlib:
 test:
 	@ocamlbuild -Is $(DIRS) maintest.native --
 	@rm -f maintest.native
+
+mdh:
 	@ocamlbuild -lib str -Is $(DIRS) testWCET.native --
 	@rm -f testWCET.native
 
