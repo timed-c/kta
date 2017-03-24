@@ -44,7 +44,8 @@ let get_section filename section =
 
 (* ---------------------------------------------------------------------*)
 let pic32_compile filenames only_compile optimization outputname =
-  let cflags = " -ffreestanding  -mips32 -mips2  -msoft-float -Wa,-msoft-float " in 
+  let cflags = " -ffreestanding  -mips32 -mips2  -msoft-float -Wa,-msoft-float " in
+  (*"-I/opt/mcb32tools/include/ -L/opt/mcb32tools/lib/ -lm " in*)
 (* NOTE:  -march=mips32r2  and -mips32 -mips2  are not the same. *)
   let command = (gcc ^ cflags ^ (String.concat " " filenames) ^ " " ^
                    (if only_compile then "-c " else "") ^ 
