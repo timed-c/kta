@@ -319,11 +319,40 @@ let pprint_ocaml_cps_from_cfgmap nice_output name cfgmap prog =
     |> List.split |> snd
     else cfglst
   in
-  (* Intro header *)
+  let mem_start = us"let mem = [" in
+  let mem_end = us"]\n\n" in
+  let rec mem_get_data d n lst =
+    let get_byte d i =
+      int_of_char (Bytes.get d i)
+    in
+    match n with
+    | n when n<3 -> lst
+    | n ->
+       let b0,b1,b2,b3 = get_byte d (n-3), get_byte d (n-2),
+                         get_byte d (n-1), get_byte d n in
+       mem_get_data d (n-4) (us (sprintf "(%d,%d,%d,%d);" b0 b1 b2 b3) ^. lst)
+  in
+  let print_mem_sec sec name =
+    match sec.addr,sec.size with
+    | 0,0 -> us ""
+    | _,_ ->
+       us"{" ^. 
+         us(sprintf "address=%d; " (sec.addr)) ^.
+           us(sprintf "size=%d; " (sec.size)) ^.
+             us(sprintf "sect_name=\"%s\"; " name) ^.
+               us(sprintf "data=[") ^.               
+                 mem_get_data sec.d (sec.size-1) (us"") ^.
+                   us"]};\n"
+  in
+  let mem_all = print_mem_sec prog.data_sec ".data" ^.
+                  print_mem_sec prog.sdata_sec ".sdata"
+  in
+(* Intro header *)
   let intro =
     us"open AbstractMIPS\n\n" ^.
       us"open Printf\n\n" ^.
         us (sprintf "let gp_addr=%d\n" prog.gp) ^.
+          mem_start ^. mem_all ^. mem_end ^.
           us"(* -- Basic Block Identifiers -- *)\n\n"
   in
   
@@ -385,7 +414,7 @@ let pprint_ocaml_cps_from_cfgmap nice_output name cfgmap prog =
   let analyze = us"(* -- Start of Analysis -- *)\n\n" ^.
                   us"let main = \n\t"
                   ^. us"let _st_time = Sys.time() in\n"
-                  ^. us"\tanalyze " ^. us name ^. us"_ bblocks gp_addr [];\n"
+                  ^. us"\tanalyze " ^. us name ^. us"_ bblocks gp_addr mem [];\n"
                   ^. us"\tprintf \"Time Elapsed %fs\\n\" (Sys.time() -. _st_time)\n" in
   
   (* Return the complete .ml file *)
@@ -413,6 +442,7 @@ type bblock =
 }
                                   
 let test prog fname cm_args =
+  
   let (prog,cfgmap) = make_cfgmap fname prog in
   let program_code = pprint_ocaml_cps_from_cfgmap true fname cfgmap prog in
   match cm_args with

@@ -69,7 +69,14 @@ type specialbranch =
    registers * registers *
   (aint32 * aint32) option *
   (aint32 * aint32) option)
-  
+
+type mem_info =
+  {
+    address   : int;
+    size      : int;
+    sect_name : string;
+    data      : (int * int * int * int) list;
+  }
 (** The basic block info entry type is one element in the
     basic block table. This table provides all information about
     how basic blocks are related, which distances they have etc. *)  
@@ -238,6 +245,30 @@ let rec pstate_input ps args =
           | None -> make_error a)
     | _ -> make_error a)
 
+(* ---------------  INPUT MEMORY HANDLING -----------------*)
+                 
+(** Returns a new memory containing all the memory content *)
+
+let rec memory_init bigendian mem amem =
+  let rec init_section d addr amem =
+    match d with
+    | [] -> amem
+    | (d0,d1,d2,d3)::ds ->
+       let data =
+         match bigendian with
+         (*d0|d1|d2|d3*)
+         | true -> (d0 lsl 24) lor ((d1 lsl 16) lor ((d2 lsl 8) lor d3)) 
+         (*d3|d2|d1|d0*)
+         | false -> (d3 lsl 24) lor ((d2 lsl 16) lor ((d1 lsl 8) lor d0)) 
+       in
+       let amem = Mem.add addr (aint32_const data) amem in
+       init_section ds (addr+4) amem
+  in
+  match mem with
+  | [] -> amem
+  | m::ms ->
+     let amem = init_section m.data m.address amem in
+     memory_init bigendian ms amem
 
 (* ----------------------- DEBUG FUNCTIONS  -------------------------*)
 let should_not_happen no = failwith (sprintf "ERROR: Should not happen ID = %d" no)
@@ -1330,22 +1361,24 @@ let lii rd l h ms =
 (* ------------------- MAIN ANALYSIS FUNCTIONS ----------------------*)
     
 (** Main function for analyzing an assembly function *)
-let analyze_main startblock bblocks gp_addr args =
+let analyze_main startblock bblocks gp_addr args init_mem =
   (* Get the block info of the first basic block *)  
   let bi = bblocks.(startblock) in
 
   (* Update the program states with abstract inputs from program arguments *)
   let ps = 
     try pstate_input init_pstate args
-      with Failure s -> (printf "Error: %s\n" s; exit 1) in 
+    with Failure s -> (printf "Error: %s\n" s; exit 1) in 
 
 
   (* Initiate the stack pointer *)
   let stack_addr = 0x80000000 - 8 in
   let reg = setreg sp (aint32_const stack_addr) ps.reg in
   let reg = setreg gp (aint32_const gp_addr) reg in
-  let ps = {ps with reg = reg} in (*(setreg sp (aint32_const stack_addr) ps.reg)} in*)
-       
+  let mem = ps.mem in
+  let mem = {mem with memory = memory_init false init_mem mem.memory} in
+  let ps = {ps with reg = reg; mem=mem} in (*(setreg sp (aint32_const stack_addr) ps.reg)} in*)
+  
   
   (* Create the main state *)
   let mstate = {
@@ -1400,7 +1433,7 @@ let options =
     (OpArgs, Uargs.StrList, us"-args", us"<args>",
      us"Accepts Initial Intervals for Registers a0, a1, a2 and a3");  ]
     
-let analyze startblock bblocks gp_addr defaultargs =
+let analyze startblock bblocks gp_addr mem defaultargs =
   let args = (Array.to_list Sys.argv |> List.tl) in
   let (ops, args) = Uargs.parse args options in
   let debug = Uargs.has_op OpDebug ops in
@@ -1416,11 +1449,11 @@ let analyze startblock bblocks gp_addr defaultargs =
   let args = if args = [] then defaultargs else args in
   if !dbg && !dbg_trace then
     let v =     
-      try analyze_main startblock bblocks gp_addr args |> print_mstate
+      try analyze_main startblock bblocks gp_addr args mem |> print_mstate
       with _ -> (Printexc.print_backtrace stdout; raise Not_found)
     in v
   else
-    analyze_main startblock bblocks gp_addr args |> print_mstate
+    analyze_main startblock bblocks gp_addr args mem |> print_mstate
 
     
     
