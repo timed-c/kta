@@ -1,6 +1,7 @@
 
 
 DIRS = src,test,ext/ucamlib/src
+TACLEBENCH_GIT = "https://github.com/tacle/tacle-bench.git"
 
 .PHONY: all test clean
 
@@ -47,6 +48,9 @@ pull_ucamlib:
 	git subtree pull --prefix ext/ucamlib $(UCAMLIB_GIT) master --squash -m $(UCAMLIB_MSG)
 push_ucamlib:
 	git subtree push --prefix ext/ucamlib $(UCAMLIB_GIT) master --squash
+
+download-taclebench:
+	(cd test/wcet_tests; git clone $(TACLEBENCH_GIT))
 
 
 test: test-main test-mdh test-taclebench test-custom
