@@ -27,9 +27,8 @@ let compile_file filename fname args optimize debug bsconfig =
     (eprintf "Error: BCET/WCET Not_Found\n";
      raise Not_found)
        
-let main =
+let run_test test_file =
   Utest.init "WCET";
-  let test_file = "test/testWCET.csv" in
   let reg_separator = Str.regexp "|" in
   let arg_separator = Str.regexp ";" in
   let ic = open_in test_file in 
@@ -58,3 +57,27 @@ let main =
 
 
   Utest.result()
+
+type compOpTypes =
+  (* General compiler options used by all commands *)
+| OpCSVFile
+
+let bench_options = 
+  [(OpCSVFile, Uargs.Str,  us"-csvfile",  us"",
+    us"Select .csv file for selecting the tests.");
+  ]
+
+let main =
+  try
+    match Array.to_list Sys.argv with
+    | args ->
+       (
+         let (ops,args) = Uargs.parse args bench_options in
+         if Uargs.has_op OpCSVFile ops then
+           let test_file = Uargs.str_op OpCSVFile ops |> Ustring.to_utf8 in
+           run_test test_file
+         else
+           printf "No input file\n%!"
+       )
+  with Uargs.Error s -> uprint_endline s
+ 

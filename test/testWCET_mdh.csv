@@ -1,8 +1,4 @@
 filename|function name|inputs|optimization flag|batch config (-1 for default)|expected bcet|expected wcet
-test/demo/array_mul.c|array_mul|a0=[1,2];a1=[1,4];a2=[1,3]|0|-1|98|1279 
-test/demo/array_mul.c|array_mul|a0=[1,2];a1=[1,4];a2=[1,3]|3|-1|41|282
-test/demo/fact.c|fact|a0=[1,6]|0|-1|15|70
-test/demo/fact.c|fact|a0=[1,6]|3|-1|3|30
 test/wcet_tests/mdh/ns.c|foo|a0=[1,10]|0|-1|4955|24219
 test/wcet_tests/mdh/ns.c|foo|a0=[1,10]|1|-1|736|3530
 test/wcet_tests/mdh/ns.c|foo|a0=[1,10]|2|-1|812|3905

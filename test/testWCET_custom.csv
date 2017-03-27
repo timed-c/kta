@@ -1,0 +1,5 @@
+filename|function name|inputs|optimization flag|batch config (-1 for default)|expected bcet|expected wcet
+test/wcet_tests/custom/array_mul.c|array_mul|a0=[1,2];a1=[1,4];a2=[1,3]|0|-1|98|1279 
+test/wcet_tests/custom/array_mul.c|array_mul|a0=[1,2];a1=[1,4];a2=[1,3]|3|-1|41|282
+test/wcet_tests/custom/fact.c|fact|a0=[1,6]|0|-1|15|70
+test/wcet_tests/custom/fact.c|fact|a0=[1,6]|3|-1|3|30

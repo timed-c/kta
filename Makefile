@@ -49,12 +49,22 @@ push_ucamlib:
 	git subtree push --prefix ext/ucamlib $(UCAMLIB_GIT) master --squash
 
 
-test:
+test: test-main test-mdh test-taclebench test-custom
+
+test-main:
 	@ocamlbuild -Is $(DIRS) maintest.native --
 	@rm -f maintest.native
 
-mdh:
-	@ocamlbuild -lib str -Is $(DIRS) testWCET.native --
+test-mdh:
+	@ocamlbuild -lib str -Is $(DIRS) testWCET.native -- -csvfile test/testWCET_mdh.csv
+	@rm -f testWCET.native
+
+test-custom:
+	@ocamlbuild -lib str -Is $(DIRS) testWCET.native -- -csvfile test/testWCET_custom.csv
+	@rm -f testWCET.native
+
+test-taclebench:
+	@ocamlbuild -lib str -Is $(DIRS) testWCET.native -- -csvfile test/testWCET_taclebench.csv
 	@rm -f testWCET.native
 
 dac16:	clean
