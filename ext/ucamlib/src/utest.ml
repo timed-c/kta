@@ -25,10 +25,10 @@ let test str ok =
   printf "%d. Test '%s' : " (!count_ok + !count_fail+1) str;
   if ok then (
     count_ok := !count_ok + 1;
-    printf "OK\n")
+    printf "OK\n%!")
   else (
     count_fail := !count_fail + 1;
-    printf "FAIL\n") 
+    printf "FAIL\n%!") 
 
 let test_ext str res fail_str ok_str = 
   test str res;
@@ -45,8 +45,8 @@ let test_str str result expected =
   test str res;
   if res then ()
   else (
-    printf "   Expected: '%s'\n" expected;
-    printf "   Result:  '%s'\n" result)
+    printf "   Expected: '%s'\n%!" expected;
+    printf "   Result:  '%s'\n%!" result)
 
 let test_ustr str result expected =
   let res = (result =. expected) in

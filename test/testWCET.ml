@@ -48,10 +48,9 @@ let main =
          let opt = int_of_string (String.trim opt) in
          let exp_wcet = int_of_string (String.trim exp_wcet) in
          let exp_bcet = int_of_string (String.trim exp_bcet) in
-         printf "\ntesting %s\n%!" fname;
          let bcet,wcet = compile_file fname func args opt false bsconfig in      
-         Utest.test_int (sprintf "%s (%s) %s" fname func "BCET") bcet exp_bcet;
-         Utest.test_int (sprintf "%s (%s) %s" fname func "WCET") wcet exp_wcet;
+         Utest.test_int (sprintf "%s (%s) %s%!" fname func "BCET") bcet exp_bcet;
+         Utest.test_int (sprintf "%s (%s) %s%!" fname func "WCET") wcet exp_wcet;
       | _ -> printf "Wrong format in %s\n%!" test_file;
     done;
   with 
