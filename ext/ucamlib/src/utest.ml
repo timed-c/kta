@@ -18,7 +18,7 @@ let maintext() =
 let init str =
    maintext();
    name := str;
-   printf "Module: '%s'\n" str
+   printf "Module: '%s'\n%!" str
 
 let test str ok =
   maintext();
@@ -69,7 +69,7 @@ let test_array str result expected elem2str =
   
 let result() =
   maintext();
-  printf "Result: %d successful and  %d failed test(s).\n\n" (!count_ok) (!count_fail);
+  printf "Result: %d successful and  %d failed test(s).\n\n%!" (!count_ok) (!count_fail);
   name := "";
   total_ok := !total_ok + !count_ok;
   count_ok := 0;
