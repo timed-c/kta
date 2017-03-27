@@ -613,7 +613,27 @@ let split_rev lst =
 let rec aint32_test_less_than v1 v2 =
   match v1,v2 with
   | Any,Any -> (Some(Any,Any),Some(Any,Any))
+  | Any,Interval(l,s,n) ->
+     let h = high l s n in
+     let anyl1 = lowval in
+     let anys = 1 in
+     let anyh1 = h - 1 in
+     let anyn1 = number anyh1 anyl1 anys in
+     let anyl2 = l in
+     let anyh2 = highval in
+     let anyn2 = number anyh2 anyl2 anys in
+     (Some(Interval(anyl1,anys,anyn1),v2),Some(Interval(anyl2,anys,anyn2),v2))
   | Any,_ -> (Some(Any,v2),Some(Any,v2))
+  | Interval(l,s,n),Any ->
+     let h = high l s n in
+     let anyl1 = l + 1 in
+     let anys = 1 in
+     let anyh1 = highval in
+     let anyn1 = number anyh1 anyl1 anys in
+     let anyl2 = lowval in
+     let anyh2 = h in
+     let anyn2 = number anyh2 anyl2 anys in
+     (Some(v1, Interval(anyl1,anys,anyn1)),Some(v1,Interval(anyl2,anys,anyn2)))               
   | _,Any -> (Some(v1,Any),Some(v1,Any))
   | Interval((l1,s1,n1)), Interval((l2,s2,n2)) ->
      let h1 = high l1 s1 n1 in
@@ -647,13 +667,33 @@ let rec aint32_test_less_than v1 v2 =
 let rec aint32_test_less_than_unsigned v1 v2 =
   match v1,v2 with
   | Any,Any -> (Some(Any,Any),Some(Any,Any))
+  | Any,Interval(l,s,n) ->
+     let h = high l s n in
+     let anyl1 = lowval in
+     let anys = 1 in
+     let anyh1 = h - 1 in
+     let anyn1 = number anyh1 anyl1 anys in
+     let anyl2 = l in
+     let anyh2 = highval in
+     let anyn2 = number anyh2 anyl2 anys in
+     (Some(Interval(anyl1,anys,anyn1),v2),Some(Interval(anyl2,anys,anyn2),v2))
   | Any,_ -> (Some(Any,v2),Some(Any,v2))
+  | Interval(l,s,n),Any ->
+     let h = high l s n in
+     let anyl1 = l + 1 in
+     let anys = 1 in
+     let anyh1 = highval in
+     let anyn1 = number anyh1 anyl1 anys in
+     let anyl2 = lowval in
+     let anyh2 = h in
+     let anyn2 = number anyh2 anyl2 anys in
+     (Some(v1, Interval(anyl1,anys,anyn1)),Some(v1, Interval(anyl2,anys,anyn2)))               
   | _,Any -> (Some(v1,Any),Some(v1,Any))
   | Interval((l1,s1,n1)), Interval((l2,s2,n2)) ->
      let h1 = high l1 s1 n1 in
      let h2 = high l2 s2 n2 in
-     if l1 < 0 || l2 < 0 then (Some(Any,Any),Some(Any,Any))
-     else
+     (*if l1 < 0 || l2 < 0 then (Some(Any,Any),Some(Any,Any))
+     else*)
        (*TODO(Romy): check again (max s 1)*)
        ((if l1 < h2 then
            let h11 = min h1 (h2-(max s2 1)) in
@@ -731,7 +771,27 @@ let rec aint32_test_less_than_unsigned v1 v2 =
 let rec aint32_test_less_than_equal v1 v2 =
   match v1,v2 with
   | Any,Any -> (Some(Any,Any),Some(Any,Any))
+  | Any,Interval(l,s,n) ->
+     let h = high l s n in
+     let anyl1 = lowval in
+     let anys = 1 in
+     let anyh1 = h in
+     let anyn1 = number anyh1 anyl1 anys in
+     let anyl2 = l + 1 in
+     let anyh2 = highval in
+     let anyn2 = number anyh2 anyl2 anys in
+     (Some(Interval(anyl1,anys,anyn1),v2),Some(Interval(anyl2,anys,anyn2),v2))
   | Any,_ -> (Some(Any,v2),Some(Any,v2))
+  | Interval(l,s,n),Any ->
+     let h = high l s n in
+     let anyl1 = l in
+     let anys = 1 in
+     let anyh1 = highval in
+     let anyn1 = number anyh1 anyl1 anys in
+     let anyl2 = lowval in
+     let anyh2 = h - 1 in
+     let anyn2 = number anyh2 anyl2 anys in
+     (Some(v1,Interval(anyl1,anys,anyn1)),Some(v1, Interval(anyl2,anys,anyn2)))
   | _,Any -> (Some(v1,Any),Some(v1,Any))
   | Interval((l1,s1,n1)), Interval((l2,s2,n2)) ->
      let h1 = high l1 s1 n1 in
