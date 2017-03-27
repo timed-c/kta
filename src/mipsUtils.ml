@@ -48,7 +48,7 @@ let decode_inst bininst =
            | 39 -> MipsNOR(rd(),rs(),rt())
            | 42 -> MipsSLT(rd(),rs(),rt())
            | 43 -> MipsSLTU(rd(),rs(),rt())
-           | 52 -> MipsTEQ(rs(),rt(),code())
+           | 52 -> MipsTEQ(rs(),rt())
            | _  -> MipsUnknown(bininst))
   | 1  -> (match rt() with
            | 0  -> MipsBLTZ(rs(),imm(),"")
@@ -299,7 +299,7 @@ let pprint_inst_general inst com reg int2str delayslot dash =
   | MipsSWL(rt,imm,rs)    -> (istr "swl") ^. (rtis rt imm rs)
   | MipsSUB(rd,rs,rt)     -> (istr "sub") ^. (rdst rd rs rt)
   | MipsSUBU(rd,rs,rt)    -> (istr "subu") ^. (rdst rd rs rt)
-  | MipsTEQ(rs,rt,code)   -> (istr "teq") ^. (rtsi rs rt code)
+  | MipsTEQ(rs,rt)        -> (istr "teq") ^. (rst rs rt)
   | MipsXOR(rd,rs,rt)     -> (istr "xor") ^. (rdst rd rs rt)
   | MipsXORI(rt,rs,imm)   -> (istr "xori") ^. (rtsi rt rs imm)
   | MipsUnknown(inst)     -> us(sprintf "[0x%x]" inst)

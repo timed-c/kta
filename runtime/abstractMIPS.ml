@@ -560,6 +560,7 @@ let mult rs rt ms =
   (*if !dbg then prn_inst ms (us"mult ");*)
   ps |> to_mstate ms 
 
+let multu = mult
 (* Multiply ADD - no support for internal_hi *)
 let madd rs rt ms = 
   let ticks = 1 in
@@ -602,7 +603,7 @@ let divu rs rt ms = div rs rt ms
 
 (* Trap if equal - Not implemented 
    Just increases the ticks *)
-let teq rs rt code ms =
+let teq rs rt ms =
   let ticks = 1 in
   let ps = proc_branches (fun ps -> ps |> tick ticks |> nobranch) ms.pstate in
   ps |> to_mstate ms

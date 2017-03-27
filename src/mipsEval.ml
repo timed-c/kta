@@ -252,13 +252,12 @@ let rec step bigendian prog state hookfunc hookval is_a_delay_slot =
        wreg rd (Int32.sub (reg rs) (reg rt)); pc 4; hook()
   | MipsSUBU(rd,rs,rt) -> 
        wreg rd (Int32.sub (reg rs) (reg rt)); pc 4; hook()
-  | MipsTEQ(rs,rt,code) -> 
-       pc 4; hook()
   | MipsXOR(rd,rs,rt) -> 
        wreg rd (Int32.logxor (reg rs) (reg rt)); pc 4; hook()
   | MipsXORI(rt,rs,imm) -> 
        wreg rt (Int32.logxor (reg rs) (Int32.of_int imm)); pc 4; hook()
   | MipsEXT(_)
+    | MipsTEQ(_)
     | MipsLWL(_)
     | MipsLWR(_)
     | MipsINS(_)
@@ -338,10 +337,10 @@ let debug_print inst pc prog state is_a_delay_slot terminate (acc,prev_regfile) 
     | MipsSWL(rt,_,rs) -> (rt,rs,0)    
     | MipsSUB(rd,rs,rt) -> (rd,rs,rt) 
     | MipsSUBU(rd,rs,rt) -> (rd,rs,rt)  
-    | MipsTEQ(rs,rt,code) -> (0,rs,rt)
     | MipsXOR(rd,rs,rt) -> (rd,rs,rt)   
     | MipsXORI(rt,rs,_) -> (rt,rs,0)   
     | MipsINS(_)
+      | MipsTEQ(_)
       | MipsEXT(_)
       | MipsLWL(_)
       | MipsLWR(_)

@@ -77,7 +77,7 @@ type inst =
   | MipsSWL     of rt * imm * rs
   | MipsSUB     of rd * rs  * rt
   | MipsSUBU    of rd * rs  * rt
-  | MipsTEQ     of rs * rt  * code
+  | MipsTEQ     of rs * rt
   | MipsXOR     of rd * rs  * rt
   | MipsXORI    of rt * rs  * imm
   | MipsUnknown of int
