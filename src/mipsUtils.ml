@@ -12,7 +12,6 @@ let decode_inst bininst =
   let rs() = (bininst lsr 21) land 0b11111 in
   let rt() = (bininst lsr 16) land 0b11111 in
   let rd() = (bininst lsr 11) land 0b11111 in
-  let code() = (bininst lsr 6) land 0b1111111111 in
   let shamt() = (bininst lsr 6) land 0b11111 in
   let funct() = bininst land 0b111111 in
   let imm() = Utils.sign_extension (bininst land 0xffff) 16 in
