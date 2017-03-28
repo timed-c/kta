@@ -318,8 +318,17 @@ let aint64_mult v1 v2 =
       else ((-1,1,2),(l,s,n))
     ) v1 v2
 
+let mod5 (l,s,n) =
+  let maxv = (1 lsl 5) - 1  in
+  if n = 1 then
+    (l land 0x1f, 0, 1)
+  else if (high l s n) > maxv || l < 0 then 
+    (0, 1, number maxv 0 1)
+  else (l,s,n)
+            
 let aint32_sllv v1 v2 =
   aint32_binop (fun (l1,s1,n1) (l2,s2,n2) ->
+      let (l2,s2,n2) = mod5 (l2,s2,n2) in
       let h1 = high l1 s1 n1 in
       let h2 = high l2 s2 n2 in
       let l = l1 lsl l2 in
@@ -334,6 +343,7 @@ let aint32_sllv v1 v2 =
 
 let aint32_srlv v1 v2 =
   aint32_binop (fun (l1,s1,n1) (l2,s2,n2) ->
+      let (l2,s2,n2) = mod5 (l2,s2,n2) in
       let h1 = high l1 s1 n1 in
       let h2 = high l2 s2 n2 in
       let l = l1 lsr l2 in
@@ -348,6 +358,7 @@ let aint32_srlv v1 v2 =
 (* TODO(Romy): tighen - Copy of aint32_srlv*)
 let aint32_srav v1 v2 =
   aint32_binop (fun (l1,s1,n1) (l2,s2,n2) ->
+      let (l2,s2,n2) = mod5 (l2,s2,n2) in
       let h1 = high l1 s1 n1 in
       let h2 = high l2 s2 n2 in
       let l = l1 asr l2 in
@@ -386,6 +397,27 @@ let aint32_div v1 v2 =
              else (l,s,n)
        ) v1 v2
 
+let aint32_clz v1 =
+  let rec leading_zeros v n =
+    match v with
+    | v when v < 0 -> 0
+    | 0 -> n
+    | _ -> leading_zeros (v lsr 1) (n-1)
+  in
+  match v1 with
+  (* All possible results *)
+  | Interval(l,s,n) ->
+     let h = high l s n in
+     if h < 0 then Interval(0,0,1)
+     else if l < 0 then Interval(0,1,number 32 0 1)
+     else 
+       ( let l1 = leading_zeros h 32 in
+         let h1 = leading_zeros l 32 in
+         let s1 = if l1 = h1 then 0 else 1 in
+         Interval(l1,s1,number h1 l1 s1)
+       )
+  | _ -> Interval(0,1,number 32 0 1) 
+                  
 let aint32_mod v1 v2 =
   match v1, v2 with
   | Any, Interval(l,s,n) ->

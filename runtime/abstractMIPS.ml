@@ -579,7 +579,7 @@ let madd rs rt ms =
   let ps = proc_branches proc_ps ms.pstate in
   ps |> to_mstate ms
 
-    let div rs rt ms =
+let div rs rt ms =
   let ticks = 1 in
   let proc_ps ps = 
     let r = ps.reg in
@@ -667,8 +667,8 @@ let dbg_imm_f instr imm imm_str rd rt r rnew ms =
                    (reg2ustr rt) ^. us"=" ^. (preg rt r) ^. us" " ^.
                      us imm_str ^. us(sprintf "=%d" imm))
 
+           
 let addi rt rs imm ms =
-
   let ticks = 1 in
   let ps = ms.pstate in
   let imval = aint32_const imm in
@@ -751,7 +751,15 @@ let ins rs rt pos size ms =
 let clz rd rs ms =
   let ticks = 1 in
   let proc_ps ps =
-    {ps with reg = setreg rd aint32_any ps.reg} |> tick ticks |> nobranch
+    let r = ps.reg in
+    let (r,v_rs) = getreg rs r in
+    let r = setreg rd (aint32_clz v_rs) r in
+    if !dbg then 
+      prn_inst ms (us "clz" ^. us" " ^. 
+                 (reg2ustr rd) ^. us"=" ^. (preg rd r) ^. us" " ^.
+                   (reg2ustr rs) ^. us"=" ^. (preg rs r) ^. us" ");
+
+    {ps with reg = r} |> tick ticks |> nobranch
   in
   proc_branches proc_ps ms.pstate |> to_mstate ms
 
