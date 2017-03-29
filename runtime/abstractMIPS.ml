@@ -267,8 +267,8 @@ let rec memory_init bigendian mem amem =
   match mem with
   | [] -> amem
   | m::ms ->
-     let amem = init_section m.data m.address amem in
-     memory_init bigendian ms amem
+     init_section m.data m.address amem |>
+     memory_init bigendian ms
 
 (* ----------------------- DEBUG FUNCTIONS  -------------------------*)
 let should_not_happen no = failwith (sprintf "ERROR: Should not happen ID = %d" no)
