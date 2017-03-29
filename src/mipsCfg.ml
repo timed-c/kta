@@ -446,11 +446,11 @@ let test prog fname cm_args =
   let (prog,cfgmap) = make_cfgmap fname prog in
   let program_code = pprint_ocaml_cps_from_cfgmap true fname cfgmap prog in
   match cm_args with
-   | (_,_,true) -> uprint_endline program_code
-   | (args,bsconfig,pr_option)  ->
+   | (_,_,_,true) -> uprint_endline program_code
+   | (args,max_cycles,bsconfig,pr_option)  ->
       try
         let debug = MipsSys.verbose_enabled() in
-        args |> MipsSys.wcet_compile fname debug bsconfig program_code |> print_endline;
+        args |> MipsSys.wcet_compile fname debug max_cycles bsconfig program_code |> print_endline;
       with Sys_error e ->
         e |> eprintf "%s\n";
      

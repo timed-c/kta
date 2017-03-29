@@ -1435,16 +1435,19 @@ type options_t =
   | OpDebug
   | OpArgs
   | OpConfigBatchSize
+  | OpConfigMaxCycles
 
 open Ustring.Op
        
 let options =
   [ (OpDebug, Uargs.No, us"-debug", us"",
-     us"Enable debug");
+     us"Enable debug.");
     (OpConfigBatchSize, Uargs.Int, us"-bsconfig", us"",
-     us"Configure maximum batch size");
+     us"Configure maximum batch size.");
+    (OpConfigMaxCycles, Uargs.Int, us"-max_cycles", us"",
+     us"Configure maximum cycles.");
     (OpArgs, Uargs.StrList, us"-args", us"<args>",
-     us"Accepts Initial Intervals for Registers a0, a1, a2 and a3");  ]
+     us"Accepts Initial Intervals for Registers a0, a1, a2 and a3.");  ]
     
 let analyze startblock bblocks gp_addr mem defaultargs =
   let args = (Array.to_list Sys.argv |> List.tl) in
@@ -1453,6 +1456,8 @@ let analyze startblock bblocks gp_addr mem defaultargs =
   enable_debug debug;
   if Uargs.has_op OpConfigBatchSize ops then
     (set_max_batch_size (Uargs.int_op OpConfigBatchSize ops));
+  if Uargs.has_op OpConfigMaxCycles ops then
+    (set_max_cycles (Uargs.int_op OpConfigMaxCycles ops));
   let args =
     if Uargs.has_op OpArgs ops then
       Uargs.strlist_op OpArgs ops |> List.map Ustring.to_utf8

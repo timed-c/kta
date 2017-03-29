@@ -55,7 +55,8 @@ type compOpTypes =
 | OpTa_OutputPathInputs    
 | OpWCET_CPSOCaml
 | OpWCET_OCamlArgs
-| OpWCET_BSConfig  
+| OpWCET_BSConfig
+| OpWCET_MCConfig  
 (* List of compiler options *)
 let extra_options = 
   [(OpCompile,     Uargs.No, us"-compile",     us"",
@@ -132,7 +133,9 @@ let wcet_options =
    (OpWCET_OCamlArgs, Uargs.StrList,  us"-args",  us"<args>",
     us"Run the OCaml Code directly with <args> in the form: <reg>=[int,int]|int. Set environment variable KTA_WCET_RUNTIME_PATH=$KTA_PATH/runtime.");
    (OpWCET_BSConfig, Uargs.Int,  us"-bsconfig",  us"",
-    us"Configure maximum batch size.")
+    us"Configure maximum batch size.");
+   (OpWCET_MCConfig, Uargs.Int,  us"-max_cycles",  us"",
+    us"Configure maximum cycles allowed.")
   ]
   @ extra_options
 
@@ -476,13 +479,19 @@ let wcet_command args =
     else
       None
   in
+  let max_cycles =
+    if (Uargs.has_op OpWCET_MCConfig ops) then
+      Some (Uargs.int_op OpWCET_MCConfig ops)
+    else
+      None
+  in
   (* Get function name. Should be better error control of input here... TODO *)
   let func_name = List.hd funcargs in
 
   (* Load the program *)
   let prog = MipsSys.get_program binfile_name |>  MipsUtils.add_branch_symbols in
 
-  MipsCfg.test prog (Ustring.to_utf8 func_name) (prog_args, bsconfig, print_out_option);
+  MipsCfg.test prog (Ustring.to_utf8 func_name) (prog_args, max_cycles, bsconfig, print_out_option);
   us""
 
 

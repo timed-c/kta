@@ -69,7 +69,7 @@ val get_init_state_vals : ?bigendian:bool -> MipsAst.program -> string ->
     These init values depend both on global initializations in the original program,
     as well as the assignments that are made by the [initfunc] function. *)
 
-val wcet_compile: string -> bool -> int option ->
+val wcet_compile: string -> bool -> int option -> int option ->
                   Ustring.ustring -> string list -> string
 
 val verbose_enabled: unit -> bool
