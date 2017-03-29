@@ -17,16 +17,19 @@ let compile_file filename fname args optimize debug bsconfig =
   let prog = MipsSys.get_program tmpfile |>  MipsUtils.add_branch_symbols in
   let (prog,cfgmap) = MipsCfg.make_cfgmap fname prog in
   let program_code = MipsCfg.pprint_ocaml_cps_from_cfgmap true fname cfgmap prog in
-  let stdout = MipsSys.wcet_compile "array_mul" false bsconfig program_code args in
+  let stdout = MipsSys.wcet_compile "array_mul" false None bsconfig program_code args in
   try
     let regex = Str.regexp "BCET:[^0-9]*\\([0-9]+\\)\\(.\\|\n\\)*WCET:[^0-9]*\\([0-9]+\\)" in
     let _ = Str.search_forward regex stdout 0 in
     let bcet, wcet = int_of_string (Str.matched_group 1 stdout), int_of_string (Str.matched_group 3 stdout) in
     (bcet,wcet)                                                 
   with Not_found ->
-    (eprintf "Error: BCET/WCET Not_Found\n";
+       if debug then printf "%s\n%!" stdout;
+       (-1,-1)
+(*    (eprintf "Error: BCET/WCET Not_Found\n";
      raise Not_found)
-       
+ *)
+         
 let run_test test_file =
   Utest.init "WCET";
   let reg_separator = Str.regexp "|" in
@@ -47,7 +50,7 @@ let run_test test_file =
          let opt = int_of_string (String.trim opt) in
          let exp_wcet = int_of_string (String.trim exp_wcet) in
          let exp_bcet = int_of_string (String.trim exp_bcet) in
-         let bcet,wcet = compile_file fname func args opt false bsconfig in      
+         let bcet,wcet = compile_file fname func args opt true bsconfig in      
          Utest.test_int (sprintf "%s (%s) %s%!" fname func "BCET") bcet exp_bcet;
          Utest.test_int (sprintf "%s (%s) %s%!" fname func "WCET") wcet exp_wcet;
       | _ -> printf "Wrong format in %s\n%!" test_file;

@@ -69,7 +69,7 @@ test/wcet_tests/mdh/jfdctint.c|main||2|-1|3807|3807
 test/wcet_tests/mdh/jfdctint.c|main||3|-1|3807|3807
 test/wcet_tests/mdh/edn.c|main||2|-1|50884|50884
 test/wcet_tests/mdh/edn.c|main||3|-1|50213|50213
-test/wcet_tests/mdh/ndes.c|main||0|-1|98807|101750
+test/wcet_tests/mdh/ndes.c|main||0|-1|98687|101491
 test/wcet_tests/mdh/ndes.c|main||1|-1|39936|41840
 test/wcet_tests/mdh/ndes.c|main||2|-1|26324|46214
 test/wcet_tests/mdh/ndes.c|main||3|-1|26067|45957

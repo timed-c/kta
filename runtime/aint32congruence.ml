@@ -470,26 +470,70 @@ let aint32_join v1 v2 =
   | IntervalList(l1,_),IntervalList(l2,_) ->
     Interval(interval_merge (interval_merge_list l1) (interval_merge_list l2)) 
 
-let aint16_merge v1 v2 =
+let aint_merge v1 v2 bits =
+  let mask = (0x1 lsl bits) - 1 in 
   match v1, v2 with
   | Interval(v1),Interval(v2) ->
      (match v1,v2 with
-     | (l1,0,1),(l2,0,1) -> Interval((l1 lsl 16) lor (l2 land 0xFFFF),0,1)
-     | (l1,0,1),(l2,s2,n2) when l2>=0 -> Interval((l1 lsl 16) lor (l2 land 0xFFFF),s2,n2)
+     | (l1,0,1),(l2,0,1) -> Interval((l1 lsl bits) lor (l2 land mask),0,1)
+     | (l1,0,1),(l2,s2,n2) when l2>=0 -> Interval((l1 lsl bits) lor (l2 land mask),s2,n2)
      | (l1,0,1),(l2,s2,n2) when l2<0 ->
         let h2 = high l2 s2 n2 in
-        if h2<0 then Interval((l1 lsl 16) lor (h2 land 0xFFFF),s2,n2)
+        if h2<0 then Interval((l1 lsl bits) lor (h2 land mask),s2,n2)
         else
-          let l = min (h2 land 0xFFFF) (l1 land 0xFFF) in
-          let h = max (h2 land 0xFFFF) (l1 land 0xFFF) in
+          let l = min (h2 land mask) (l1 land mask) in
+          let h = max (h2 land mask) (l1 land mask) in
           let s = if l=h then 0 else 1 in
           let n = number h l s in
-          Interval((l1 lsl 16) lor l,s,n)
-     | (l1,s1,n1),(l2,0,1) -> Interval((l1 lsl 16) lor (l2 land 0xFFFF),(s1 lsl 16),n1)
+          Interval((l1 lsl bits) lor l,s,n)
+     | (l1,s1,n1),(l2,0,1) -> Interval((l1 lsl bits) lor (l2 land mask),(s1 lsl bits),n1)
      | (l1,s1,n1),(l2,s2,n2) -> Any
      ) 
   | _,_ -> Any
-                                                 
+
+             
+let aint16_merge v1 v2 = aint_merge v1 v2 16
+
+let aint8_merge v1 v2 = aint_merge v1 v2 8
+ 
+let signextend v bit =
+  let sign = (1 lsl (bit-1)) in
+  let mask = (1 lsl bit) - 1 in
+  let newv = v land mask in
+  if (v land sign) = sign then
+    -(newv lxor mask + 1)
+  else newv
+
+let aint_split bigendian v bits =
+  match v with
+  | Interval(l,0,1) ->
+     let v1,v2 = (Interval(l asr bits, 0, 1),
+                  Interval(signextend l bits, 0, 1)) in
+     if bigendian then (v1,v2)
+     else (v2,v1)
+  | Interval(l,s,n) ->
+     let h = high l s n in
+     let l1 = l asr bits in
+     let h1 = h asr bits in
+     (* TODO(Romy): Tighten for s lsr bits != 0 *)
+     let s1 = if (l1 = h1) then 0 else 1 in
+     let n1 = number h l s in
+     let v1 = Interval(l1,s1,n1) in
+     let v2 =
+       if n1 = 1 then
+         Interval(l,s,n)
+       else
+         Any
+     in
+     if bigendian then
+       (v1, v2)
+     else
+       (v2, v1)
+  | _ -> (Any,Any)
+
+let aint32_split bigendian v = aint_split bigendian v 16
+
+let aint16_split bigendian v = aint_split bigendian v 8
              
 let aint32_compare x y =
   compare x y

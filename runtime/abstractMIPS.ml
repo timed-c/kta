@@ -261,7 +261,8 @@ let rec memory_init bigendian mem amem =
          (*d3|d2|d1|d0*)
          | false -> (d3 lsl 24) lor ((d2 lsl 16) lor ((d1 lsl 8) lor d0)) 
        in
-       let amem = set_memval addr (aint32_const data) amem in
+       (* TODO(Romy): 32 or 8x4 ?*)
+       let amem = set_memval_word addr (aint32_const data) amem in
        init_section ds (addr+4) amem
   in
   match mem with
@@ -1096,7 +1097,7 @@ let sw rt imm rs ms =
       (* updated the whole memory to Any - empty mem_init *)
       | None -> mem_to_any ps.mem (*mem_to_val v_rt ps.mem*)
       | Some (con_v_rs) ->
-         set_memval (imm + con_v_rs) v_rt ps.mem
+         set_memval_word (imm + con_v_rs) v_rt ps.mem
     in
     if !dbg then(
       prn_inst ms (us"sw " ^. 
@@ -1174,7 +1175,7 @@ let lw rt imm rs ms =
       match con_v_rs with
       | None -> (ps.mem, Any)
       | Some (con_v_rs) ->
-         get_memval (imm + con_v_rs) ps.mem
+         get_memval_word (imm + con_v_rs) ps.mem
     in
     let r' = setreg rt v r in
     if !dbg then
