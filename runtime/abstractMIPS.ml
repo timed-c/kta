@@ -261,7 +261,7 @@ let rec memory_init bigendian mem amem =
          (*d3|d2|d1|d0*)
          | false -> (d3 lsl 24) lor ((d2 lsl 16) lor ((d1 lsl 8) lor d0)) 
        in
-       let amem = Mem.add addr (aint32_const data) amem in
+       let amem = set_memval addr (aint32_const data) amem in
        init_section ds (addr+4) amem
   in
   match mem with
@@ -432,9 +432,14 @@ let continue ms =
 
 let to_mstate ms ps =
   {ms with pstate = ps}
+    
+exception MaxCyclesException
 
-let tick n ps =  
-  {ps with bcet = ps.bcet + n; wcet = ps.wcet + n} 
+let tick n ps =
+  let wcet = ps.wcet + n in
+  if wcet > !config_max_cycles then raise MaxCyclesException
+  else 
+    {ps with bcet = ps.bcet + n; wcet = wcet} 
 
 let update r ps =
   {ps with reg = r}
@@ -1384,8 +1389,7 @@ let analyze_main startblock bblocks gp_addr args init_mem =
   let stack_addr = 0x80000000 - 8 in
   let reg = setreg sp (aint32_const stack_addr) ps.reg in
   let reg = setreg gp (aint32_const gp_addr) reg in
-  let mem = ps.mem in
-  let mem = {mem with memory = memory_init false init_mem mem.memory} in
+  let mem = memory_init false init_mem ps.mem in
   let ps = {ps with reg = reg; mem=mem} in (*(setreg sp (aint32_const stack_addr) ps.reg)} in*)
   
   
@@ -1459,12 +1463,15 @@ let analyze startblock bblocks gp_addr mem defaultargs =
   if !dbg && !dbg_trace then
     let v =     
       try analyze_main startblock bblocks gp_addr args mem |> print_mstate
-      with _ -> (Printexc.print_backtrace stdout; raise Not_found)
+      with
+      | MaxCyclesException -> printf "A path reach the maximum cycles allowed: %d\n%!" (!config_max_cycles);
+      | _ -> (Printexc.print_backtrace stdout; raise Not_found)
     in v
   else
-    analyze_main startblock bblocks gp_addr args mem |> print_mstate
-
-    
+    try
+      analyze_main startblock bblocks gp_addr args mem |> print_mstate
+    with
+    | MaxCyclesException -> printf "Analysis not finished. A path reach the maximum cycles allowed: %d\n%!" (!config_max_cycles)
     
   
 
