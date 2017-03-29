@@ -470,6 +470,26 @@ let aint32_join v1 v2 =
   | IntervalList(l1,_),IntervalList(l2,_) ->
     Interval(interval_merge (interval_merge_list l1) (interval_merge_list l2)) 
 
+let aint16_merge v1 v2 =
+  match v1, v2 with
+  | Interval(v1),Interval(v2) ->
+     (match v1,v2 with
+     | (l1,0,1),(l2,0,1) -> Interval((l1 lsl 16) lor (l2 land 0xFFFF),0,1)
+     | (l1,0,1),(l2,s2,n2) when l2>=0 -> Interval((l1 lsl 16) lor (l2 land 0xFFFF),s2,n2)
+     | (l1,0,1),(l2,s2,n2) when l2<0 ->
+        let h2 = high l2 s2 n2 in
+        if h2<0 then Interval((l1 lsl 16) lor (h2 land 0xFFFF),s2,n2)
+        else
+          let l = min (h2 land 0xFFFF) (l1 land 0xFFF) in
+          let h = max (h2 land 0xFFFF) (l1 land 0xFFF) in
+          let s = if l=h then 0 else 1 in
+          let n = number h l s in
+          Interval((l1 lsl 16) lor l,s,n)
+     | (l1,s1,n1),(l2,0,1) -> Interval((l1 lsl 16) lor (l2 land 0xFFFF),(s1 lsl 16),n1)
+     | (l1,s1,n1),(l2,s2,n2) -> Any
+     ) 
+  | _,_ -> Any
+                                                 
              
 let aint32_compare x y =
   compare x y
