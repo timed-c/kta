@@ -1,0 +1,7 @@
+*.txt
+checkBenchmark.sh
+changeLog
+*.aadl
+*.aaxl
+*.bat
+test/wcet_tests/tacle-bench/parallel/
