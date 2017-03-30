@@ -120,19 +120,21 @@ let get_memval addr mem =
 let set_memval_word addr v mem =
   set_memval addr (AInt32 v) mem
 
-let set_memval_hword addr v mem hword =
-  let m,oldv = get_memval addr mem in
+let set_memval_hword addr v mem =
+  let addr0, hword = (addr lsr 2) lsl 2, addr land 0x3 in
+  let m,oldv = get_memval addr0 mem in
   let v0,v2 = getval_aint16 false oldv in
   let newv =
     match hword with
     | 0 -> AInt16 (v,v2) | 2 -> AInt16(v0,v)
     | _ -> failwith (sprintf "Error set_memval_hword hword=%d" hword)
   in
-  set_memval addr newv mem
+  set_memval addr0 newv mem
 
 
-let set_memval_byte addr v mem byte =
-  let m,oldv = get_memval addr mem in
+let set_memval_byte addr v mem =
+  let addr0, byte = (addr lsr 2) lsl 2, addr land 0x3 in 
+  let m,oldv = get_memval addr0 mem in
   let v0,v1,v2,v3 = getval_aint8 false oldv in
   let newv =
     match byte with
@@ -141,14 +143,15 @@ let set_memval_byte addr v mem byte =
     | 2 -> AInt8 (v0,v1,v,v3)
     | 3 -> AInt8 (v0,v1,v2,v)
     | _ -> failwith (sprintf "Error set_memval_byte byte=%d" byte)            in
-  set_memval addr newv mem
+  set_memval addr0 newv mem
 
 let get_memval_word addr mem =
   let m,v = get_memval addr mem in
   (m,v |> getval_aint32 false)
       
-let get_memval_hword addr mem hword =
-  let m,v = get_memval addr mem in
+let get_memval_hword addr mem =
+  let addr0, hword = (addr lsr 2) lsl 2, addr land 0x3 in
+  let m,v = get_memval addr0 mem in
   let v0,v2 = getval_aint16 false v in
   let v =
     match hword with
@@ -156,8 +159,9 @@ let get_memval_hword addr mem hword =
     | _ -> failwith (sprintf "Error get_memval_hword hword=%d" hword)
   in (m, v)
 
-let get_memval_byte addr mem byte =
-  let m,v = get_memval addr mem in
+let get_memval_byte addr mem =
+  let addr0, byte = (addr lsr 2) lsl 2, addr land 0x3 in 
+  let m,v = get_memval addr0 mem in
   let v0,v1,v2,v3 = getval_aint8 false v in
   let v =
       match byte with

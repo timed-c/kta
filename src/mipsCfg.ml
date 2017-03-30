@@ -326,16 +326,30 @@ let pprint_ocaml_cps_from_cfgmap nice_output name cfgmap prog =
       int_of_char (Bytes.get d i)
     in
     match n with
-    | n when n<3 -> lst
+    | n when n<0 -> lst
     | n ->
-       let b0,b1,b2,b3 = get_byte d (n-3), get_byte d (n-2),
-                         get_byte d (n-1), get_byte d n in
-       mem_get_data d (n-4) (us (sprintf "(%d,%d,%d,%d);" b0 b1 b2 b3) ^. lst)
+       let b = get_byte d n in
+       mem_get_data d (n-1) (us (sprintf "%d;" b) ^. lst)
   in
+  let rec mem_zero_data n lst =
+    match n with
+    | n when n<0 -> lst
+    | n ->
+       mem_zero_data (n-1) (us (sprintf "0;" ) ^. lst)
+  in
+
   let print_mem_sec sec name =
-    match sec.addr,sec.size with
-    | 0,0 -> us ""
-    | _,_ ->
+    match sec.addr,sec.size,name with
+    | 0,0,_ -> us ""
+    | _,_,".sbss" | _,_,".bss"->
+       us"{" ^. 
+         us(sprintf "address=%d; " (sec.addr)) ^.
+           us(sprintf "size=%d; " (sec.size)) ^.
+             us(sprintf "sect_name=\"%s\"; " name) ^.
+               us(sprintf "data=[") ^.               
+                 mem_zero_data (sec.size-1) (us"") ^.
+                   us"]};\n"
+    | _,_,_ ->
        us"{" ^. 
          us(sprintf "address=%d; " (sec.addr)) ^.
            us(sprintf "size=%d; " (sec.size)) ^.
@@ -345,7 +359,11 @@ let pprint_ocaml_cps_from_cfgmap nice_output name cfgmap prog =
                    us"]};\n"
   in
   let mem_all = print_mem_sec prog.data_sec ".data" ^.
-                  print_mem_sec prog.sdata_sec ".sdata"
+                  print_mem_sec prog.sdata_sec ".sdata" ^.
+                    print_mem_sec prog.rodata_sec ".rodata" ^.
+                      print_mem_sec prog.sbss_sec ".sbss" (*^. 
+                       print_mem_sec prog.bss_sec ".bss"
+ *)
   in
 (* Intro header *)
   let intro =

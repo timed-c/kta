@@ -75,7 +75,7 @@ type mem_info =
     address   : int;
     size      : int;
     sect_name : string;
-    data      : (int * int * int * int) list;
+    data      : int list; (*(int * int * int * int) list;*)
   }
 (** The basic block info entry type is one element in the
     basic block table. This table provides all information about
@@ -253,7 +253,7 @@ let rec memory_init bigendian mem amem =
   let rec init_section d addr amem =
     match d with
     | [] -> amem
-    | (d0,d1,d2,d3)::ds ->
+    | d0::d1::d2::d3::ds ->
        let data =
          match bigendian with
          (*d0|d1|d2|d3*)
@@ -264,6 +264,9 @@ let rec memory_init bigendian mem amem =
        (* TODO(Romy): 32 or 8x4 ?*)
        let amem = set_memval_word addr (aint32_const data) amem in
        init_section ds (addr+4) amem
+    | d0::ds ->
+       let amem = set_memval_byte addr (aint32_const d0) amem in
+       init_section ds (addr+1) amem
   in
   match mem with
   | [] -> amem
@@ -1124,8 +1127,7 @@ let sb rt imm rs ms =
       | None -> mem_to_any ps.mem 
       | Some (con_v_rs) ->
          let imm4 = imm + con_v_rs in
-         let immb, byte = (imm4 lsr 2) lsl 2, imm4 land 0x3 in 
-         set_memval_byte immb v_rt ps.mem byte
+         set_memval_byte imm4 v_rt ps.mem
     in
     if !dbg then(
       prn_inst ms (us"sb " ^. 
@@ -1151,8 +1153,7 @@ let sh rt imm rs ms =
       | None -> mem_to_any ps.mem 
       | Some (con_v_rs) ->
          let imm2 = imm + con_v_rs in
-         let immh, hword = (imm2 lsr 2) lsl 2, imm2 land 0x3 in
-         set_memval_hword immh v_rt ps.mem hword
+         set_memval_hword imm2 v_rt ps.mem
     in
     if !dbg then(
       prn_inst ms (us"sh " ^. 
@@ -1203,8 +1204,7 @@ let lb rt imm rs ms =
       | None -> (ps.mem, Any)
       | Some (con_v_rs) ->
          let imm4 = imm + con_v_rs in
-         let immb, byte = (imm4 lsr 2) lsl 2, imm4 land 0x3 in 
-         get_memval_byte immb ps.mem byte
+         get_memval_byte imm4 ps.mem
     in
     let r' = setreg rt v r in
     if !dbg then(
@@ -1234,8 +1234,7 @@ let lh rt imm rs ms =
       | None -> (ps.mem, Any)
       | Some (con_v_rs) ->
          let imm2 = imm + con_v_rs in
-         let immh, hword = (imm2 lsr 2) lsl 2, imm2 land 0x3 in
-         get_memval_hword immh ps.mem hword
+         get_memval_hword imm2 ps.mem
     in
     let r' = setreg rt v r in
     if !dbg then(
