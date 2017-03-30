@@ -17,7 +17,7 @@ let compile_file filename fname args optimize debug bsconfig =
   let prog = MipsSys.get_program tmpfile |>  MipsUtils.add_branch_symbols in
   let (prog,cfgmap) = MipsCfg.make_cfgmap fname prog in
   let program_code = MipsCfg.pprint_ocaml_cps_from_cfgmap true fname cfgmap prog in
-  let stdout = MipsSys.wcet_compile "array_mul" false None bsconfig program_code args in
+  let stdout = MipsSys.wcet_compile fname false None bsconfig program_code args in
   try
     let regex = Str.regexp "BCET:[^0-9]*\\([0-9]+\\)\\(.\\|\n\\)*WCET:[^0-9]*\\([0-9]+\\)" in
     let _ = Str.search_forward regex stdout 0 in
