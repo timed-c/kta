@@ -1470,14 +1470,14 @@ let analyze startblock bblocks gp_addr mem defaultargs =
     let v =     
       try analyze_main startblock bblocks gp_addr args mem |> print_mstate
       with
-      | MaxCyclesException -> printf "A path reach the maximum cycles allowed: %d\n%!" (!config_max_cycles);
+      | MaxCyclesException -> printf "A path reached the maximum cycles allowed: %d\n%!" (!config_max_cycles);
       | _ -> (Printexc.print_backtrace stdout; raise Not_found)
     in v
   else
     try
       analyze_main startblock bblocks gp_addr args mem |> print_mstate
     with
-    | MaxCyclesException -> printf "Analysis not finished. A path reach the maximum cycles allowed: %d\n%!" (!config_max_cycles)
+    | MaxCyclesException -> printf "Analysis not finished. A path reached the maximum cycles allowed: %d\n%!" (!config_max_cycles)
     
   
 
