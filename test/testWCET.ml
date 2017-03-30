@@ -41,7 +41,7 @@ let run_test test_file =
       let line_list = Str.split reg_separator (input_line ic) in
       match line_list with
       | fname::func::args::opt::bsconfig::exp_bcet::exp_wcet::[] ->
-         let args = Str.split arg_separator (args) in
+         let argslist = Str.split arg_separator (args) in
          let bsconfig =
            match int_of_string (String.trim bsconfig) with
            | (-1) -> None
@@ -50,9 +50,9 @@ let run_test test_file =
          let opt = int_of_string (String.trim opt) in
          let exp_wcet = int_of_string (String.trim exp_wcet) in
          let exp_bcet = int_of_string (String.trim exp_bcet) in
-         let bcet,wcet = compile_file fname func args opt true bsconfig in      
-         Utest.test_int (sprintf "%s (%s) %s%!" fname func "BCET") bcet exp_bcet;
-         Utest.test_int (sprintf "%s (%s) %s%!" fname func "WCET") wcet exp_wcet;
+         let bcet,wcet = compile_file fname func argslist opt true bsconfig in      
+         Utest.test_int (sprintf "%s, func=%s, input=[%s], %s=%d" fname func args "BCET" exp_bcet) bcet exp_bcet;
+         Utest.test_int (sprintf "%s, func=%s, input=[%s], %s=%d" fname func args "WCET" exp_wcet) wcet exp_wcet;
       | _ -> printf "Wrong format in %s\n%!" test_file;
     done;
   with 
