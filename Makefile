@@ -56,19 +56,19 @@ test-main:
 	@rm -f maintest.native
 
 test-mdh:
-	@ocamlbuild -lib str -Is $(DIRS) testWCET.native -- -csvfile test/testWCET_mdh.csv
+	@ocamlbuild -lib str -Is $(DIRS) testWCET.native -- -csvfile test/wcet_tests/testWCET_mdh.csv
 	@rm -f testWCET.native
 
 test-custom:
-	@ocamlbuild -lib str -Is $(DIRS) testWCET.native -- -csvfile test/testWCET_custom.csv
+	@ocamlbuild -lib str -Is $(DIRS) testWCET.native -- -csvfile test/wcet_tests/testWCET_custom.csv
 	@rm -f testWCET.native
 
 test-taclebench:
-	@ocamlbuild -lib str -Is $(DIRS) testWCET.native -- -csvfile test/testWCET_taclebench.csv
+	@ocamlbuild -lib str -Is $(DIRS) testWCET.native -- -csvfile test/wcet_tests/testWCET_taclebench.csv
 	@rm -f testWCET.native
 
 test-failed:
-	@ocamlbuild -lib str -Is $(DIRS) testWCET.native -- -csvfile test/testWCET_mdh_failed.csv
+	@ocamlbuild -lib str -Is $(DIRS) testWCET.native -- -csvfile test/wcet_tests/testWCET_mdh_failed.csv
 	@rm -f testWCET.native
 
 dac16:	clean
