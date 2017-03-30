@@ -87,6 +87,30 @@ int ludcmp(int nmax, int n);
 /*    else f = -n; */
 /*    return f; */
 /*  } */
+void test(int nmax, int n)
+{
+  int      i, j, chkerr;
+  long int /* eps, */ w;
+
+  /* eps = 1.0e-6; */
+
+  /* Init loop */
+  for(i = 0; i <= n; i++)
+    {
+      w = 0.0;              /* data to fill in cells */
+      for(j = 0; j <= n; j++)
+        {
+          a[i][j] = (i + 1) + (j + 1);
+          if(i == j)            /* only once per loop pass */
+            a[i][j] *= 2.0;
+          w += a[i][j];
+        }
+      b[i] = w;
+    }
+
+  /*  chkerr = ludcmp(nmax, n, eps); */
+  chkerr = ludcmp(nmax,n);
+}
 
 void main()
 {
