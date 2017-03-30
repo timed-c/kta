@@ -1,7 +1,6 @@
 
 
 DIRS = src,test,ext/ucamlib/src
-TACLEBENCH_GIT = "https://github.com/tacle/tacle-bench.git"
 
 .PHONY: all test clean
 
@@ -49,9 +48,6 @@ pull_ucamlib:
 push_ucamlib:
 	git subtree push --prefix ext/ucamlib $(UCAMLIB_GIT) master --squash
 
-download-taclebench:
-	(cd test/wcet_tests; git clone $(TACLEBENCH_GIT))
-
 
 test: test-main test-mdh test-taclebench test-custom
 
@@ -70,6 +66,7 @@ test-custom:
 test-taclebench:
 	@ocamlbuild -lib str -Is $(DIRS) testWCET.native -- -csvfile test/testWCET_taclebench.csv
 	@rm -f testWCET.native
+
 
 dac16:	clean
 	cp -Rf * ~/paper/dac16/kta/.
