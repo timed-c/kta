@@ -501,7 +501,7 @@ let signextend v bit =
   let mask = (1 lsl bit) - 1 in
   let newv = v land mask in
   if (v land sign) = sign then
-    -(newv lxor mask + 1)
+    -(((newv lxor mask) land mask) + 1)
   else newv
 
 let aint_split bigendian v bits =
