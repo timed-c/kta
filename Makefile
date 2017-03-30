@@ -67,6 +67,9 @@ test-taclebench:
 	@ocamlbuild -lib str -Is $(DIRS) testWCET.native -- -csvfile test/testWCET_taclebench.csv
 	@rm -f testWCET.native
 
+test-failed:
+	@ocamlbuild -lib str -Is $(DIRS) testWCET.native -- -csvfile test/testWCET_mdh_failed.csv
+	@rm -f testWCET.native
 
 dac16:	clean
 	cp -Rf * ~/paper/dac16/kta/.
