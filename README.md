@@ -27,6 +27,14 @@ KTA should be possible to be executed on Windows, Mac OS X, and Linux, but it ha
 
 * Please see the [design overview](doc/design.md) document for a brief overview of the design and implementation of KTA.
 
+## Benchmarks
+
+### MDH Benchmarks
+The [MDH benchmarks](http://www.mrtc.mdh.se/projects/wcet/benchmarks.html) are included in the test/wcet\_tests/mdh folder.
+
+### TACLe Benchmarks
+The [TACLe Benchmark Suite](http://www.tacle.eu/index.php/activities/taclebench) is available at the git repository: [tacle-bench.git](https://github.com/tacle/tacle-bench.git). In the current version of KTA, git commit fcabf4630cb239f34f37a03ce7d93c563b65c897 is used.
+
 ## MIT License 
 KTA is licensed under the MIT license.
 
