@@ -125,7 +125,7 @@ let set_memval_hword addr v mem hword =
   let v0,v2 = getval_aint16 false oldv in
   let newv =
     match hword with
-    | 0 -> AInt16 (v,v2) | 1 -> AInt16(v0,v)
+    | 0 -> AInt16 (v,v2) | 2 -> AInt16(v0,v)
     | _ -> failwith (sprintf "Error set_memval_hword hword=%d" hword)
   in
   set_memval addr newv mem
@@ -152,7 +152,7 @@ let get_memval_hword addr mem hword =
   let v0,v2 = getval_aint16 false v in
   let v =
     match hword with
-    | 0 -> v0  | 1 -> v2
+    | 0 -> v0  | 2 -> v2
     | _ -> failwith (sprintf "Error get_memval_hword hword=%d" hword)
   in (m, v)
 

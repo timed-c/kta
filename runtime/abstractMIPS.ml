@@ -1115,7 +1115,6 @@ let sb rt imm rs ms =
   let ticks = 1 in
   let proc_ps ps = 
     let r = ps.reg in
-    let imm4,byte = (imm lsr 2) lsl 2, imm land 0x3 in
     let (r,v_rt) = getreg rt r in
     let (r,v_rs) = getreg rs r in
     let con_v_rs = aint32_to_int32 v_rs in
@@ -1124,7 +1123,9 @@ let sb rt imm rs ms =
         (* updated the whole memory to Any - overapproximation *)
       | None -> mem_to_any ps.mem 
       | Some (con_v_rs) ->
-         set_memval_byte (imm4 + con_v_rs) v_rt ps.mem byte
+         let imm4 = imm + con_v_rs in
+         let immb, byte = (imm4 lsr 2) lsl 2, imm4 land 0x3 in 
+         set_memval_byte immb v_rt ps.mem byte
     in
     if !dbg then(
       prn_inst ms (us"sb " ^. 
@@ -1141,7 +1142,6 @@ let sh rt imm rs ms =
   let ticks = 1 in
   let proc_ps ps = 
     let r = ps.reg in
-    let imm2,hword = (imm lsr 1) lsl 1, imm land 0x1 in
     let (r,v_rt) = getreg rt r in
     let (r,v_rs) = getreg rs r in
     let con_v_rs = aint32_to_int32 v_rs in
@@ -1150,7 +1150,9 @@ let sh rt imm rs ms =
         (* updated the whole memory to Any - overapproximation *)
       | None -> mem_to_any ps.mem 
       | Some (con_v_rs) ->
-         set_memval_hword (imm2 + con_v_rs) v_rt ps.mem hword
+         let imm2 = imm + con_v_rs in
+         let immh, hword = (imm2 lsr 2) lsl 2, imm2 land 0x3 in
+         set_memval_hword immh v_rt ps.mem hword
     in
     if !dbg then(
       prn_inst ms (us"sh " ^. 
@@ -1193,7 +1195,6 @@ let lb rt imm rs ms =
   let ticks = 1 in
   let proc_ps ps =
     let r = ps.reg in
-    let imm4, byte = (imm lsr 2) lsl 2, imm land 0x3 in 
     let (r,v_rt) = getreg rt r in
     let (r,v_rs) = getreg rs r in
     let con_v_rs = aint32_to_int32 v_rs in
@@ -1201,7 +1202,9 @@ let lb rt imm rs ms =
       match con_v_rs with
       | None -> (ps.mem, Any)
       | Some (con_v_rs) ->
-         get_memval_byte (imm4 + con_v_rs) ps.mem byte
+         let imm4 = imm + con_v_rs in
+         let immb, byte = (imm4 lsr 2) lsl 2, imm4 land 0x3 in 
+         get_memval_byte immb ps.mem byte
     in
     let r' = setreg rt v r in
     if !dbg then(
@@ -1223,7 +1226,6 @@ let lh rt imm rs ms =
   let ticks = 1 in
   let proc_ps ps =
     let r = ps.reg in
-    let imm2, hword = (imm lsr 1) lsl 1, imm land 0x1 in 
     let (r,v_rt) = getreg rt r in
     let (r,v_rs) = getreg rs r in
     let con_v_rs = aint32_to_int32 v_rs in
@@ -1231,7 +1233,9 @@ let lh rt imm rs ms =
       match con_v_rs with
       | None -> (ps.mem, Any)
       | Some (con_v_rs) ->
-         get_memval_hword (imm2 + con_v_rs) ps.mem hword
+         let imm2 = imm + con_v_rs in
+         let immh, hword = (imm2 lsr 2) lsl 2, imm2 land 0x3 in
+         get_memval_hword immh ps.mem hword
     in
     let r' = setreg rt v r in
     if !dbg then(
@@ -1471,7 +1475,7 @@ let analyze startblock bblocks gp_addr mem defaultargs =
       try analyze_main startblock bblocks gp_addr args mem |> print_mstate
       with
       | MaxCyclesException -> printf "A path reached the maximum cycles allowed: %d\n%!" (!config_max_cycles);
-      | _ -> (Printexc.print_backtrace stdout; raise Not_found)
+      | _ -> Printexc.print_backtrace stdout
     in v
   else
     try
