@@ -51,8 +51,8 @@ let run_test test_file =
          let exp_wcet = int_of_string (String.trim exp_wcet) in
          let exp_bcet = int_of_string (String.trim exp_bcet) in
          let bcet,wcet = compile_file fname func argslist opt true bsconfig in      
-         Utest.test_int (sprintf "%s, func=%s, input=[%s], %s=%d" fname func args "BCET" exp_bcet) bcet exp_bcet;
-         Utest.test_int (sprintf "%s, func=%s, input=[%s], %s=%d" fname func args "WCET" exp_wcet) wcet exp_wcet;
+         Utest.test_int (sprintf "%s, opt=-O%d, func=%s, input=[%s], %s=%d" fname opt func args "BCET" exp_bcet) bcet exp_bcet;
+         Utest.test_int (sprintf "%s, opt=-O%d, func=%s, input=[%s], %s=%d" fname opt func args "WCET" exp_wcet) wcet exp_wcet;
       | _ -> printf "Wrong format in %s\n%!" test_file;
     done;
   with 
