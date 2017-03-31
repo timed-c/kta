@@ -5,7 +5,7 @@ test/wcet_tests/mdh/lcdnum.c|main||0|-1|-1|-1||
 test/wcet_tests/mdh/lcdnum.c|main||1|-1|-1|-1||
 test/wcet_tests/mdh/fac.c|fac|a0=[1,10]|0|-1|-1|-1||
 test/wcet_tests/mdh/recursion.c|fib|a0=[0,10]|0|-1|-1|-1||
-test/wcet_tests/mdh/prime.c|prime|a0=[0,100]|2|-1|-1|-1||
+test/wcet_tests/mdh/prime.c|prime|a0=[0,100]|2|-1|4|21||
 test/wcet_tests/mdh/crc.c|main||0|-1|46626|50722||
 test/wcet_tests/mdh/crc.c|main||1|-1|22169|23568||
 test/wcet_tests/mdh/crc.c|main||2|-1|13377|42045||
@@ -40,7 +40,7 @@ test/wcet_tests/mdh/expint.c|expint|a0=[30,50];a1=[1,10]|2|-1|-1|-1||
 test/wcet_tests/mdh/expint.c|expint|a0=[30,50];a1=[1,10]|3|-1|-1|-1||
 test/wcet_tests/mdh/statemate.c|main||0|-1|955|955||
 test/wcet_tests/mdh/statemate.c|main||1|-1|577|577||
-test/wcet_tests/mdh/statemate.c|main||2|-1|-1|-1||
+test/wcet_tests/mdh/statemate.c|main||2|-1|544|544||
 test/wcet_tests/mdh/statemate.c|main||3|-1|481|481||
 test/wcet_tests/mdh/compress.c|main||0|-1|-1|-1||
 test/wcet_tests/mdh/compress.c|main||1|-1|2817|17711||

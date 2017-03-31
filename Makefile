@@ -52,7 +52,7 @@ push_ucamlib:
 test: test-main test-mdh test-taclebench test-custom
 
 test-main:
-	@ocamlbuild -Is $(DIRS) maintest.native --
+	@ocamlbuild -lib str -Is $(DIRS) maintest.native --
 	@rm -f maintest.native
 
 test-mdh:

@@ -4,6 +4,7 @@ open MipsAst
 open Printf
 open MipsEval
 
+       
 let comp_name = "mipsel-mcb32-elf"
 let objcopy = comp_name ^ "-objcopy"
 let objdump = comp_name ^ "-objdump"
@@ -89,8 +90,14 @@ let section_info filename =
 
 
 (* ---------------------------------------------------------------------*)
-let symbol_table filename = 
-
+let symbol_table filename =
+  (* proc_str: process names to avoid parse errors in OCaml
+     > replace "." with "_" 
+     > replace initial capital letter 
+  *)
+  let proc_str sym = 
+    String.uncapitalize
+      (Str.global_replace (Str.regexp "\\.") "_" sym) in
   let command = nm ^ " " ^ filename in
   if !enable_verbose then print_endline (command ^ "\n");
   let (code,stdout,stderr) = USys.shellcmd command in
@@ -102,9 +109,9 @@ let symbol_table filename =
                             (Ustring.split line (us" ")) in
       match sp with
       | addr::_::sym::_ -> (
-          try
+        try
             let addrno = int_of_string ("0x" ^ (Ustring.to_utf8 addr)) in
-            (Ustring.to_utf8 sym,addrno)::acc
+            (proc_str (Ustring.to_utf8 sym),addrno)::acc
           with _ -> acc)
       | _ -> acc
     ) [] lines

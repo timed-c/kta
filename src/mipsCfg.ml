@@ -140,7 +140,7 @@ let make_cfg addr prog =
       | ExitTypeJump(id) ->
         traverse (s2a prog id) prog graph visited funccalls
       | ExitTypeCall(callid,nid) ->
-        traverse (s2a prog nid) prog graph visited (callid::funccalls)
+         traverse (s2a prog nid) prog graph visited (callid::funccalls)
       | ExitTypeReturn ->
         (prog,graph,visited,funccalls)
   in
