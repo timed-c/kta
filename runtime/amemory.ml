@@ -19,14 +19,21 @@ type amem_t =
   | AInt8 of aint32 * aint32 * aint32 * aint32
   | AAny
 
+type bss_t = {
+    addr : int;
+    size : int;
+  }
+  
 type amemory = {
   memory : amem_t Mem.t;
   mjoins : amemory list;
-}
+  bss : bss_t;
+  }
 
 let mem_init = {
   memory = Mem.empty;
   mjoins = [];
+  bss = { addr = 0; size = 0 };
 }
 
 let amem_join bigendian v1 v2 =
@@ -57,6 +64,7 @@ let set_memval addr v mem =
   if nomem then mem
   else {mem with memory = Mem.add addr v mem.memory}
 
+(* TODO(Romy): Limits for 8bit and 16bit *)
 let getval_aint32 bigendian v =
   match v with
   | AInt32 v -> v
@@ -107,7 +115,12 @@ let get_memval addr mem =
       try Mem.find addr mem.memory 
       with Not_found ->
            match mem.mjoins with
-           | [] -> AAny
+           | [] ->
+              let bss_addr = mem.bss.addr in
+              let bss_size = mem.bss.size in
+              if addr >= bss_addr && addr < bss_addr + bss_size then
+                AInt32 (aint32_const 0)
+              else AAny
            | m::rest ->
               List.fold_left
                 (fun v1 mem ->
@@ -177,7 +190,8 @@ let mem_join memlist =
   | m::ms -> 
      List.fold_left
        (fun m1 m2 ->
-         { memory =
+         { m1 with
+           memory =
              Mem.merge
                (fun addr v1 v2 ->
                  match v1, v2 with
