@@ -8,24 +8,29 @@ open Str
 open Utest
        
 let tmpfile = "temp-file-090916-070704.tmp"
-
+               
 let compile_file filename fname args optimize debug bsconfig =
-  (try
-     MipsSys.pic32_compile [filename] false optimize tmpfile
-   with Sys_error e ->
-     e |> eprintf "Error %s");
-  let prog = MipsSys.get_program tmpfile |>  MipsUtils.add_branch_symbols in
-  let (prog,cfgmap) = MipsCfg.make_cfgmap fname prog in
-  let program_code = MipsCfg.pprint_ocaml_cps_from_cfgmap true fname cfgmap prog in
-  let stdout = MipsSys.wcet_compile fname false None bsconfig program_code args in
   try
-    let regex = Str.regexp "BCET:[^0-9]*\\([0-9]+\\)\\(.\\|\n\\)*WCET:[^0-9]*\\([0-9]+\\)" in
-    let _ = Str.search_forward regex stdout 0 in
-    let bcet, wcet = int_of_string (Str.matched_group 1 stdout), int_of_string (Str.matched_group 3 stdout) in
-    (bcet,wcet)                                                 
-  with Not_found ->
-       if debug then printf "%s\n%!" stdout;
-       (-1,-1)
+     MipsSys.pic32_compile [filename] false optimize tmpfile;
+     let prog = MipsSys.get_program tmpfile |>  MipsUtils.add_branch_symbols in
+     let (prog,cfgmap) = MipsCfg.make_cfgmap fname prog in
+     let program_code = MipsCfg.pprint_ocaml_cps_from_cfgmap true fname cfgmap prog in
+
+     let stdout = MipsSys.wcet_compile fname false None bsconfig program_code args in
+    
+     try
+       let regex = Str.regexp "BCET:[^0-9]*\\([0-9]+\\)\\(.\\|\n\\)*WCET:[^0-9]*\\([0-9]+\\)" in
+       let _ = Str.search_forward regex stdout 0 in
+       let bcet, wcet = int_of_string (Str.matched_group 1 stdout), int_of_string (Str.matched_group 3 stdout) in
+       (bcet,wcet)                                                 
+     with Not_found ->
+          if debug then printf "%s\n%!" stdout;
+          (-1,-1)
+  with
+  | Sys_error e ->
+     e |> printf "Error %s"; (-1,-1)
+  | _ -> (-1,-1)
+                               
 (*    (eprintf "Error: BCET/WCET Not_Found\n";
      raise Not_found)
  *)
@@ -40,7 +45,7 @@ let run_test test_file =
     while true; do
       let line_list = Str.split reg_separator (input_line ic) in
       match line_list with
-      | fname::func::args::opt::bsconfig::exp_bcet::exp_wcet::[] ->
+      | fname::func::args::opt::bsconfig::exp_bcet::exp_wcet::_::[] ->
          let argslist = Str.split arg_separator (args) in
          let bsconfig =
            match int_of_string (String.trim bsconfig) with
