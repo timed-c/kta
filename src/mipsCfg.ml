@@ -334,36 +334,30 @@ let pprint_ocaml_cps_from_cfgmap nice_output name cfgmap prog =
   let rec mem_zero_data n lst =
     match n with
     | n when n<0 -> lst
-    | n ->
-       mem_zero_data (n-1) (us (sprintf "0;" ) ^. lst)
+    | n -> mem_zero_data (n-1) (us (sprintf "0;" ) ^. lst)
   in
 
   let print_mem_sec sec name =
-    match sec.addr,sec.size,name with
-    | 0,0,_ -> us ""
-    | _,_,".sbss" | _,_,".bss"->
+    match sec.addr,sec.size with
+    | 0,0 -> us ""
+    | _,_ ->
        us"{" ^. 
-         us(sprintf "address=%d; " (sec.addr)) ^.
-           us(sprintf "size=%d; " (sec.size)) ^.
-             us(sprintf "sect_name=\"%s\"; " name) ^.
-               us(sprintf "data=[") ^.               
-                 mem_zero_data (sec.size-1) (us"") ^.
-                   us"]};\n"
-    | _,_,_ ->
-       us"{" ^. 
-         us(sprintf "address=%d; " (sec.addr)) ^.
-           us(sprintf "size=%d; " (sec.size)) ^.
-             us(sprintf "sect_name=\"%s\"; " name) ^.
-               us(sprintf "data=[") ^.               
-                 mem_get_data sec.d (sec.size-1) (us"") ^.
-                   us"]};\n"
+         us(sprintf "address=%d; size=%d; sect_name=\"%s\"; data=["
+                    sec.addr sec.size name) ^.               
+           (match name with
+            | ".sbss" ->
+               mem_zero_data (sec.size-1) (us"")
+            | ".bss" ->
+               us ""
+            | name ->
+               mem_get_data sec.d (sec.size-1) (us""))
+           ^. us"]};\n"
   in
   let mem_all = print_mem_sec prog.data_sec ".data" ^.
                   print_mem_sec prog.sdata_sec ".sdata" ^.
                     print_mem_sec prog.rodata_sec ".rodata" ^.
-                      print_mem_sec prog.sbss_sec ".sbss" (*^. 
+                      print_mem_sec prog.sbss_sec ".sbss" ^. 
                        print_mem_sec prog.bss_sec ".bss"
- *)
   in
 (* Intro header *)
   let intro =
