@@ -19,7 +19,7 @@ type amem_t =
   | AInt8 of aint32 * aint32 * aint32 * aint32
   | AAny
 
-type bss_t = {
+type section_t = {
     addr : int;
     size : int;
   }
@@ -27,13 +27,15 @@ type bss_t = {
 type amemory = {
   memory : amem_t Mem.t;
   mjoins : amemory list;
-  bss : bss_t;
+  bss : section_t;
+  sbss : section_t;
   }
 
 let mem_init = {
   memory = Mem.empty;
   mjoins = [];
   bss = { addr = 0; size = 0 };
+  sbss = { addr = 0; size = 0 };
 }
 
 let amem_join bigendian v1 v2 =
@@ -116,9 +118,11 @@ let get_memval addr mem =
       with Not_found ->
            match mem.mjoins with
            | [] ->
-              let bss_addr = mem.bss.addr in
-              let bss_size = mem.bss.size in
-              if addr >= bss_addr && addr < bss_addr + bss_size then
+              let bss_addr, bss_size = mem.bss.addr, mem.bss.size in
+              let sbss_addr, sbss_size = mem.sbss.addr, mem.sbss.size in
+              if (addr >= bss_addr && addr < bss_addr + bss_size) ||
+                   (addr >= sbss_addr && addr < sbss_addr + sbss_size)
+              then
                 AInt32 (aint32_const 0)
               else AAny
            | m::rest ->

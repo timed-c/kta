@@ -271,11 +271,14 @@ let rec memory_init bigendian mem amem =
   match mem with
   | [] -> amem
   | m::mems ->
-     if m.sect_name = ".bss" then
-       let amem = { amem with bss = { addr = m.address; size = m.size }} in
-       memory_init bigendian mems amem
-     else
-       init_section m.data m.address amem |>
+     match m.sect_name with
+     | ".bss" ->
+       { amem with bss = { addr = m.address; size = m.size }} |>
+         memory_init bigendian mems
+     | ".sbss" ->
+       { amem with sbss = { addr = m.address; size = m.size }} |>
+         memory_init bigendian mems
+     | _ -> init_section m.data m.address amem |>
          memory_init bigendian mems
 
 (* ----------------------- DEBUG FUNCTIONS  -------------------------*)
