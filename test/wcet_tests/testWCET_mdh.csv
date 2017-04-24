@@ -94,10 +94,10 @@ test/wcet_tests/mdh/compress.c|compress||1|-1|416|416|To be checked|
 test/wcet_tests/mdh/compress.c|compress||2|-1|414|414|To be checked|
 test/wcet_tests/mdh/compress.c|compress||3|-1|420|420|To be checked|
 test/wcet_tests/mdh/crc.c|main||0|-1|46626|50722|To be checked|
-test/wcet_tests/mdh/crc.c|main||1|-1|22169|23568|To be checked|
+test/wcet_tests/mdh/crc.c|main||1|-1|22169|23520|To be checked|
 test/wcet_tests/mdh/crc.c|main||2|-1|13377|42045|To be checked|
 test/wcet_tests/mdh/crc.c|icrc|a0=[0,5];a1=[40,50];a2=[0,5];a3=[1,5]|0|-1|44884|49370|To be checked|
-test/wcet_tests/mdh/crc.c|icrc|a0=[0,5];a1=[40,50];a2=[0,5];a3=[1,5]|1|-1|21431|22830|To be checked|
+test/wcet_tests/mdh/crc.c|icrc|a0=[0,5];a1=[40,50];a2=[0,5];a3=[1,5]|1|-1|21431|22782|To be checked|
 test/wcet_tests/mdh/crc.c|icrc|a0=[0,5];a1=[40,50];a2=[0,5];a3=[1,5]|2|-1|12704|41372|To be checked|
 test/wcet_tests/mdh/expint.c|main||0|-1|4405|4405|To be checked|
 test/wcet_tests/mdh/expint.c|main||1|-1|1948|1948|To be checked|
