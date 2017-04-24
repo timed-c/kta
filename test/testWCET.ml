@@ -16,15 +16,14 @@ let compile_file filename fname args optimize debug bsconfig =
      let (prog,cfgmap) = MipsCfg.make_cfgmap fname prog in
      let program_code = MipsCfg.pprint_ocaml_cps_from_cfgmap true fname cfgmap prog in
 
-     let stdout = MipsSys.wcet_compile fname false None bsconfig program_code args in
-    
+     let stdout = MipsSys.wcet_compile fname debug None bsconfig program_code args in
+     if debug then printf "%s\n%!" stdout;
      try
        let regex = Str.regexp "BCET:[^0-9]*\\([0-9]+\\)\\(.\\|\n\\)*WCET:[^0-9]*\\([0-9]+\\)" in
        let _ = Str.search_forward regex stdout 0 in
        let bcet, wcet = int_of_string (Str.matched_group 1 stdout), int_of_string (Str.matched_group 3 stdout) in
        (bcet,wcet)                                                 
      with Not_found ->
-          if debug then printf "%s\n%!" stdout;
           (-1,-1)
   with
   | Sys_error e ->
@@ -45,7 +44,7 @@ let run_test test_file =
     while true; do
       let line_list = Str.split reg_separator (input_line ic) in
       match line_list with
-      | fname::func::args::opt::bsconfig::exp_bcet::exp_wcet::_::[] ->
+      | fname::func::args::opt::bsconfig::exp_bcet::exp_wcet::debug::_::[] ->
          let argslist = Str.split arg_separator (args) in
          let bsconfig =
            match int_of_string (String.trim bsconfig) with
@@ -55,7 +54,8 @@ let run_test test_file =
          let opt = int_of_string (String.trim opt) in
          let exp_wcet = int_of_string (String.trim exp_wcet) in
          let exp_bcet = int_of_string (String.trim exp_bcet) in
-         let bcet,wcet = compile_file fname func argslist opt true bsconfig in      
+         let debug = if debug = "false" then false else true in
+         let bcet,wcet = compile_file fname func argslist opt debug bsconfig in      
          Utest.test_int (sprintf "%s, opt=-O%d, func=%s, input=[%s], %s=%d" fname opt func args "BCET" exp_bcet) bcet exp_bcet;
          Utest.test_int (sprintf "%s, opt=-O%d, func=%s, input=[%s], %s=%d" fname opt func args "WCET" exp_wcet) wcet exp_wcet;
       | _ -> printf "Wrong format in %s\n%!" test_file;

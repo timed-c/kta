@@ -1,1 +1,1 @@
-filename|function name|inputs|optimization flag|batch config (-1 for default)|expected bcet|expected wcet|comments
+filename|function name|inputs|optimization flag|batch config (-1 for default)|expected bcet|expected wcet|verbose|comments|
