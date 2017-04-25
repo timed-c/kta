@@ -49,7 +49,7 @@ module AccMap =
           
 type memaccess_t = bool * bool * int
                                    
-type tagmap_t = memaccess_t AccMap.t
+type accessmap_t = memaccess_t AccMap.t
 
 
 let tag_init =

@@ -7,9 +7,8 @@
 
 open Aint32congruence
 open Aregsimple
-open Amemtransactions
+open Amemhierarchy
 open Apipeline
-open Amemory
        
 open Ustring.Op
 open Printf
@@ -269,11 +268,11 @@ let rec memory_init bigendian mem amem =
   | m::mems ->
      match m.sect_name with
      | ".bss" ->
-        let mmem = {amem.mem with bss = { addr = m.address; size = m.size }} in
-       { amem with  mem = mmem } |> memory_init bigendian mems
-     | ".sbss" -> 
-        let mmem = {amem.mem with sbss = { addr = m.address; size = m.size }} in
-        { amem with mem = mmem } |> memory_init bigendian mems
+        let mmem = hmem_init_zero BSS m.address m.size amem in
+        amem |> hmem_update_mem mmem |> memory_init bigendian mems
+     | ".sbss" ->
+        let mmem = hmem_init_zero SBSS m.address m.size amem in
+        amem |> hmem_update_mem mmem |> memory_init bigendian mems
      | _ -> init_section m.data m.address amem |>
          memory_init bigendian mems
             
