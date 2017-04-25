@@ -1138,39 +1138,72 @@ let jr rs ms =
       continue (enqueue nextid (tick 2 ms.pstate) ms) *)
   else failwith "Not yet implemented."
 
+
 let jrds rs ms =
+  let proc_ps ps = 
+    let df,ps = instruction_fetch ms.pc ps in
+    let ticks,pip = pipeline_update (Br (Some rs, None)) ps.pipeline (df,1,1,1,1) in
+    ps |> updatepipl pip |> tick ticks |> nobranch
+  in
   if !dbg then prn_inst ms (us"jrds " ^. (reg2ustr rs));
-  if rs = ra then (ms |> inc_pc)
-(*    let nextid = ms.bbtable.(ms.cblock).nextid in
+  if rs = ra then
+    let ps = proc_branches proc_ps ms.pstate in
+    ps |> to_mstate ms |> inc_pc
+  (*    let nextid = ms.bbtable.(ms.cblock).nextid in
       continue (enqueue nextid (tick 2 ms.pstate) ms) *)
   else failwith "Not yet implemented."
 
-    
 let jal label ms =
   if !dbg then prn_inst ms (us"jal " ^. us(ms.bbtable.(label).name));
-  continue (enqueue label ms.pstate (ms |> inc_pc))
-
+  let proc_ps ps = 
+    let df,ps = instruction_fetch ms.pc ps in
+    let ticks,pip = pipeline_update (Br (None, None)) ps.pipeline (df,1,1,1,1) in
+    ps |> updatepipl pip |> tick ticks |> nobranch
+  in
+  let ps = proc_branches proc_ps ms.pstate in
+  continue (enqueue label ps (ps |> to_mstate ms |> inc_pc))
+           
 let jalds label ms =
   if !dbg then prn_inst ms (us"jalds " ^. us(ms.bbtable.(label).name));
+  let proc_ps ps = 
+    let df,ps = instruction_fetch ms.pc ps in
+    let ticks,pip = pipeline_update (Br (None, None)) ps.pipeline (df,1,1,1,1) in
+    ps |> updatepipl pip |> tick ticks 
+  in
+  let branch ps =
+    Branch (label, (Some (Nobranch ps), None))
+  in
   match ms.pstate with
   | Nobranch ps ->
-     Branch (label, (Some (Nobranch ps), None)) |> to_mstate ms |> inc_pc
+     let ps = proc_branches (fun ps -> proc_ps ps |> branch) (Nobranch ps) in
+     ps |> to_mstate ms |> inc_pc
   | Sbranch(_,_,Some ps1,_) | Sbranch(_,_,_,Some ps1) -> (*??*)
      proc_branches
-       (fun ps -> Branch (label, (Some (Nobranch ps), None)))
+       (fun ps -> proc_ps ps |> branch)
        ps1 |> to_mstate ms |> inc_pc
   | Sbranch _ | Branch _ ->
      should_not_happen 5
-
-       
+                        
+                       
 let jds label ms =
+  let proc_ps ps = 
+    let df,ps = instruction_fetch ms.pc ps in
+    let ticks,pip = pipeline_update (Br (None, None)) ps.pipeline (df,1,1,1,1) in
+    ps |> updatepipl pip |> tick ticks 
+  in
+  let branch ps =
+    Branch (label, (Some (Nobranch ps), None))
+  in
   if !dbg then prn_inst ms (us"jds " ^. us(ms.bbtable.(label).name));
   match ms.pstate with
   | Nobranch ps ->
-     Branch (label, (Some (Nobranch ps), None)) |> to_mstate ms |> inc_pc
+     let ps = proc_branches
+                (fun ps -> proc_ps ps |> branch)
+                (Nobranch ps) in
+     ps |> to_mstate ms |> inc_pc
   | Sbranch(_,_,Some ps1,_) | Sbranch(_,_,_,Some ps1) ->
      proc_branches
-       (fun ps -> Branch (label, (Some (Nobranch ps), None)))
+       (fun ps -> proc_ps ps |> branch)
        ps1 |> to_mstate ms |> inc_pc
   | Sbranch _ | Branch _ -> 
      should_not_happen 6
