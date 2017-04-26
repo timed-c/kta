@@ -23,6 +23,7 @@ type amemory = {
     mjoins : amemory list;
     bss : section_t;
     sbss : section_t;
+    access_time: int;
   }
 
 let mem_init = {
@@ -30,6 +31,7 @@ let mem_init = {
     mjoins = [];
     bss = { addr = 0; size = 0 };
     sbss = { addr = 0; size = 0 };
+    access_time = !mem_access_time;
 }
 
 

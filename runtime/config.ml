@@ -32,15 +32,17 @@ let enable_debug enable =
   dbg_mstate_sizes := enable;
   dbg_debug_intervals := enable
 
-
 (****** Cache configuration parameters *****)
 
 (* disable cache *)
 let nocache = false
 
-let unified_cache = ref false
+let levels = ref 1
+let unified_cache1 = ref false
+let unified_cache2 = ref false
+let unified_cache3 = ref false
 
-
+                       
 (* Data/Unified Cache parameters *)
 (* Number of sets *)
 let associativity = ref 2
@@ -57,23 +59,11 @@ let write_back = ref true
 let hit_time = ref 1 (*(1,2)*)
 let miss_penalty = ref 5 (*(8,66)*)
 
-(**** Instruction Cache parameters ****)
-let iassociativity = ref 1
-(* Absolute block size of cache *)
-let iblock_size = ref 8
-(* Absolute size of the cache *)
-let icache_size = ref 1024
-(* Absolute word size of the cache *)
-let iword_size = ref 4
-(* Type of cache *)
-let iwrite_allocate = ref true
-let iwrite_back = ref true
-                
-let ihit_time = ref 1 (*(1,2)*)
-let imiss_penalty = ref 5 (*(8,66)*)
-
 (****** TAG RECORD ******)
 let record_mtags = ref true 
 
 (****** PIPELINE ******)
 let disable_pipeline = ref false
+
+(****** MEMORY ******)
+let mem_access_time = ref 5

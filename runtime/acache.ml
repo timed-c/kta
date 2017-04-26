@@ -72,23 +72,27 @@ let access_merge tm1 tm2 =
 
 
 (*************************** ACACHE ****************************)
-type acache = {
-    cache : aset_t Cache.t; 
+type acache_info_t = {
     assoc : int;
     size : int;
     word_size : int;
     block_size : int;
     write_allocate : bool;
     write_back : bool;
+    hit_time : int; (* * int;*)
+    miss_penalty : int; (* * int;*)
+  }
+
+type acache = {
+    cache : aset_t Cache.t; 
+
+    cacheinfo: acache_info_t;
 
     setinfo : info_t;
     wordinfo : info_t;
     byteinfo : info_t;
 
     disabled : bool;
-
-    hit_time : int; (* * int;*)
-    miss_penalty : int; (* * int;*)
 
     cache_stats : cache_stats_t;
   }
@@ -101,8 +105,7 @@ type address = {
   }
             
 type cache_responce =
-  | Hit  | Miss of address * aset_t
-  | Nocache
+  | Hit  | Miss (* | Nocache *)
 
 let print_cache_stats cache str =
   let hits, misses = cache.cache_stats.hits,cache.cache_stats.misses in
@@ -130,11 +133,17 @@ let cache_init ?(assoc=(!associativity))
                ()
   = {
     cache = Cache.empty;
-    assoc = assoc;
-    block_size = blksize;
-    size = csize;
-    word_size = wdsize;
-    
+    cacheinfo = {
+        assoc = assoc;
+        block_size = blksize;
+        size = csize;
+        word_size = wdsize;
+        write_allocate = wralloc;
+        write_back = wrback;
+        hit_time = hitp;
+        miss_penalty = missp;
+      };
+                   
     setinfo = {
         num = csize/(assoc*blksize);
         (*log2 = shift_log2 (csize/(assoc*blksize)) 0;*)
@@ -148,25 +157,26 @@ let cache_init ?(assoc=(!associativity))
         (*log2 = shift_log2 (wdsize lsr 3) 0;*)
       };
 
-    write_allocate = wralloc;
-    write_back = wrback;
     disabled = false;
-    hit_time = hitp;
-    miss_penalty = missp;
     cache_stats = { misses = 0.; hits = 0.};
   }
 
 
-let icache_init () = cache_init
-                       ~assoc:(!iassociativity)
-                       ~blksize:(!iblock_size)
-                       ~csize:(!icache_size)
-                       ~wdsize:(!iword_size)
-                       ~wralloc:(!iwrite_allocate)
-                       ~wrback:(!iwrite_back)
-                       ~hitp:(!ihit_time)
-                       ~missp:(!imiss_penalty)
-                       ()
+(* TODO(Romy): Right now it is same as the data cache - 
+   do something with the parameters *)
+                       
+let cache_init_info l =
+  cache_init
+    ~assoc:(l.assoc)
+    ~blksize:(l.block_size)
+    ~csize:(l.size)
+    ~wdsize:(l.word_size)
+    ~wralloc:(l.write_allocate)
+    ~wrback:(l.write_back)
+    ~hitp:(l.hit_time)
+    ~missp:(l.miss_penalty)
+    ()
+    
 
 let cache_hits_inc cache =
   let stats = cache.cache_stats in
@@ -220,7 +230,7 @@ let insert_line line set cache =
   let (lru,rest) = Set.partition
                      (fun t (pos,d) ->
                        (* TODO(Romy): should be = *)
-                       pos >= cache.assoc-1) set in
+                       pos >= cache.cacheinfo.assoc-1) set in
   let set = Set.mapi
                (fun t (p,d) ->
                  (p+1,d)) rest in
@@ -244,7 +254,7 @@ let update_cache dirty address set =
                  ) set in
     (Hit,set)
   with Not_found ->
-    (Miss (address,set), set)
+    (Miss, set)
          
 let access_cache write addr cache amap =
   if !dbg_cache then
@@ -254,42 +264,42 @@ let access_cache write addr cache amap =
         printf "TAGMAP\n";
         AccMap.iter (fun tag (_,_,v) -> printf "0x%x: %d\n%!" tag v) amap
     );
-  if nocache || cache.disabled then (Nocache,cache,amap)
-  else
-    let address = split_address addr cache in
-    let amap = match amap with
-      | None -> None (* Disabled amap - No recording *)
-      | Some amap ->
-         let set_address = get_set address cache in
-         let (r,w,bsize) =
-           try
-             AccMap.find address.set amap
-           with
-           | Not_found ->
-              (false,false,cache.block_size)
-         in
-         let (r,w,bsize) = (r || (not write), w || write, bsize) in
-         Some (AccMap.add set_address
-                          (r,w,bsize) amap)
-    in
-    try
-      let set = Cache.find address.set cache.cache in
-      let (w,set) = update_cache write address set in
-      let cache = update_set address.set set cache in
-      (w,cache,amap)
-    with
-    | Not_found ->
-       let set = new_cache_set () in
-       let cache = update_set address.set set cache in
-       (Miss(address,set),cache,amap)
+  (* if nocache || cache.disabled then (Nocache,cache,amap) *)
+  (* else *)
+  let address = split_address addr cache in
+  let amap = match amap with
+    | None -> None (* Disabled amap - No recording *)
+    | Some amap ->
+       let set_address = get_set address cache in
+       let (r,w,bsize) =
+         try
+           AccMap.find address.set amap
+         with
+         | Not_found ->
+            (false,false,cache.cacheinfo.block_size)
+       in
+       let (r,w,bsize) = (r || (not write), w || write, bsize) in
+       Some (AccMap.add set_address
+                        (r,w,bsize) amap)
+  in
+  try
+    let set = Cache.find address.set cache.cache in
+    let (resp,set) = update_cache write address set in
+    let cache = update_set address.set set cache in
+    (resp,address,set,cache,amap)
+  with
+  | Not_found ->
+     let set = new_cache_set () in
+     let cache = update_set address.set set cache in
+     (Miss,address,set,cache,amap)
          
 let read_line_from_mem tag dirty = (tag,dirty)
                                 
 let read_cache addr cache amap =
-  let (resp,cache,amap) = access_cache false addr cache amap in
+  let (resp,address,set,cache,amap) = access_cache false addr cache amap in
   let ticks,cache =
     match resp,cache with
-    | Miss (address,set), cache ->
+    | Miss, cache ->
        let cache = cache_misses_inc cache in
        if !dbg_cache then
          (* TODO(Romy): fix debugging msg *)(
@@ -298,63 +308,67 @@ let read_cache addr cache amap =
        let line = read_line_from_mem address.tag false in
        let blru,set = insert_line line set cache in
        let cache = update_set address.set set cache in
-       if cache.write_back && exists_dirty blru then
-         (* write back to mem --- penalty *)
-         (cache.hit_time + cache.miss_penalty,cache)
-       else
-         (* write_back - nodirty || write through *)
-         (cache.hit_time + cache.miss_penalty,cache)
+       (* if cache.write_back && exists_dirty blru then *)
+       (*   (\* write back to mem --- penalty *\) *)
+       (*   (cache.hit_time + cache.miss_penalty,cache) *)
+       (* else *)
+       (*   (\* write_back - nodirty || write through *\) *)
+       (*   (cache.hit_time + cache.miss_penalty,cache) *)
+       (cache.cacheinfo.hit_time, cache)
     | Hit, cache ->
        let cache = cache_hits_inc cache in
        if !dbg_cache then
          (* TODO(Romy): fix debugging msg *)
          printf "HIT: read_cache addr:0x%x\n%!" addr;
-       (cache.hit_time,cache)
-    | Nocache, _ -> (1,cache)
-  in ticks,cache,amap
+       (cache.cacheinfo.hit_time,cache)
+    (* | Nocache, _ -> (1,cache) *)
+  in ticks,resp,cache,amap
 
                
 let write_cache addr cache amap =
-  let (resp,cache,amap) = access_cache true addr cache amap in
+  let (resp,address,set,cache,amap) = access_cache true addr cache amap in
+  let hit_time = cache.cacheinfo.hit_time in
   let (ticks,cache) = 
     match resp with
-    | Miss (address,set) ->
+    | Miss ->
        let cache = cache_misses_inc cache in
        if !dbg_cache then
          (* TODO(Romy): fix debugging msg *)
          printf "MISS: write_cache addr:0x%x\n%!" addr;
-       if cache.write_allocate then (
+       if cache.cacheinfo.write_allocate then (
          let line = read_line_from_mem address.tag true in
          let blru,set = insert_line line set cache in
          let cache = update_set address.set set cache in
-
-         if cache.write_back then
-           if exists_dirty blru then 
-             (* write_allocate && write_back -> MISS *)
-             (* update main_mem?? *)
-             (cache.hit_time + cache.miss_penalty,cache)
-           else
-             (cache.hit_time + cache.miss_penalty,cache)
-         else
-           (* write_allocate && write_through -> MISS *)
-           (cache.hit_time + cache.miss_penalty,cache)
+         (* if cache.write_back then *)
+         (*   if exists_dirty blru then  *)
+         (*     (\* write_allocate && write_back -> MISS *\) *)
+         (*     (\* update main_mem?? *\) *)
+         (*     (cache.hit_time + cache.miss_penalty,cache) *)
+         (*   else *)
+         (*     (cache.hit_time + cache.miss_penalty,cache) *)
+         (* else *)
+         (*   (\* write_allocate && write_through -> MISS *\) *)
+         (*   (cache.hit_time + cache.miss_penalty,cache) *)
+         (hit_time,cache)
        )
        else
+         (hit_time,cache)
          (* write_no_allocate -> MISS *)
-         (cache.hit_time + cache.miss_penalty,cache)
+         (* (cache.hit_time + cache.miss_penalty,cache) *)
     | Hit ->
        if !dbg_cache then
          (* TODO(Romy): fix debugging msg *)
          printf "HIT: write_cache addr:0x%x\n%!" addr;
        let cache = cache_hits_inc cache in
-       if cache.write_back then
+       if cache.cacheinfo.write_back then
          (* write_back -> HIT *)
-         (cache.hit_time,cache)
+         (hit_time,cache)
        else
          (* write_through -> HIT - has to be written to the main mem *)
-         (cache.hit_time + cache.miss_penalty,cache)        
-    | Nocache -> (1,cache)
-  in (ticks,cache,amap)
+         (* (cache.hit_time + cache.miss_penalty,cache) *)
+         (hit_time,cache)        
+    (* | Nocache -> (1,cache) *)
+  in (ticks,resp,cache,amap)
 
 (******** Cache to any (similar to mem_to_any) *********)
 
@@ -411,7 +425,7 @@ let print_cache cache =
     | _ ->
        (try
           let set = Cache.find num cache.cache in
-          printf "sets of sets found for set %d and has length %d. Assoc = %d\n%!" num (Set.cardinal set) cache.assoc
+          printf "sets of sets found for set %d and has length %d. Assoc = %d\n%!" num (Set.cardinal set) cache.cacheinfo.assoc
         with Not_found ->
           printf "set not found %d\n%!" num; );
        get_sets cache (num-1)
@@ -421,5 +435,7 @@ let print_cache cache =
 
 (************************* MISS *********************)
 let miss_cache cache =
-  if nocache || cache.disabled then 1 else cache.hit_time + cache.miss_penalty
+  if nocache || cache.disabled
+  then 1
+  else cache.cacheinfo.hit_time (*+ cache.miss_penalty*)
                                              

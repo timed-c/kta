@@ -426,11 +426,10 @@ let continue ms =
   (* Debug output for the mstate *)
   if !dbg && !dbg_mstate_sizes then (
     printf "-----------------\n";
-    printf "blockid = %d, pc = %d, batch size = %d, prio queue size = %d\n"
+    printf "blockid = %d, pc = %d, batch size = %d, prio queue size = %d\n%!"
            ms.cblock ms.pc (List.length ms.batch) (List.length ms.prio);
-    printf "cstack size %d\n" (List.length ms.cstack))
+    printf "cstack size %d\n%!" (List.length ms.cstack))
   else ();
-  
   let ms = dequeue ms in
   let ms = {ms with pc = ms.bbtable.(ms.cblock).addr} in
   let bi = ms.bbtable.(ms.cblock) in
@@ -877,15 +876,16 @@ let lwr rt imm rs ms =
 let enq tlabel flabel pst psf ms =
   (*TODO(Romy):to_mstate: maybe not necessary*)
   match pst, psf with
-        | None, Some(psf) ->
-           continue (psf |> to_mstate ms |> enqueue flabel psf)
-        | Some(pst), None ->
-           continue (pst |> to_mstate ms |> enqueue tlabel pst)
-        | Some(pst), Some(psf) ->
-           let ms = pst |> to_mstate ms |> enqueue tlabel pst in
-           let ms = psf |> to_mstate ms |> enqueue flabel psf in
-           continue ms
-        | None, None -> should_not_happen 4
+  | None, Some(psf) ->
+     continue (psf |> to_mstate ms |> enqueue flabel psf)
+  | Some(pst), None ->
+     continue (pst |> to_mstate ms |> enqueue tlabel pst)
+  | Some(pst), Some(psf) ->
+     let ms = pst |> to_mstate ms |> enqueue tlabel pst in
+     let ms = psf |> to_mstate ms |> enqueue flabel psf in
+     continue ms
+  | None, None ->
+     should_not_happen 4
 
       
 let branch_main str equal dslot op rs rt label ms =
