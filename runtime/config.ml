@@ -14,7 +14,8 @@ let set_max_cycles cycles =
 
 (* Debugging variables *)
 let dbg = ref false
-let dbg_trace = ref true  (* Note that you should compile with exper.d.byte *)  
+(* Note that you should compile with exper.d.byte *)
+let dbg_trace = ref true 
 let dbg_inst = ref true
 let dbg_mstate_sizes = ref true
 let dbg_debug_intervals = ref true
@@ -32,16 +33,12 @@ let enable_debug enable =
   dbg_mstate_sizes := enable;
   dbg_debug_intervals := enable
 
-(****** Cache configuration parameters *****)
+(****** Cache configuration test-parameters *****)
 
 (* disable cache *)
 let nocache = ref false
 
 let levels = ref 1
-let unified_cache1 = ref false
-let unified_cache2 = ref false
-let unified_cache3 = ref false
-
                        
 (* Data/Unified Cache parameters *)
 (* Number of sets *)
@@ -66,6 +63,3 @@ let record_mtags = ref true
 
 (****** PIPELINE ******)
 let disable_pipeline = ref false
-
-(****** MEMORY ******)
-let mem_access_time = ref 5

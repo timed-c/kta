@@ -2,7 +2,8 @@ open Aint32congruence
 open Printf
 open Config
 open Amemtype
-
+open Cpumodel
+       
 (* If true, the memory will not set anything and all memory requests will
    return Any *)
 let nomem = false

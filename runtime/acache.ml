@@ -120,12 +120,6 @@ let print_cache_stats cache str =
   printf "%s MISS_RATE:  %f%%\n%!" str ((100. *. misses)/. (hits +. misses))
 
 
-(*
-let rec shift_log2 pow log =
-  match pow with
-  | 0 | 1 -> log
-  | _ -> shift_log2 (pow lsr 1) (log+1)
-*)
 
 let cache_init ?(assoc=(!associativity))
                ?(blksize=(!block_size))
@@ -230,8 +224,8 @@ let insert_line line set cache =
                        (* TODO(Romy): should be = *)
                        pos >= cache.cacheinfo.assoc-1) set in
   let set = Set.mapi
-               (fun t (p,d,i) ->
-                 (p+1,d,i)) rest in
+              (fun t (p,d,i) ->
+                (p+1,d,i)) rest in
   (lru, Set.add tag (0,dirty,invalid) set)
                
 
@@ -253,7 +247,7 @@ let update_cache address dirty invalid set =
     (Hit,set)
   with Not_found ->
     (Miss,set)
-         
+(****************** Access cache for Read or Write **********************)         
 let access_cache write addr cache amap =
   if !dbg_cache then
     (match amap with

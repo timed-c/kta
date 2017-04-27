@@ -21,16 +21,24 @@ let cache_model =
          shared = false;});
    (*L2*)
    U ({ assoc = 4; size = 8192;
-       word_size = 4; block_size = 16;
-       write_allocate = true; write_back = true;
-       hit_time = 5; 
-       shared = false;
+        word_size = 4; block_size = 16;
+        write_allocate = true; write_back = true;
+        hit_time = 5; 
+        shared = false;
      });
    (*L3*)
    U ({ assoc = 8; size = 32768;
-       word_size = 4; block_size = 16;
-       write_allocate = true; write_back = true;
-       hit_time = 100;
-       shared = false;
+        word_size = 4; block_size = 16;
+        write_allocate = true; write_back = true;
+        hit_time = 50;
+        shared = false;
       })
   ]
+
+(****** MEMORY ******)
+
+let mem_access_time = ref 100
+
+(****** COHERENCE PENALTY ******)
+
+let coherence_penalty = ref 130
