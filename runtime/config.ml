@@ -35,7 +35,7 @@ let enable_debug enable =
 (****** Cache configuration parameters *****)
 
 (* disable cache *)
-let nocache = false
+let nocache = ref false
 
 let levels = ref 1
 let unified_cache1 = ref false
@@ -57,10 +57,12 @@ let write_allocate = ref true
 let write_back = ref true
 
 let hit_time = ref 1 (*(1,2)*)
-let miss_penalty = ref 5 (*(8,66)*)
+(* let miss_penalty = ref 5 (\*(8,66)*\) *)
 
+let shared = ref true
+                 
 (****** TAG RECORD ******)
-let record_mtags = ref true 
+let record_mtags = ref true
 
 (****** PIPELINE ******)
 let disable_pipeline = ref false

@@ -13,9 +13,6 @@ type cache_t =
 
 type cache_hierarchy_t =
   cache_t list
-  (* | L1 of cache_t *)
-  (* | L2 of cache_t * acache *)
-  (* | L3 of cache_t * acache * acache *)
                     
 type amemhierarchy = {
     mem : amemory;
@@ -111,8 +108,11 @@ let write_mem addr aval ctype cache mem amap =
        | Miss -> write_caches cs (ticks+nticks) ((update_cache c ctype c')::ncaches)
   in
   let mem = set_memval addr aval mem in
-  let ticks, cache = write_caches cache 0 [] in
-  (ticks,cache,mem,None,amap)    
+  if (!nocache) then
+    (mem.access_time,cache,mem,None,amap)
+  else 
+    let ticks, cache = write_caches cache 0 [] in
+    (ticks,cache,mem,None,amap)    
      
 let read_mem addr ctype cache mem amap =
   let rec read_caches caches ticks ncaches =
@@ -128,8 +128,11 @@ let read_mem addr ctype cache mem amap =
           read_caches cs (ticks+nticks) ((update_cache c ctype c')::ncaches)
   in
   let mem,v = get_memval addr mem in
-  let ticks, cache = read_caches cache 0 [] in
-  (ticks,cache,mem,v,amap)
+  if (!nocache) then
+    (mem.access_time,cache,mem,v,amap)
+  else 
+    let ticks, cache = read_caches cache 0 [] in
+    (ticks,cache,mem,v,amap)
 
 (************************* MAIN MEMORY OPERATIONS ************************)
     
@@ -289,8 +292,7 @@ let st_any hmem =
 
 
 (********************************************)
-let print_hmem_stats hmem =
-  printf "No stats"
+let print_hmem_stats hmem = ()
   (* match hmem.cache with *)
   (* | Uni c -> print_cache_stats c "Unified Cache"; *)
   (* | Sep (ic,dc) -> *)

@@ -18,7 +18,11 @@ module Set =
 type tag = int
                                   
 type dirty = bool
-               
+
+type invalid = bool
+
+type lru = int
+             
 type assoc_t = int
                  
 (* 
@@ -26,7 +30,7 @@ type assoc_t = int
    Accessed by tag
    Contains LRU * dirty
 *)
-type aset_t = (int * dirty) Set.t
+type aset_t = (lru * dirty * invalid) Set.t
 
 type info_t = {
     num : int;
@@ -80,7 +84,8 @@ type acache_info_t = {
     write_allocate : bool;
     write_back : bool;
     hit_time : int; (* * int;*)
-    miss_penalty : int; (* * int;*)
+    (* miss_penalty : int; (\* * int;*\) *)
+    shared : bool;
   }
 
 type acache = {
@@ -129,7 +134,8 @@ let cache_init ?(assoc=(!associativity))
                ?(wralloc=(!write_allocate))
                ?(wrback=(!write_back))
                ?(hitp=(!hit_time))
-               ?(missp=(!miss_penalty))
+               (* ?(missp=(!miss_penalty)) *)
+               ?(shared=(!shared))
                ()
   = {
     cache = Cache.empty;
@@ -141,7 +147,8 @@ let cache_init ?(assoc=(!associativity))
         write_allocate = wralloc;
         write_back = wrback;
         hit_time = hitp;
-        miss_penalty = missp;
+        (* miss_penalty = missp; *)
+        shared = shared;
       };
                    
     setinfo = {
@@ -174,7 +181,8 @@ let cache_init_info l =
     ~wralloc:(l.write_allocate)
     ~wrback:(l.write_back)
     ~hitp:(l.hit_time)
-    ~missp:(l.miss_penalty)
+    (* ~missp:(l.miss_penalty) *)
+    ~shared:(l.shared)
     ()
     
 
@@ -198,14 +206,8 @@ let split_address addr cache =
   let set = ((addr / cache.byteinfo.num) / cache.wordinfo.num) mod cache.setinfo.num in
   let tag = ((addr / cache.byteinfo.num) / cache.wordinfo.num) / cache.setinfo.num in
   if !dbg_cache then
-    printf "SPLIT ADDRESS: tag 0x%x set 0x%x word 0x%x byte 0x%x\n%!"
+   printf "SPLIT ADDRESS: tag 0x%x set 0x%x word 0x%x byte 0x%x\n%!"
            tag set word byte;
-  (*
-  let byte = addr land (cache.byteinfo.num-1) in
-  let word = (addr lsr cache.byteinfo.log2) land (cache.wordinfo.num-1) in
-  let set = (addr lsr (cache.wordinfo.log2 + cache.byteinfo.log2)) land (cache.setinfo.num-1) in
-  let tag = (addr lsr (cache.wordinfo.log2 + cache.setinfo.log2 + cache.byteinfo.log2)) in
-  *)
   { tag = tag; set = set; word = word; byte = byte;}
 
 let merge_address address cache =
@@ -214,10 +216,6 @@ let merge_address address cache =
   lor (address.set * cache.byteinfo.num * cache.wordinfo.num)
   lor (address.tag * cache.byteinfo.num * cache.wordinfo.num * cache.setinfo.num)
   
-  (* (address.byte land (cache.byteinfo.num-1)) *)
-  (* lor (address.word lsl cache.byteinfo.log2) *)
-  (* lor (address.set lsl (cache.wordinfo.log2 + cache.byteinfo.log2)) *)
-  (* lor (address.tag lsl (cache.wordinfo.log2 + cache.setinfo.log2 + cache.byteinfo.log2)) *)
 
 let get_set address cache =
   (address.set * cache.byteinfo.num * cache.wordinfo.num)
@@ -226,35 +224,35 @@ let get_set address cache =
 (****************** Insert Function **********************)
         
 let insert_line line set cache =
-  let (tag,dirty) = line in
+  let (tag,dirty,invalid) = line in
   let (lru,rest) = Set.partition
-                     (fun t (pos,d) ->
+                     (fun t (pos,d,i) ->
                        (* TODO(Romy): should be = *)
                        pos >= cache.cacheinfo.assoc-1) set in
   let set = Set.mapi
-               (fun t (p,d) ->
-                 (p+1,d)) rest in
-  (lru, Set.add tag (0,dirty) set)
+               (fun t (p,d,i) ->
+                 (p+1,d,i)) rest in
+  (lru, Set.add tag (0,dirty,invalid) set)
                
 
 let exists_dirty set =
-  Set.exists (fun t (p,d) -> d) set
+  Set.exists (fun t (p,d,i) -> d) set
 
 (****************** Update Function **********************)
 
-let update_cache dirty address set =
+let update_cache address dirty invalid set =
   try
-    let pos,d = Set.find address.tag set in
+    let pos,_,_ = Set.find address.tag set in
     (*let set = Set.remove address.tag set in*)
     let set = Set.mapi
-                 (fun t (p,d) ->
-                   if t = address.tag then (0,dirty) 
-                   else if p<pos then (p+1,d)
-                   else (p,d)
+                 (fun t (p,d,i) ->
+                   if t = address.tag then (0,dirty,invalid) 
+                   else if p<pos then (p+1,d,i)
+                   else (p,d,i)
                  ) set in
     (Hit,set)
   with Not_found ->
-    (Miss, set)
+    (Miss,set)
          
 let access_cache write addr cache amap =
   if !dbg_cache then
@@ -267,6 +265,8 @@ let access_cache write addr cache amap =
   (* if nocache || cache.disabled then (Nocache,cache,amap) *)
   (* else *)
   let address = split_address addr cache in
+  (* TODO(Romy): fix invalid coherence *)
+  let invalid = false in
   let amap = match amap with
     | None -> None (* Disabled amap - No recording *)
     | Some amap ->
@@ -284,7 +284,7 @@ let access_cache write addr cache amap =
   in
   try
     let set = Cache.find address.set cache.cache in
-    let (resp,set) = update_cache write address set in
+    let (resp,set) = update_cache address write invalid set in
     let cache = update_set address.set set cache in
     (resp,address,set,cache,amap)
   with
@@ -293,7 +293,7 @@ let access_cache write addr cache amap =
      let cache = update_set address.set set cache in
      (Miss,address,set,cache,amap)
          
-let read_line_from_mem tag dirty = (tag,dirty)
+let read_line_from_mem tag dirty invalid = (tag,dirty,invalid)
                                 
 let read_cache addr cache amap =
   let (resp,address,set,cache,amap) = access_cache false addr cache amap in
@@ -301,11 +301,13 @@ let read_cache addr cache amap =
     match resp,cache with
     | Miss, cache ->
        let cache = cache_misses_inc cache in
+       (*TODO(Romy): for coherency*)
+       let invalid = false in 
        if !dbg_cache then
          (* TODO(Romy): fix debugging msg *)(
          printf "MISS: read_cache addr:0x%x\n%!" addr;
          print_cache_stats cache "read miss");
-       let line = read_line_from_mem address.tag false in
+       let line = read_line_from_mem address.tag false invalid in
        let blru,set = insert_line line set cache in
        let cache = update_set address.set set cache in
        (* if cache.write_back && exists_dirty blru then *)
@@ -331,12 +333,14 @@ let write_cache addr cache amap =
   let (ticks,cache) = 
     match resp with
     | Miss ->
+       let invalid = false in
+       (* TODO(Romy): fix for coherence *)
        let cache = cache_misses_inc cache in
        if !dbg_cache then
          (* TODO(Romy): fix debugging msg *)
          printf "MISS: write_cache addr:0x%x\n%!" addr;
        if cache.cacheinfo.write_allocate then (
-         let line = read_line_from_mem address.tag true in
+         let line = read_line_from_mem address.tag true invalid in
          let blru,set = insert_line line set cache in
          let cache = update_set address.set set cache in
          (* if cache.write_back then *)
@@ -398,8 +402,8 @@ let cache_join c1 c2 =
                          (fun t l1 l2 ->
                            match l1,l2 with
                            | None,_ | _,None -> None
-                           | Some (pos1,d1), Some (pos2,d2) ->
-                              Some (max pos1 pos2, d1 || d2)
+                           | Some (pos1,d1,i1), Some (pos2,d2,i2) ->
+                              Some (max pos1 pos2, d1 || d2, i1 || i2)
                          ) set1 set2
             in
             update_set num set cache
@@ -435,7 +439,7 @@ let print_cache cache =
 
 (************************* MISS *********************)
 let miss_cache cache =
-  if nocache || cache.disabled
-  then 1
+  if !nocache || cache.disabled
+  then 0
   else cache.cacheinfo.hit_time (*+ cache.miss_penalty*)
                                              
