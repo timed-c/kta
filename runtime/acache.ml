@@ -209,22 +209,31 @@ let access_print str amap =
             rest ^ (sprintf "(0x%x,(%d,%d,%d));" t r w bs)) amap "") ^
        "]\n"
 
+       
+type cohtype = OtherRead of int | ThisRead | ThisRW of int
+    
+type mapstype = RMap of accessmap_t option | TMap of cohtype AccMap.t option 
 
 let tag_init =
-  if !record_mtags then Some AccMap.empty else None
+  if !record_mtags
+  then Some (RMap (Some AccMap.empty))
+  else Some (TMap None)
          
 let access_join tm1 tm2 = 
   match tm1, tm2 with
   | None, None -> None
-  | Some tm1, Some tm2 -> Some (AccMap.merge
-                                  (fun t m1 m2 ->
-                                    match m1,m2 with
-                                    | Some (r1,w1,bs1), Some (r2,w2,bs2) ->
-                                       (* bs1 should be larger than bs2 *)
-                                       Some (max r1 r2,max w1 w2, max bs1 bs2)
-                                    | Some acc, _ | _, Some acc -> Some acc
-                                    | None, None -> None
-                                  ) tm1 tm2)
+  | Some (RMap (Some tm1)),
+    Some (RMap (Some tm2)) -> Some
+     (RMap (Some (AccMap.merge
+                    (fun t m1 m2 ->
+                      match m1,m2 with
+                      | Some (r1,w1,bs1), Some (r2,w2,bs2) ->
+                         (* bs1 should be larger than bs2 *)
+                         Some (max r1 r2,max w1 w2, max bs1 bs2)
+                      | Some acc, _ | _, Some acc -> Some acc
+                      | None, None -> None
+                    ) tm1 tm2)))
+  | Some (TMap tm1), Some (TMap tm2) -> Some (TMap tm1)
   | _, _ -> failwith "Error in tag_merge."
 
 let get_set address cache =
@@ -268,9 +277,7 @@ let access_merge amap1 amap2 =
             Some (r1+r2, w1+w2, max b1 b2)
        ) amap1 amap2)
 
-
-type cohtype = OtherRead of int | ThisRead | ThisRW of int
-    
+   
 let check_coherence amap_others amap_this =
   match amap_others,amap_this with
   | None, _ | _, None -> (None,0)
@@ -332,19 +339,24 @@ let update_cache address dirty invalid set =
     (Miss,set)
 (****************** Access cache for Read or Write **********************)         
 let access_cache write addr cache amap =
-  if !dbg_cache then
-    (match amap with
-     | None -> printf "None\n%!";
-     | Some amap ->
-        printf "TAGMAP\n";
-        AccMap.iter (fun tag (_,_,v) -> printf "0x%x: %d\n%!" tag v) amap
-    );
+  if !dbg_cache then ();
+    (* (match amap with *)
+    (*  | None -> printf "None\n%!"; *)
+    (*  | Some amap -> *)
+    (*     printf "TAGMAP\n"; *)
+    (*     AccMap.iter (fun tag (_,_,v) -> printf "0x%x: %d\n%!" tag v) amap *)
+    (* ); *)
   (* if nocache || cache.disabled then (Nocache,cache,amap) *)
   (* else *)
   let address = split_address addr cache in
   (* TODO(Romy): fix invalid coherence *)
   let invalid = false in
-  let amap = access_update write address cache amap in
+  let amap = 
+    match amap with
+    | None -> None
+    | Some (RMap amap) -> Some (RMap (access_update write address cache amap ))
+    | Some (TMap tmap) -> Some (TMap tmap)
+  in
   try
     let set = Cache.find address.set cache.cache in
     let (resp,set) = update_cache address write invalid set in

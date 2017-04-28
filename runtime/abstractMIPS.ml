@@ -1501,7 +1501,7 @@ let lii rd l h ms =
 (* ------------------- MAIN ANALYSIS FUNCTIONS ----------------------*)
     
 (** Main function for analyzing an assembly function *)
-let analyze_main startblock bblocks gp_addr args init_mem =
+let analyze_main startblock bblocks gp_addr args init_mem task_amem =
   (* Get the block info of the first basic block *)  
   let bi = bblocks.(startblock) in
 
@@ -1518,6 +1518,13 @@ let analyze_main startblock bblocks gp_addr args init_mem =
   let hmem = disable_dcache ps.hmem in
   let hmem = memory_init false init_mem hmem in
   let hmem = enable_dcache hmem in
+
+  let tmap =
+    match task_amem with
+    | [] -> None
+    | t::ts -> Some (get_tmaps t ts)
+  in
+
   let ps = {ps with reg = reg; hmem=hmem} in
   
   
@@ -1548,13 +1555,15 @@ let print_memacc_read lst =
 (** Print main state info *)
 let print_mstate str ms =
   let print_pstate ps =
-    printf "Counter: %d\n" !counter;
-    printf "BCET:  %d cycles\n" ps.bcet;
-    printf "WCET:  %d cycles\n" ps.wcet;
-    if !dbg_stats then 
-      print_hmem_stats ps.hmem;
-    Ustring.write_file (sprintf "memmap_%s.ml" str) (us (print_amem str ps.hmem));
-    uprint_endline (pprint_pstate 32 ps)
+    if !record_mtags then
+      Ustring.write_file (sprintf "memmap_%s.ml" str) (us (print_amem str ps.hmem))
+    else  (
+      printf "Counter: %d\n" !counter;
+      printf "BCET:  %d cycles\n" ps.bcet;
+      printf "WCET:  %d cycles\n" ps.wcet;
+      if !dbg_stats then 
+        print_hmem_stats ps.hmem;
+      uprint_endline (pprint_pstate 32 ps))
   in
   let ps = ms.pstate in
   match ps with
@@ -1570,12 +1579,15 @@ type options_t =
   | OpArgs
   | OpConfigBatchSize
   | OpConfigMaxCycles
-
+  | OpRecord
+      
 open Ustring.Op
        
 let options =
   [ (OpDebug, Uargs.No, us"-debug", us"",
      us"Enable debug.");
+    (OpRecord, Uargs.No, us"-record", us"",
+     us"Record memory accesses.");
     (OpConfigBatchSize, Uargs.Int, us"-bsconfig", us"",
      us"Configure maximum batch size.");
     (OpConfigMaxCycles, Uargs.Int, us"-max_cycles", us"",
@@ -1585,15 +1597,18 @@ let options =
 
 
   
-let analyze startblock bblocks gp_addr mem defaultargs =
+let analyze startblock bblocks gp_addr mem defaultargs tasks =
   let args = (Array.to_list Sys.argv |> List.tl) in
   let (ops, args) = Uargs.parse args options in
   let debug = Uargs.has_op OpDebug ops in
   enable_debug debug;
-  if Uargs.has_op OpConfigBatchSize ops then
-    (set_max_batch_size (Uargs.int_op OpConfigBatchSize ops));
+
+  set_record (Uargs.has_op OpRecord ops);
+
   if Uargs.has_op OpConfigMaxCycles ops then
     (set_max_cycles (Uargs.int_op OpConfigMaxCycles ops));
+  if Uargs.has_op OpConfigBatchSize ops then
+    (set_max_batch_size (Uargs.int_op OpConfigBatchSize ops));
   let args =
     if Uargs.has_op OpArgs ops then
       Uargs.strlist_op OpArgs ops |> List.map Ustring.to_utf8
@@ -1603,14 +1618,14 @@ let analyze startblock bblocks gp_addr mem defaultargs =
   let args = if args = [] then defaultargs else args in
   if !dbg && !dbg_trace then
     let v =     
-      try analyze_main startblock bblocks gp_addr args mem |> print_mstate bblocks.(startblock).name
+      try analyze_main startblock bblocks gp_addr args mem tasks |> print_mstate bblocks.(startblock).name
       with
       | MaxCyclesException -> printf "A path reached the maximum cycles allowed: %d\n%!" (!config_max_cycles);
       | _ -> Printexc.print_backtrace stdout
     in v
   else
     try
-      analyze_main startblock bblocks gp_addr args mem |> print_mstate bblocks.(startblock).name
+      analyze_main startblock bblocks gp_addr args mem tasks |> print_mstate bblocks.(startblock).name
     with
     | MaxCyclesException -> printf "Analysis not finished. A path reached the maximum cycles allowed: %d\n%!" (!config_max_cycles)
     

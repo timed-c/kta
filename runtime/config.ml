@@ -62,7 +62,7 @@ let shared = ref true
 let record_mtags = ref true
 
 let set_record v =
-  record_mtags := false
+  record_mtags := v
 
 (****** PIPELINE ******)
 let disable_pipeline = ref false

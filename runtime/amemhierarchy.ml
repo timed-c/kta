@@ -17,7 +17,7 @@ type cache_hierarchy_t =
 type amemhierarchy = {
     mem : amemory;
     cache : cache_hierarchy_t;
-    amap : accessmap_t option;
+    amap : mapstype option; (* accessmap_t option; *)
   }
 
 type memory_access_t = | DCache | ICache
@@ -96,7 +96,16 @@ let rec reverse_append l1 l2 =
   match l1 with
   | [] -> l2
   | l::ls -> reverse_append ls (l::l2)
-                                    
+
+let get_tmaps t ts =
+  let amap_others = List.map access_read ts in
+  let amap_others =
+    match amap_others with
+    | [] -> None
+    | m::ms -> List.fold_left access_merge m ms
+  in
+  check_coherence amap_others (access_read t)
+
 let write_mem addr aval ctype cache mem amap =
   let rec write_caches caches ticks ncaches amap =
     match caches with
@@ -295,7 +304,10 @@ let st_any hmem =
 
 (********************************************)
 let print_amem str hmem =
-  access_print str hmem.amap
+  match hmem.amap with
+  | Some (RMap amap) ->
+     access_print str amap
+  | _ -> ""
 
 let print_amem2 str amap =
   access_print str amap
