@@ -98,40 +98,42 @@ let rec reverse_append l1 l2 =
   | l::ls -> reverse_append ls (l::l2)
                                     
 let write_mem addr aval ctype cache mem amap =
-  let rec write_caches caches ticks ncaches =
+  let rec write_caches caches ticks ncaches amap =
     match caches with
-    | [] -> ticks + mem.access_time, List.rev ncaches
+    | [] -> ticks + mem.access_time, List.rev ncaches, amap
     | c::cs ->
-       let nticks,resp,c',_ = write_cache addr (get_cache ctype c) amap in
+       let amap' = if ticks = 0 then amap else None in
+       let nticks,resp,c',amap' = write_cache addr (get_cache ctype c) amap' in
        match resp with
-       | Hit -> ticks + nticks, reverse_append ncaches ((update_cache c ctype c')::cs)
-       | Miss -> write_caches cs (ticks+nticks) ((update_cache c ctype c')::ncaches)
+       | Hit -> ticks + nticks, reverse_append ncaches ((update_cache c ctype c')::cs), amap
+       | Miss -> write_caches cs (ticks+nticks) ((update_cache c ctype c')::ncaches) (if ticks = 0 then amap' else amap)
   in
   let mem = set_memval addr aval mem in
   if (!nocache) then
     (mem.access_time,cache,mem,None,amap)
   else 
-    let ticks, cache = write_caches cache 0 [] in
+    let ticks, cache,amap = write_caches cache 0 [] amap in
     (ticks,cache,mem,None,amap)    
      
 let read_mem addr ctype cache mem amap =
-  let rec read_caches caches ticks ncaches =
+  let rec read_caches caches ticks ncaches amap =
     match caches with
     | [] ->
-       ticks + mem.access_time, List.rev ncaches
+       ticks + mem.access_time, List.rev ncaches, amap
     | c::cs ->
-       let nticks,resp,c',_ = read_cache addr (get_cache ctype c) amap in
+       let amap' = if ticks = 0 then amap else None in
+       let nticks,resp,c',amap' = read_cache addr (get_cache ctype c) amap' in
        match resp with
        | Hit ->
-          ticks + nticks, reverse_append ncaches ((update_cache c ctype c')::cs)
+          ticks + nticks, reverse_append ncaches ((update_cache c ctype c')::cs), (if ticks = 0 then amap' else amap)
        | Miss ->
-          read_caches cs (ticks+nticks) ((update_cache c ctype c')::ncaches)
+          read_caches cs (ticks+nticks) ((update_cache c ctype c')::ncaches)  (if ticks = 0 then amap' else amap)
   in
   let mem,v = get_memval addr mem in
   if (!nocache) then
     (mem.access_time,cache,mem,v,amap)
   else 
-    let ticks, cache = read_caches cache 0 [] in
+    let ticks, cache, amap = read_caches cache 0 [] amap in
     (ticks,cache,mem,v,amap)
 
 (************************* MAIN MEMORY OPERATIONS ************************)
@@ -261,7 +263,7 @@ let hmem_join m1 m2 =
   {
     mem = mem_join [m1.mem;m2.mem];
     cache = hcache_join m1.cache m2.cache;
-    amap = access_merge m1.amap m2.amap;
+    amap = access_join m1.amap m2.amap;
   }
   
 
@@ -292,6 +294,15 @@ let st_any hmem =
 
 
 (********************************************)
+let print_amem str hmem =
+  access_print str hmem.amap
+
+let print_amem2 str amap =
+  access_print str amap
+    
+let read_amem lst =
+  access_read lst
+
 let print_hmem_stats hmem = ()
   (* match hmem.cache with *)
   (* | Uni c -> print_cache_stats c "Unified Cache"; *)

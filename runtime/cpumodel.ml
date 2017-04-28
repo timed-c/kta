@@ -42,3 +42,6 @@ let mem_access_time = ref 100
 (****** COHERENCE PENALTY ******)
 
 let coherence_penalty = ref 130
+let inv_penalty = ref 15
+let wb_penalty = ref 10
+let cache_penalty = ref 40

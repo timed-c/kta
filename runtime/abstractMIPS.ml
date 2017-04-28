@@ -183,7 +183,6 @@ let init_pstate =
     reg = areg_init;
     hmem = hmem_init;
     pipeline = pipeline_init;
-    (*cache = cache_init();*)
     bcet = 0;
     wcet = 0;
   }
@@ -1543,21 +1542,25 @@ let analyze_main startblock bblocks gp_addr args init_mem =
 
 let _ = if !dbg && !dbg_trace then Printexc.record_backtrace true else ()
 
+let print_memacc_read lst =
+  print_amem2 "fjeiowjf" (read_amem lst)
+    
 (** Print main state info *)
-let print_mstate ms =
+let print_mstate str ms =
   let print_pstate ps =
     printf "Counter: %d\n" !counter;
     printf "BCET:  %d cycles\n" ps.bcet;
     printf "WCET:  %d cycles\n" ps.wcet;
     if !dbg_stats then 
       print_hmem_stats ps.hmem;
+    Ustring.write_file (sprintf "memmap_%s.ml" str) (us (print_amem str ps.hmem));
     uprint_endline (pprint_pstate 32 ps)
   in
   let ps = ms.pstate in
   match ps with
   | Nobranch ps -> print_pstate ps
   | Sbranch (_,psold,ps1,ps2) -> should_not_happen 15
- (*  (match psold with
+  (*  (match psold with
      | Some (Nobranch ps) -> print_pstate ps
      | _ -> should_not_happen 15)*)
   | Branch _ -> should_not_happen 12
@@ -1579,7 +1582,9 @@ let options =
      us"Configure maximum cycles.");
     (OpArgs, Uargs.StrList, us"-args", us" <args>",
      us"Accepts Initial Intervals for Registers a0, a1, a2 and a3.");  ]
-    
+
+
+  
 let analyze startblock bblocks gp_addr mem defaultargs =
   let args = (Array.to_list Sys.argv |> List.tl) in
   let (ops, args) = Uargs.parse args options in
@@ -1598,14 +1603,14 @@ let analyze startblock bblocks gp_addr mem defaultargs =
   let args = if args = [] then defaultargs else args in
   if !dbg && !dbg_trace then
     let v =     
-      try analyze_main startblock bblocks gp_addr args mem |> print_mstate
+      try analyze_main startblock bblocks gp_addr args mem |> print_mstate bblocks.(startblock).name
       with
       | MaxCyclesException -> printf "A path reached the maximum cycles allowed: %d\n%!" (!config_max_cycles);
       | _ -> Printexc.print_backtrace stdout
     in v
   else
     try
-      analyze_main startblock bblocks gp_addr args mem |> print_mstate
+      analyze_main startblock bblocks gp_addr args mem |> print_mstate bblocks.(startblock).name
     with
     | MaxCyclesException -> printf "Analysis not finished. A path reached the maximum cycles allowed: %d\n%!" (!config_max_cycles)
     

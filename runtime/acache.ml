@@ -180,7 +180,7 @@ let merge_address address cache =
   lor (address.tag * cache.byteinfo.num * cache.wordinfo.num * cache.setinfo.num)
 
 
-(************************* Record accesses *** *********************)
+(************************* Record accesses *************************)
 module AccMap =
   Map.Make(
       struct type t = int 
@@ -191,11 +191,29 @@ type memaccess_t = int * int * int
                                    
 type accessmap_t = memaccess_t AccMap.t
 
+let access_read lst =
+  let rec aread_int lst amap =
+    match lst with
+    | [] -> Some amap
+    | (addr,acc)::ls -> aread_int ls (AccMap.add addr acc amap)
+  in
+  aread_int lst AccMap.empty
+    
+let access_print str amap =
+  match amap with
+  | None -> "None"
+  | Some amap ->
+     (sprintf "let amap_%s = [" str) ^
+       (AccMap.fold
+          (fun t (r,w,bs) rest ->
+            rest ^ (sprintf "(0x%x,(%d,%d,%d));" t r w bs)) amap "") ^
+       "]\n"
+
 
 let tag_init =
   if !record_mtags then Some AccMap.empty else None
          
-let access_merge tm1 tm2 = 
+let access_join tm1 tm2 = 
   match tm1, tm2 with
   | None, None -> None
   | Some tm1, Some tm2 -> Some (AccMap.merge
@@ -206,8 +224,7 @@ let access_merge tm1 tm2 =
                                        Some (max r1 r2,max w1 w2, max bs1 bs2)
                                     | Some acc, _ | _, Some acc -> Some acc
                                     | None, None -> None
-                                  ) tm1 tm2
-                               )
+                                  ) tm1 tm2)
   | _, _ -> failwith "Error in tag_merge."
 
 let get_set address cache =
@@ -228,14 +245,58 @@ let access_update write address cache amap =
        in
        let (r,w,bsize) =
          if write then
-           (r, w +1, bsize)
+           (r,w+1,bsize)
          else
            (r+1,w,bsize)
        in
+       (* printf "%d(0x%x,%d,%d,%d)" (AccMap.cardinal amap) *)
+       (*   set_address r w bsize; *)
        Some (AccMap.add set_address
                         (r,w,bsize) amap)
 
+(* Merge the memory accesses of two time interfering tasks *)
+let access_merge amap1 amap2 =
+  match amap1,amap2 with
+  | None, _ | _, None -> None
+  | Some amap1, Some amap2 -> Some
+     (AccMap.merge
+       (fun t l1 l2 ->
+         match l1,l2 with
+         | None, None -> None
+         | None, Some acc1 | Some acc1 ,None -> Some acc1
+         | Some(r1,w1,b1), Some (r2,w2,b2) ->
+            Some (r1+r2, w1+w2, max b1 b2)
+       ) amap1 amap2)
 
+
+type cohtype = OtherRead of int | ThisRead | ThisRW of int
+    
+let check_coherence amap_others amap_this =
+  match amap_others,amap_this with
+  | None, _ | _, None -> (None,0)
+  | Some others, Some this ->
+     let cohmap = 
+       AccMap.merge
+         (fun t other task ->
+           match other,task with
+           | None,_ |_,None -> None
+           | Some(r,0,_), Some task ->
+              (match task with
+              | _,0,_ -> Some (OtherRead (0))
+              | _ -> Some (OtherRead (r))
+              )
+           | Some other, Some (r,0,_) -> Some ThisRead
+           | Some (ro,wo,_), Some (_,w,_) -> Some (ThisRW(ro+wo))
+         ) others this
+     in
+     let overhead =
+       AccMap.fold
+         (fun t cmap oh ->
+           match cmap with
+           | OtherRead(n) | ThisRW(n) -> oh+n
+           | _ -> oh
+         ) cohmap 0 in
+     (Some cohmap, overhead)
 
 
 (****************** Insert Function **********************)
@@ -252,8 +313,7 @@ let insert_line line set cache =
   (lru, Set.add tag (0,dirty,invalid) set)
                
 
-let exists_dirty set =
-  Set.exists (fun t (p,d,i) -> d) set
+let exists_dirty set = Set.exists (fun t (p,d,i) -> d) set
 
 (****************** Update Function **********************)
 

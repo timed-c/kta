@@ -61,5 +61,10 @@ let shared = ref true
 (****** TAG RECORD ******)
 let record_mtags = ref true
 
+let set_record v =
+  record_mtags := false
+
 (****** PIPELINE ******)
 let disable_pipeline = ref false
+
+  
