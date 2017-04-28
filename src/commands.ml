@@ -57,6 +57,8 @@ type compOpTypes =
 | OpWCET_OCamlArgs
 | OpWCET_BSConfig
 | OpWCET_MCConfig  
+| OpWCET_Tasks  
+
 (* List of compiler options *)
 let extra_options = 
   [(OpCompile,     Uargs.No, us"-compile",     us"",
@@ -135,7 +137,9 @@ let wcet_options =
    (OpWCET_BSConfig, Uargs.Int,  us"-bsconfig",  us"",
     us"Configure maximum batch size.");
    (OpWCET_MCConfig, Uargs.Int,  us"-max_cycles",  us"",
-    us"Configure maximum cycles allowed.")
+    us"Configure maximum cycles allowed.");
+   (OpWCET_Tasks, Uargs.StrList,  us"-tasks",  us"",
+    us"Time interfering tasks.")
   ]
   @ extra_options
 
@@ -473,6 +477,9 @@ let wcet_command args =
   let prog_args = Uargs.strlist_op OpWCET_OCamlArgs ops |> List.map Ustring.to_utf8 in
   let print_out_option = (Uargs.has_op OpWCET_CPSOCaml ops) in
 
+  let record = Uargs.has_op OpWCET_Tasks ops in
+  let tasks = Uargs.strlist_op OpWCET_Tasks ops in
+
   let bsconfig =
     if (Uargs.has_op OpWCET_BSConfig ops) then
       Some (Uargs.int_op OpWCET_BSConfig ops)
@@ -490,8 +497,14 @@ let wcet_command args =
 
   (* Load the program *)
   let prog = MipsSys.get_program binfile_name |>  MipsUtils.add_branch_symbols in
-
-  MipsCfg.test prog (Ustring.to_utf8 func_name) (prog_args, max_cycles, bsconfig, print_out_option);
+  if record then
+    (MipsCfg.test prog (Ustring.to_utf8 func_name) (prog_args, max_cycles, bsconfig, tasks, record, print_out_option);
+     List.iter (fun fname ->
+       MipsCfg.test prog (Ustring.to_utf8 fname) (prog_args, max_cycles, bsconfig, tasks, record, print_out_option)) tasks;
+     MipsCfg.test prog (Ustring.to_utf8 func_name) (prog_args, max_cycles, bsconfig, tasks, false, print_out_option)
+    )
+  else
+    MipsCfg.test prog (Ustring.to_utf8 func_name) (prog_args, max_cycles, bsconfig, [], false, print_out_option);
   us""
 
 

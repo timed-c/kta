@@ -309,7 +309,7 @@ let pprint_ocaml_cps_from_cfg nice_output cfg prog k =
 
     
 (* Pretty print a whole program as an analyzable .ml file *)  
-let pprint_ocaml_cps_from_cfgmap nice_output name cfgmap prog =
+let pprint_ocaml_cps_from_cfgmap record fnames nice_output name cfgmap prog =
   (* Sort the CFGs according to memory addresses *)
   let cfglst = CfgMap.bindings cfgmap in
   let cfglst =
@@ -363,6 +363,11 @@ let pprint_ocaml_cps_from_cfgmap nice_output name cfgmap prog =
   let intro =
     us"open AbstractMIPS\n\n" ^.
       us"open Printf\n\n" ^.
+      (if not record then
+          List.fold_left
+            (fun str fn -> (us("open Memmap_") ^. fn ^. us "\n\n") ^. str)
+            (us"") fnames
+       else us "") ^.
         us (sprintf "let gp_addr=%d\n" prog.gp) ^.
           mem_start ^. mem_all ^. mem_end ^.
           us"(* -- Basic Block Identifiers -- *)\n\n"
@@ -426,8 +431,15 @@ let pprint_ocaml_cps_from_cfgmap nice_output name cfgmap prog =
   let analyze = us"(* -- Start of Analysis -- *)\n\n" ^.
                   us"let main = \n\t"
                   ^. us"let _st_time = Sys.time() in\n"
-                  ^. us"\tanalyze " ^. us name ^. us"_ bblocks gp_addr mem [];\n"
-                  ^. us"\tprintf \"Time Elapsed %fs\\n\" (Sys.time() -. _st_time)\n" in
+      ^. us"\tanalyze " ^. us name ^. us"_ bblocks gp_addr mem []" ^.
+      (if not record then
+          us" [" ^.
+            List.fold_left
+            (fun str fn -> (us "amap_" ^. fn ^. us ";") ^. str)
+            (us"]") fnames
+       else us " []") ^.
+                  us ";\n"
+    ^. us"\tprintf \"Time Elapsed %fs\\n\" (Sys.time() -. _st_time)\n" in
   
   (* Return the complete .ml file *)
   intro ^. ident_list ^. blocks_header ^.
@@ -456,14 +468,17 @@ type bblock =
 let test prog fname cm_args =
   
   let (prog,cfgmap) = make_cfgmap fname prog in
-  let program_code = pprint_ocaml_cps_from_cfgmap true fname cfgmap prog in
+
   match cm_args with
-   | (_,_,_,true) -> uprint_endline program_code
-   | (args,max_cycles,bsconfig,pr_option)  ->
-      try
-        let debug = MipsSys.verbose_enabled() in
-        args |> MipsSys.wcet_compile fname debug max_cycles bsconfig program_code |> print_endline;
-      with Sys_error e ->
+  | (_,_,_,fnames,record,true) ->
+     let program_code = pprint_ocaml_cps_from_cfgmap record fnames true fname cfgmap prog in
+     uprint_endline program_code
+  | (args,max_cycles,bsconfig,fnames,record,pr_option)  ->
+     try
+       let debug = MipsSys.verbose_enabled() in
+       let program_code = pprint_ocaml_cps_from_cfgmap record fnames true fname cfgmap prog in
+       args |> MipsSys.wcet_compile fname debug max_cycles bsconfig record program_code |> print_endline;
+     with Sys_error e ->
         e |> eprintf "%s\n";
      
 
