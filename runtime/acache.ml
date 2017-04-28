@@ -44,37 +44,6 @@ type cache_stats_t =
   }
 
 
-(************************* Record accesses *** *********************)
-module AccMap =
-  Map.Make(
-      struct type t = int 
-             let compare = compare
-      end)
-          
-type memaccess_t = bool * bool * int
-                                   
-type accessmap_t = memaccess_t AccMap.t
-
-
-let tag_init =
-  if !record_mtags then Some AccMap.empty else None
-         
-let access_merge tm1 tm2 = 
-  match tm1, tm2 with
-  | None, None -> None
-  | Some tm1, Some tm2 -> Some (AccMap.merge
-                                  (fun t m1 m2 ->
-                                    match m1,m2 with
-                                    | Some (r1,w1,bs1), Some (r2,w2,bs2) ->
-                                       (* bs1 should be larger than bs2 *)
-                                       Some (r1 || r2, w1 || w2, max bs1 bs2)
-                                    | Some acc, _ | _, Some acc -> Some acc
-                                    | None, None -> None
-                                  ) tm1 tm2
-                               )
-  | _, _ -> failwith "Error in tag_merge."
-
-
 (*************************** ACACHE ****************************)
 type acache_info_t = {
     assoc : int;
@@ -209,11 +178,65 @@ let merge_address address cache =
   lor (address.word * cache.byteinfo.num)
   lor (address.set * cache.byteinfo.num * cache.wordinfo.num)
   lor (address.tag * cache.byteinfo.num * cache.wordinfo.num * cache.setinfo.num)
-  
+
+
+(************************* Record accesses *** *********************)
+module AccMap =
+  Map.Make(
+      struct type t = int 
+             let compare = compare
+      end)
+          
+type memaccess_t = int * int * int
+                                   
+type accessmap_t = memaccess_t AccMap.t
+
+
+let tag_init =
+  if !record_mtags then Some AccMap.empty else None
+         
+let access_merge tm1 tm2 = 
+  match tm1, tm2 with
+  | None, None -> None
+  | Some tm1, Some tm2 -> Some (AccMap.merge
+                                  (fun t m1 m2 ->
+                                    match m1,m2 with
+                                    | Some (r1,w1,bs1), Some (r2,w2,bs2) ->
+                                       (* bs1 should be larger than bs2 *)
+                                       Some (max r1 r2,max w1 w2, max bs1 bs2)
+                                    | Some acc, _ | _, Some acc -> Some acc
+                                    | None, None -> None
+                                  ) tm1 tm2
+                               )
+  | _, _ -> failwith "Error in tag_merge."
 
 let get_set address cache =
   (address.set * cache.byteinfo.num * cache.wordinfo.num)
   lor (address.tag * cache.byteinfo.num * cache.wordinfo.num * cache.setinfo.num)
+
+let access_update write address cache amap =
+  match amap with
+    | None -> None (* Disabled amap - No recording *)
+    | Some amap ->
+       let set_address = get_set address cache in
+       let (r,w,bsize) =
+         try
+           AccMap.find set_address amap
+         with
+         | Not_found ->
+            (0,0,cache.cacheinfo.block_size)
+       in
+       let (r,w,bsize) =
+         if write then
+           (r, w +1, bsize)
+         else
+           (r+1,w,bsize)
+       in
+       Some (AccMap.add set_address
+                        (r,w,bsize) amap)
+
+
+
 
 (****************** Insert Function **********************)
         
@@ -261,21 +284,7 @@ let access_cache write addr cache amap =
   let address = split_address addr cache in
   (* TODO(Romy): fix invalid coherence *)
   let invalid = false in
-  let amap = match amap with
-    | None -> None (* Disabled amap - No recording *)
-    | Some amap ->
-       let set_address = get_set address cache in
-       let (r,w,bsize) =
-         try
-           AccMap.find address.set amap
-         with
-         | Not_found ->
-            (false,false,cache.cacheinfo.block_size)
-       in
-       let (r,w,bsize) = (r || (not write), w || write, bsize) in
-       Some (AccMap.add set_address
-                        (r,w,bsize) amap)
-  in
+  let amap = access_update write address cache amap in
   try
     let set = Cache.find address.set cache.cache in
     let (resp,set) = update_cache address write invalid set in
