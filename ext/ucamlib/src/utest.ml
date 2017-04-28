@@ -40,6 +40,9 @@ let test_ext str res fail_str ok_str =
 let test_int str res exp =
   test_ext str (res = exp) (ustring_of_int res) (ustring_of_int exp)
 
+let test_fint str f res exp =
+  test_ext str (f res exp) (ustring_of_int res) (ustring_of_int exp)
+
 let test_str str result expected =
   let res = (result = expected) in
   test str res;

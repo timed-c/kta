@@ -18,6 +18,8 @@ val test_str : string -> string -> string -> unit
 
 val test_int : string -> int -> int -> unit
 
+val test_fint : string -> (int -> int -> bool) -> int -> int -> unit
+
 val test_ustr : string -> ustring -> ustring -> unit
 
 val test_ustr : string -> ustring -> ustring -> unit
