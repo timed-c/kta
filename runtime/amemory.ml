@@ -45,11 +45,11 @@ let set_memval addr v mem =
     
 (** Returns a tuple, (mem',val), where mem' is the updated
     abstract memory *)
-let get_memval addr mem =
-  if nomem then (mem, AAny)
+let get_memval addr slist mem =
+  if nomem then (mem,slist, AAny)
   else
-    let rec getmem_internal addr mem =      
-      try Mem.find addr mem.memory 
+    let rec getmem_internal addr slist mem =      
+      try Mem.find addr mem.memory,slist
       with Not_found ->
            match mem.mjoins with
            | [] ->
@@ -58,17 +58,21 @@ let get_memval addr mem =
               if (addr >= bss_addr && addr < bss_addr + bss_size) ||
                    (addr >= sbss_addr && addr < sbss_addr + sbss_size)
               then
-                AInt32 (aint32_const 0)
-              else AInt32 (aint32_any_set false)
+                AInt32 (aint32_const 0),slist
+              else
+                let spl_any,slist' = split_aint32 (aint32_any_set false) slist in
+                AInt32 spl_any,slist'
            | m::rest ->
               List.fold_left
-                (fun v1 mem ->
-                  amem_join false v1 (getmem_internal addr mem))
-                (getmem_internal addr m) rest
+                (fun (v1,sl) mem ->
+                  let v, sl = getmem_internal addr sl mem in
+                  let v = amem_join false v1 v in
+                 v,sl)
+                (getmem_internal addr slist m) rest
     in
-    let v = getmem_internal addr mem in
+    let v,sl = getmem_internal addr slist mem in
     (*    (set_memval addr v mem, v)*)
-    (mem, v)
+    (mem, sl, v)
       
 
 let mem_join memlist =

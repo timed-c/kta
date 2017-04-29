@@ -14,7 +14,7 @@ let compile_file filename fname args optimize debug bsconfig =
      MipsSys.pic32_compile [filename] false optimize tmpfile;
      let prog = MipsSys.get_program tmpfile |>  MipsUtils.add_branch_symbols in
      let (prog,cfgmap) = MipsCfg.make_cfgmap fname prog in
-     let program_code = MipsCfg.pprint_ocaml_cps_from_cfgmap true [] true fname cfgmap prog in
+     let program_code = MipsCfg.pprint_ocaml_cps_from_cfgmap true [] 0 true fname cfgmap prog in
 
      let stdout = MipsSys.wcet_compile fname debug (Some 20000000) bsconfig false program_code args in
      if debug then printf "%s\n%!" stdout;

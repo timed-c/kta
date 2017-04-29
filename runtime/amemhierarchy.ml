@@ -178,8 +178,8 @@ let write_mem addr aval ctype caches mem amap =
     write_cache_one caches amap
 
       
-let read_mem addr ctype caches mem amap =
-  let mem,v = get_memval addr mem in
+let read_mem addr slist ctype caches mem amap =
+  let mem,sl,v = get_memval addr slist mem in
   let rec read_caches caches ticks ncaches =
     match caches with
     | [] -> ticks + mem.access_time, List.rev ncaches
@@ -194,31 +194,31 @@ let read_mem addr ctype caches mem amap =
   in
   let read_cache_one caches amap =
     match caches with
-    | [] -> mem.access_time,[],mem,v,amap
+    | [] -> mem.access_time,sl,[],mem,v,amap
     | c::cs ->
        let nticks,resp,c',amap',coh = read_cache addr (get_cache ctype c) amap in
        let c' = (update_cache c ctype c') in
        match resp,coh with
-       | Hit,Some Private | Hit, None -> nticks, c'::cs, mem, v,amap'
+       | Hit,Some Private | Hit, None -> nticks, sl, c'::cs, mem, v,amap'
        | Miss,Some Private | Miss, None ->
           let ticks, caches = read_caches cs nticks [c'] in
-          ticks, c'::cs, mem, v, amap'
-       | Hit,Some (OtherRead(_)) -> nticks, c'::cs, mem, v,amap'
+          ticks, sl, c'::cs, mem, v, amap'
+       | Hit,Some (OtherRead(_)) -> nticks, sl,c'::cs, mem, v,amap'
        (*TODO(Romy): go up to the first shared cache/mem*)
        | Miss,Some (OtherRead(_)) ->
           let ticks, caches = read_caches cs nticks [c'] in
-          max ticks !cache_penalty, c'::cs, mem, v, amap'
+          max ticks !cache_penalty, sl, c'::cs, mem, v, amap'
        | Hit,Some (ThisRead) | Miss,Some (ThisRead) ->
           let ticks, caches = read_caches cs nticks [c'] in
           let v = AInt32 (aint32_any_set (get_initialized_amh v)) in
-          max ticks !cache_penalty, c'::cs, mem, v, amap'
+          max ticks !cache_penalty, sl, c'::cs, mem, v, amap'
        | Hit,Some (ThisRW(_)) | Miss,Some (ThisRW(_)) ->
           let ticks, caches = read_caches cs nticks [c'] in
           let v = AInt32 (aint32_any_set (get_initialized_amh v)) in
-          max ticks (!cache_penalty + !inv_penalty), c'::cs, mem, v, amap'
+          max ticks (!cache_penalty + !inv_penalty), sl, c'::cs, mem, v, amap'
   in
   if (!nocache) then
-    (mem.access_time,caches,mem,v,amap)
+    (mem.access_time,sl,caches,mem,v,amap)
   else 
     read_cache_one caches amap 
 (* let ticks, cache, caches, amap = read_cache_one caches amap in *)
@@ -279,7 +279,7 @@ let set_memval_word addr v mem =
 
 let set_memval_hword addr v mem =
   let addr0, hword = (addr lsr 2) lsl 2, addr land 0x3 in
-  let ticks,c,m,oldv,_ = read_mem addr0 DCache
+  let ticks,_,_,m,oldv,_ = read_mem addr0 [] DCache
                                   mem.cache mem.mem None in 
   let v0,v2 = getval_aint16 false oldv in
   let v = check_aint16 v in
@@ -295,7 +295,7 @@ let set_memval_hword addr v mem =
 
 let set_memval_byte addr v mem =
   let addr0, byte = (addr lsr 2) lsl 2, addr land 0x3 in 
-  let ticks,c,m,oldv,_ = read_mem addr0 DCache mem.cache mem.mem None in 
+  let ticks,_,_,m,oldv,_ = read_mem addr0 [] DCache mem.cache mem.mem None in 
   let v0,v1,v2,v3 = getval_aint8 false oldv in
   let v = check_aint8 v in
   let newv =
@@ -308,33 +308,36 @@ let set_memval_byte addr v mem =
   let ticks,c,m,_,amap = write_mem addr0 newv DCache mem.cache mem.mem mem.amap in
   (ticks,mem |> hmem_update_cache c |> hmem_update_mem m |> hmem_update_amap amap)
 
-let get_memval_word addr mem =
-  let ticks,c,m,v,amap = read_mem addr DCache mem.cache mem.mem mem.amap in 
+let get_memval_word addr slist mem =
+  let ticks,sl,c,m,v,amap = read_mem addr slist DCache mem.cache mem.mem mem.amap in 
   (ticks,
+   sl,
    mem |> hmem_update_cache c |> hmem_update_mem m |> hmem_update_amap amap,
    v |> getval_aint32 false)
       
-let get_memval_hword addr mem =
+let get_memval_hword addr slist mem =
   let addr0, hword = (addr lsr 2) lsl 2, addr land 0x3 in
-  let ticks,c,m,v,amap = read_mem addr0 DCache mem.cache mem.mem mem.amap in 
+  let ticks,sl,c,m,v,amap = read_mem addr0 slist DCache mem.cache mem.mem mem.amap in 
   let v0,v2 = getval_aint16 false v in
   let v =
     match hword with
     | 0 -> v0  | 2 -> v2
     | _ -> failwith (sprintf "Error get_memval_hword hword=%d" hword)
   in (ticks,
+      sl,
       mem |> hmem_update_cache c |> hmem_update_mem m |> hmem_update_amap amap,
       v)
 
-let get_memval_byte addr mem =
+let get_memval_byte addr slist mem =
   let addr0, byte = (addr lsr 2) lsl 2, addr land 0x3 in
-  let ticks,c,m,v,amap = read_mem addr0 DCache mem.cache mem.mem mem.amap in 
+  let ticks,sl,c,m,v,amap = read_mem addr0 slist DCache mem.cache mem.mem mem.amap in 
   let v0,v1,v2,v3 = getval_aint8 false v in
   let v =
       match byte with
       | 0 -> v0  | 1 -> v1  | 2 -> v2  | 3 -> v3
       | _ -> failwith (sprintf "Error get_memval_byte byte=%d" byte)
   in (ticks,
+      sl,
       mem |> hmem_update_cache c |> hmem_update_mem m
       |> hmem_update_amap amap,
       v)
@@ -359,7 +362,7 @@ let hmem_join m1 m2 =
 
 (********* INSTRUCTION CACHE **********)
 let get_instruction addr hmem =
-  let ticks,cache,mem,_,amap = read_mem addr ICache hmem.cache hmem.mem hmem.amap in
+  let ticks,_,cache,mem,_,amap = read_mem addr [] ICache hmem.cache hmem.mem hmem.amap in
   (ticks,hmem |> hmem_update_cache cache |> hmem_update_amap amap)
 
 (********* LD and ST -> ANY - Case of a interval access *******) 

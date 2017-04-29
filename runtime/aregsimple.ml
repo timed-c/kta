@@ -46,41 +46,6 @@ let areg_init =
 }
 
 
-
-
-let getreg r areg = 
-  let reg r areg =
-  match r with
-  | R0  -> aint32_const(0)   | R16 -> areg.reg16 
-  | R1  -> areg.reg1         | R17 -> areg.reg17 
-  | R2  -> areg.reg2         | R18 -> areg.reg18 
-  | R3  -> areg.reg3         | R19 -> areg.reg19 
-  | R4  -> areg.reg4         | R20 -> areg.reg20 
-  | R5  -> areg.reg5         | R21 -> areg.reg21 
-  | R6  -> areg.reg6         | R22 -> areg.reg22 
-  | R7  -> areg.reg7         | R23 -> areg.reg23 
-  | R8  -> areg.reg8         | R24 -> areg.reg24 
-  | R9  -> areg.reg9         | R25 -> areg.reg25 
-  | R10 -> areg.reg10        | R26 -> areg.reg26 
-  | R11 -> areg.reg11        | R27 -> areg.reg27 
-  | R12 -> areg.reg12        | R28 -> areg.reg28 
-  | R13 -> areg.reg13        | R29 -> areg.reg29 
-  | R14 -> areg.reg14        | R30 -> areg.reg30 
-  | R15 -> areg.reg15        | R31 -> areg.reg31
-
-  | R32 -> areg.reg32        | R33 -> areg.reg33    
-  in
-(*  let v = reg r areg in
-  aint32_print_debug v;
-    (areg, v) *)
-  (areg,reg r areg)
-
-(*let getreg r areg =
-  match areg with
-  | Nobranch(areg) -> getreg_int r areg
-  | Sbranch(areg1,areg2) -> getreg_int r areg1
- *)
-    
 (** Sets the value of a register.
     r = register symbol, v = abstract value to be set
     areg = program state
@@ -107,12 +72,35 @@ let setreg r v areg =
 
   | R32 -> {areg with reg32 = v}   | R33 -> {areg with reg33 = v}
 
-(*
-let setreg r v areg =
-  match areg with
-  | Nobranch(areg) -> Nobranch(setreg_int r v areg)
-  | Sbranch(areg1,areg2) -> Sbranch(setreg_int r v areg1,setreg_int r v areg2)
- *)
+
+
+let getreg r slist areg = 
+  let reg r areg =
+  match r with
+  | R0  -> aint32_const(0)   | R16 -> areg.reg16 
+  | R1  -> areg.reg1         | R17 -> areg.reg17 
+  | R2  -> areg.reg2         | R18 -> areg.reg18 
+  | R3  -> areg.reg3         | R19 -> areg.reg19 
+  | R4  -> areg.reg4         | R20 -> areg.reg20 
+  | R5  -> areg.reg5         | R21 -> areg.reg21 
+  | R6  -> areg.reg6         | R22 -> areg.reg22 
+  | R7  -> areg.reg7         | R23 -> areg.reg23 
+  | R8  -> areg.reg8         | R24 -> areg.reg24 
+  | R9  -> areg.reg9         | R25 -> areg.reg25 
+  | R10 -> areg.reg10        | R26 -> areg.reg26 
+  | R11 -> areg.reg11        | R27 -> areg.reg27 
+  | R12 -> areg.reg12        | R28 -> areg.reg28 
+  | R13 -> areg.reg13        | R29 -> areg.reg29 
+  | R14 -> areg.reg14        | R30 -> areg.reg30 
+  | R15 -> areg.reg15        | R31 -> areg.reg31
+
+  | R32 -> areg.reg32        | R33 -> areg.reg33    
+  in
+  let sr,sl = split_aint32 (reg r areg) slist in
+  let areg = setreg r sr areg in
+  (areg,sl,sr)
+
+    
     
 
       

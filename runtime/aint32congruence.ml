@@ -2,7 +2,7 @@
 open Ustring.Op
 open Printf
 
-type number = int
+type num = int
 type low = int
 type step = int
               
@@ -17,17 +17,21 @@ let getPairSym() =
 
 type initialized = bool
   
-type interval = (low * step * number)
+type interval = (low * step * num)
 type aint32 =
-| Any of initialized
-| Interval of interval * initialized
-| IntervalList of interval list * safepair * initialized
+  | Any of initialized
+  | Interval of interval * initialized
+  | IntervalList of interval list * safepair * initialized
 
 let baseaddr_fail() = failwith "Error: cannot perform operations on base addresses"     
 let fail_aint32() = failwith "Error: aint32 error that should not happen."
 
+
 let lowval = -2147483648
 let highval = 2147483647
+
+(* let lowval = -9223372036854775808L *)
+(* let highval = 9223372036854775807L *)
 
 let ulowval = 0
 let uhighval = 4294967295
@@ -56,11 +60,9 @@ let set_initialized v i =
   | Interval (v,_) -> Interval (v,i)
   | IntervalList(lv,sp,_) -> IntervalList(lv,sp,i)
      
-    
+
 exception AnyException
 
-
-  
 let gcd a b =
   let a = abs a in
   let b = abs b in
@@ -79,6 +81,18 @@ let number h l s =
 
 let dec_num n = max 1 (n-1) 
 (*n*)
+
+
+
+(***********************SPLITER**************************)
+  
+type spliter = | Abstract
+               | AbstractL
+               | AbstractR
+               | ConcreteM
+               | ConcreteL
+               | ConcreteR
+                   
 
 
 let check_aint16 v =
@@ -156,6 +170,61 @@ let aint32_pprint debug v =
 let aint32_print_debug v =
   uprint_endline (aint32_pprint true v)
 
+(********************* SPLITER Functions ***********************)
+let split_aint32 v slist =
+  let rec split_interval v slist =
+    let split_interval_one (l,s,n) sl =
+      let half n = n/2 + n mod 2 in
+      match sl with
+      | Abstract -> (l,s,n)
+      | AbstractL ->
+         let n' = half n in
+         let s' = if n'=1 then 0 else s in
+         (l,s',n')
+      | AbstractR ->
+         let l' = l+s*(half n) in
+         let n' = n-(half n) in
+         let s' = if n'=1 then 0 else s in
+         (l',s',n')
+      | ConcreteL -> (l,0,1)
+      | ConcreteR -> (high l s n,0,1)
+      | ConcreteM -> (l+s*((half n)-1),0,1)
+  in
+    match v,slist with
+    | (l,0,1), _ -> (v,slist)
+    | (l,s,n), [] -> (v,[]) (* failwith "Should not happen split" *)
+    | (l,s,n), sl::[] ->
+       let v = split_interval_one (l,s,n) sl in
+       (v,[sl])
+    | (l,s,n), sl::sls ->
+       let v = split_interval_one (l,s,n) sl in
+       split_interval v sls
+  in
+  let v,sl = (
+  match v with
+  | Any true
+  | Interval(_,true)
+  | IntervalList(_,_,true) -> v,slist
+  | Any false ->
+     let v,sl = split_interval (lowval,1,number highval lowval 1) slist in
+     
+     Interval(v,true),sl
+  | Interval(v,false) ->
+     let v,sl = split_interval v slist in
+     Interval(v,true),sl
+  | IntervalList(vl,sp,false) -> failwith "Should not happen: Spliting an intervallist"
+  ) in
+  v,sl
+    
+     (* let v,sl = split_interval (lowval,1,number highval lowval 1) slist in *)
+     (* Interval(v,true) *)
+
+                   
+(*********************END SPLITER*************************)
+
+
+
+    
 (*big/little endian*)                 
 let rec aint32_mem_byte byte signed v =
   let get_byte byte (l,s,n) =
@@ -493,10 +562,16 @@ let aint32_mod v1 v2 =
 let aint32_const v =
     Interval((v,0,1),true)
 
+let aint32_const_uninit v =
+    Interval((v,0,1),false)
+      
 let aint32_interval l h =
-  let h = h in
   if l = h then Interval((l,0,1),true)
   else Interval((l,1,number h l 1),true)
+
+let aint32_interval_uninit l h =
+  if l = h then Interval((l,0,1),false)
+  else Interval((l,1,number h l 1),false)
 
 let aint32_join v1 v2 =
   match v1, v2 with

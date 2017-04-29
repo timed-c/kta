@@ -24,12 +24,6 @@ type blockid = int     (* The block ID type *)
 type distance = int    (* The type for describing distances of blocks *)
 
 
-type spliter = | Abstract
-               | AbstractL
-               | AbstractR
-               | ConcreteM
-               | ConcreteL
-               | ConcreteR
                    
 (** Abstract program state. Contains a concrete value
     for the program counter and abstract values for 
@@ -193,6 +187,15 @@ let init_pstate =
     bcet = 0;
     wcet = 0;
     input_set = [];
+    (* [AbstractR;AbstractR;AbstractR;AbstractR; *)
+    (*  AbstractR;AbstractR;AbstractR;AbstractR; *)
+    (*  AbstractR;AbstractR;AbstractR;AbstractR; *)
+    (*  AbstractR;AbstractR;AbstractR;AbstractR; *)
+    (*  AbstractR;AbstractR;AbstractR;AbstractR; *)
+    (*  AbstractR;AbstractR;AbstractR;AbstractR; *)
+    (*  AbstractR;AbstractR;AbstractR;AbstractR; *)
+    (*  AbstractR;AbstractR;AbstractR;AbstractR; *)
+    (*  ConcreteM;]; *)
   }
 
 (** Join two program states, assuming they have the same program counter value *)
@@ -234,7 +237,7 @@ let rec pstate_input ps args =
          (match str2reg reg with
           | Some(regval) ->
              (* Is concrete value? *)
-            (try (let aval = aint32_const (int_of_string value) in
+            (try (let aval = aint32_const_uninit (int_of_string value) in
                   pstate_input {ps with reg = (setreg regval aval ps.reg)} next_args)
              with _ -> (
                (* Is abstract interval value? *)
@@ -242,7 +245,7 @@ let rec pstate_input ps args =
                          with _ -> None)
                with
                | Some(l,h) ->
-                   let aval = aint32_interval l h in
+                   let aval = aint32_interval_uninit l h in
                    pstate_input {ps with reg = (setreg regval aval ps.reg)} next_args
                | None -> make_error a)))
           | None -> make_error a)
@@ -295,7 +298,7 @@ let pprint_pstate noregs ps =
   let rec pregs x s =
     if x < noregs then
       let r = int2reg x in
-      let (_,v) = getreg r ps.reg in
+      let (_,sl,v) = getreg r ps.input_set ps.reg in
       let n = reg2ustr r ^. us" = " ^. (aint32_pprint false v) in      
       let n' = Ustring.spaces_after n 18 ^. us(if x mod 4 = 0 then "\n" else "") in
       pregs (x+1) (s ^. n')        
@@ -329,7 +332,7 @@ let prn_inst = prn_inst_main true
 let prn_inst_no_linebreak = prn_inst_main false
     
 let preg rt r =
-     aint32_pprint !dbg_debug_intervals (getreg rt r |> snd) 
+     aint32_pprint !dbg_debug_intervals (let _,_,r = getreg rt [] r in r)
                    
 let pprint_true_false_choice t f =
   let prn v =
@@ -463,6 +466,9 @@ let tick n ps =
 let update r ps =
   {ps with reg = r}
 
+let updatesl sl ps =
+  {ps with input_set = sl}
+
 let updatehmem m ps =
   {ps with hmem = m}
 
@@ -519,8 +525,8 @@ let r_instruction str binop rd rs rt ms =
   let proc_ps ps =
     let df,ps = instruction_fetch ms.pc ps in
     let r = ps.reg in
-    let (r,v_rs) = getreg rs r in
-    let (r,v_rt) = getreg rt r in
+    let (r,sl,v_rs) = getreg rs ps.input_set r in
+    let (r,sl,v_rt) = getreg rt sl r in
     let r' = setreg rd (binop v_rs v_rt) r in
     let ticks,pip = pipeline_update (ND (Some rd, None, (Some rt),(Some rs))) ps.pipeline (df,1,1,1,1) in
     if !dbg then
@@ -532,7 +538,7 @@ let r_instruction str binop rd rs rt ms =
              (reg2ustr rs) ^. us"=" ^. (preg rs r) ^. us" " ^.
                (reg2ustr rt) ^. us"=" ^. (preg rt r) )
     else ();
-    ps |> update r' |> updatepipl pip |> tick ticks |> nobranch
+    ps |> update r'|> updatesl sl |> updatepipl pip |> tick ticks |> nobranch
   in
   let ps = proc_branches proc_ps ms.pstate in
   ps |> to_mstate ms |> inc_pc
@@ -585,8 +591,8 @@ let mult rs rt ms =
   let proc_ps ps = 
     let df,ps = instruction_fetch ms.pc ps in
     let r = ps.reg in
-    let (r,v_rs) = getreg rs r in
-    let (r,v_rt) = getreg rt r in
+    let (r,sl,v_rs) = getreg rs ps.input_set r in
+    let (r,sl,v_rt) = getreg rt sl r in
     let (v_rhi,v_rlo) = aint64_mult v_rs v_rt in
     let r = setreg internal_lo v_rlo r in
     let r = setreg internal_hi v_rhi r in
@@ -597,7 +603,7 @@ let mult rs rt ms =
                                   (reg2ustr internal_hi) ^. us"=" ^. (preg internal_hi r) ^.
                                     (reg2ustr rs) ^. us"=" ^. (preg rs r) ^.
                                       (reg2ustr rt) ^. us"=" ^. (preg rt r));
-    ps |>  update r |> updatepipl pip |> tick ticks |> nobranch
+    ps |>  update r |> updatesl sl |>  updatepipl pip |> tick ticks |> nobranch
   in
   let ps =  proc_branches proc_ps ms.pstate in
   (*if !dbg then prn_inst ms (us"mult ");*)
@@ -609,16 +615,16 @@ let madd rs rt ms =
   let proc_ps ps =
     let df,ps = instruction_fetch ms.pc ps in
     let r = ps.reg in
-    let (r,v_rs) = getreg rs r in
-    let (r,v_rt) = getreg rt r in
-    let (r,v_ilo) = getreg internal_lo r in
+    let (r,sl,v_rs) = getreg rs ps.input_set r in
+    let (r,sl,v_rt) = getreg rt sl r in
+    let (r,sl,v_ilo) = getreg internal_lo sl r in
     (* No support for internal_hi *)
     (*let v_ihi = getreg internal_hi r in*)
     let v_rlo = aint32_mul v_rs v_rt in
     let r = setreg internal_lo (aint32_add v_rlo v_ilo) r in
     let r = setreg internal_hi (aint32_any) r in
     let ticks,pip = pipeline_update (ND (Some internal_lo, Some internal_hi, Some rs,Some rt)) ps.pipeline (df,1,1,1,1) in
-    ps |> update r |> updatepipl pip |> tick ticks |> nobranch
+    ps |> update r |> updatesl sl |> updatepipl pip |> tick ticks |> nobranch
   in
   let ps = proc_branches proc_ps ms.pstate in
   ps |> to_mstate ms |> inc_pc
@@ -628,8 +634,8 @@ let div rs rt ms =
   let proc_ps ps = 
     let df,ps = instruction_fetch ms.pc ps in
     let r = ps.reg in
-    let (r,v_rs) = getreg rs r in
-    let (r,v_rt) = getreg rt r in
+    let (r,sl,v_rs) = getreg rs ps.input_set r in
+    let (r,sl,v_rt) = getreg rt sl r in
     let r = setreg internal_lo (aint32_div v_rs v_rt) r in
     let r = setreg internal_hi (aint32_mod v_rs v_rt) r in
     let ticks,pip = pipeline_update (ND (Some internal_lo, Some internal_hi,Some rs,Some rt)) ps.pipeline (df,1,1,1,1) in
@@ -638,7 +644,8 @@ let div rs rt ms =
                                   (reg2ustr internal_hi) ^. us"=" ^. (preg internal_hi r) ^.
                                     (reg2ustr rs) ^. us"=" ^. (preg rs r) ^.
                                       (reg2ustr rt) ^. us"=" ^. (preg rt r));
-    ps |>  update r |> updatepipl pip |> tick ticks |> nobranch
+    ps |>  update r |> updatesl sl |>
+        updatepipl pip |> tick ticks |> nobranch
   in
   let ps = proc_branches proc_ps ms.pstate in
   (*if !dbg then prn_inst ms (us"div ");*)
@@ -665,11 +672,12 @@ let process_ps rd rt aint32_f de dbg_f ps ms =
     let df,ps = instruction_fetch ms.pc ps in
     let ticks,pip = pipeline_update (ND (Some rd, None, Some rt,None)) ps.pipeline (df,1,de,1,1) in
     let r = ps.reg in
-    let (r,v_rs) = getreg rt r in
+    let (r,sl,v_rs) = getreg rt ps.input_set r in
     let r' = (setreg rd (aint32_f v_rs) r) in
     if !dbg then
       dbg_f rd rt r r' ms;
-    ps |> update r' |> updatepipl pip |> tick ticks |> nobranch
+    ps |> update r' |> updatesl sl |>
+        updatepipl pip |> tick ticks |> nobranch
   in
   proc_branches proc_ps ps
 
@@ -815,7 +823,7 @@ let clz rd rs ms =
   let proc_ps ps =
     let df,ps = instruction_fetch ms.pc ps in
     let r = ps.reg in
-    let (r,v_rs) = getreg rs r in
+    let (r,sl,v_rs) = getreg rs ps.input_set r in
     let r = setreg rd (aint32_clz v_rs) r in
     let ticks,pip = pipeline_update (ND (Some rd, None, Some rs,None)) ps.pipeline (df,1,1,1,1) in
     if !dbg then 
@@ -823,7 +831,8 @@ let clz rd rs ms =
                  (reg2ustr rd) ^. us"=" ^. (preg rd r) ^. us" " ^.
                    (reg2ustr rs) ^. us"=" ^. (preg rs r) ^. us" ");
 
-    {ps with reg = r} |> updatepipl pip |> tick ticks |> nobranch
+    {ps with reg = r} |> updatesl sl |>
+        updatepipl pip |> tick ticks |> nobranch
   in
   proc_branches proc_ps ms.pstate |> to_mstate ms |> inc_pc
 
@@ -953,9 +962,9 @@ let branch_main str equal dslot op rs rt label ms =
     (* Ordinary branch equality check *)
     (*let ps = tick 1 ps in    *)
     let r = ps.reg in
-    let (r,v_rs) = getreg rs r in
-    let (r,v_rt) = getreg rt r in
-    let ps = update r ps in
+    let (r,sl,v_rs) = getreg rs ps.input_set r in
+    let (r,sl,v_rt) = getreg rt sl r in
+    let ps = update r ps |> updatesl sl in
     let ms = Nobranch ps |> to_mstate ms in
     let bi = ms.bbtable.(ms.cblock) in
     let (tb,fb) = op v_rs v_rt in
@@ -1221,8 +1230,8 @@ let sw rt imm rs ms =
   let proc_ps ps = 
     let df,ps = instruction_fetch ms.pc ps in
     let r = ps.reg in
-    let (r,v_rt) = getreg rt r in
-    let (r,v_rs) = getreg rs r in
+    let (r,sl,v_rt) = getreg rt ps.input_set r in
+    let (r,sl,v_rs) = getreg rs sl r in
     let con_v_rs = aint32_to_int32 v_rs in
     let dm,m =
       match con_v_rs with
@@ -1237,7 +1246,8 @@ let sw rt imm rs ms =
                      (reg2ustr rt) ^. us"=" ^. (preg rt r) ^.
                        us(sprintf " imm=%d(" imm) ^.
                          (reg2ustr rs) ^. us"=" ^. (preg rs r) ^. us")")) else ();
-    ps |> updatemem r m |> updatepipl pip |> tick ticks |> nobranch
+    ps |> updatemem r m |> updatesl sl |>
+        updatepipl pip |> tick ticks |> nobranch
   in
   let ps = proc_branches proc_ps ms.pstate in
   ps |> to_mstate ms |> inc_pc
@@ -1247,8 +1257,8 @@ let sb rt imm rs ms =
   let proc_ps ps =
     let df,ps = instruction_fetch ms.pc ps in
     let r = ps.reg in
-    let (r,v_rt) = getreg rt r in
-    let (r,v_rs) = getreg rs r in
+    let (r,sl,v_rt) = getreg rt ps.input_set r in
+    let (r,sl,v_rs) = getreg rs sl r in
     let con_v_rs = aint32_to_int32 v_rs in
     let dm,m =
       match con_v_rs with
@@ -1263,7 +1273,8 @@ let sb rt imm rs ms =
                      (reg2ustr rt) ^. us"=" ^. (preg rt r) ^.
                        us(sprintf " imm=%d(" imm) ^.
                          (reg2ustr rs) ^. us"=" ^. (preg rs r) ^. us")")) else ();
-    ps |> updatemem r m |> updatepipl pip |> tick ticks |> nobranch
+    ps |> updatemem r m |> updatesl sl |>
+        updatepipl pip |> tick ticks |> nobranch
   in
   let ps = proc_branches proc_ps ms.pstate in
   ps |> to_mstate ms |> inc_pc 
@@ -1273,8 +1284,8 @@ let sh rt imm rs ms =
   let proc_ps ps = 
     let df,ps = instruction_fetch ms.pc ps in
     let r = ps.reg in
-    let (r,v_rt) = getreg rt r in
-    let (r,v_rs) = getreg rs r in
+    let (r,sl,v_rt) = getreg rt ps.input_set r in
+    let (r,sl,v_rs) = getreg rs sl r in
     let con_v_rs = aint32_to_int32 v_rs in
     let dm,m =
       match con_v_rs with
@@ -1289,7 +1300,8 @@ let sh rt imm rs ms =
                      (reg2ustr rt) ^. us"=" ^. (preg rt r) ^.
                        us(sprintf " imm=%d(" imm) ^.
                          (reg2ustr rs) ^. us"=" ^. (preg rs r) ^. us")")) else ();
-    ps |> updatemem r m |> updatepipl pip |> tick ticks |> nobranch
+    ps |> updatemem r m |> updatesl sl |>
+        updatepipl pip |> tick ticks |> nobranch
   in
   let ps = proc_branches proc_ps ms.pstate in
   ps |> to_mstate ms |> inc_pc
@@ -1301,14 +1313,16 @@ let lw rt imm rs ms =
   let proc_ps ps =
     let df,ps = instruction_fetch ms.pc ps in
     let r = ps.reg in
-    let (r,v_rt) = getreg rt r in
-    let (r,v_rs) = getreg rs r in
+    let (r,sl,v_rt) = getreg rt ps.input_set r in
+    let (r,sl,v_rs) = getreg rs sl r in
     let con_v_rs = aint32_to_int32 v_rs in
-    let (dm,m,v) =
+    let (dm,sl,m,v) =
       match con_v_rs with
-      | None -> ld_any ps.hmem
+      | None ->
+         let dm,m,v = ld_any ps.hmem in
+         (dm,sl,m,v)
       | Some (con_v_rs) ->
-         get_memval_word (imm + con_v_rs) ps.hmem
+         get_memval_word (imm + con_v_rs) sl ps.hmem
     in
     let r' = setreg rt v r in
     let ticks,pip = pipeline_update (Mem (Some rt, Some rs, None)) ps.pipeline (df,1,1,dm,1) in
@@ -1317,7 +1331,8 @@ let lw rt imm rs ms =
                       (reg2ustr rt) ^. us"=" ^. (preg rt r') ^.
                         us(sprintf " imm=%d(" imm) ^.
                           (reg2ustr rs) ^. us"=" ^. (preg rs r) ^. us")")) else ();
-    ps |> updatemem r' m |> updatepipl pip |> tick ticks |> nobranch
+    ps |> updatemem r' m |> updatesl sl |>
+        updatepipl pip |> tick ticks |> nobranch
   in
   let ps = proc_branches proc_ps ps in
   ps |> to_mstate ms |> inc_pc
@@ -1327,14 +1342,16 @@ let lb rt imm rs ms =
   let proc_ps ps =
     let df,ps = instruction_fetch ms.pc ps in
     let r = ps.reg in
-    let (r,v_rt) = getreg rt r in
-    let (r,v_rs) = getreg rs r in
+    let (r,sl,v_rt) = getreg rt ps.input_set r in
+    let (r,sl,v_rs) = getreg rs sl r in
     let con_v_rs = aint32_to_int32 v_rs in
-    let (dm,m,v) =
+    let (dm,sl,m,v) =
       match con_v_rs with
-      | None -> ld_any ps.hmem
+      | None ->
+         let dm,m,v = ld_any ps.hmem in
+         (dm,sl,m,v)
       | Some (con_v_rs) ->
-         get_memval_byte (imm + con_v_rs) ps.hmem
+         get_memval_byte (imm + con_v_rs) sl ps.hmem
     in
     let r' = setreg rt v r in
     let ticks,pip = pipeline_update (Mem (Some rt, Some rs, None))  ps.pipeline (df,1,1,dm,1) in
@@ -1343,7 +1360,8 @@ let lb rt imm rs ms =
                      (reg2ustr rt) ^. us"=" ^. (preg rt r') ^.
                        us(sprintf " imm=%d(" imm) ^.
                          (reg2ustr rs) ^. us"=" ^. (preg rs r) ^. us")")) else ();
-    ps |> updatemem r' m |> updatepipl pip |> tick ticks |> nobranch
+    ps |> updatemem r' m |> updatesl sl |>
+        updatepipl pip |> tick ticks |> nobranch
   in
   let ps = proc_branches proc_ps ms.pstate in
   ps |> to_mstate ms |> inc_pc
@@ -1356,14 +1374,16 @@ let lh rt imm rs ms =
   let proc_ps ps =
     let df,ps = instruction_fetch ms.pc ps in
     let r = ps.reg in
-    let (r,v_rt) = getreg rt r in
-    let (r,v_rs) = getreg rs r in
+    let (r,sl,v_rt) = getreg rt ps.input_set r in
+    let (r,sl,v_rs) = getreg rs sl r in
     let con_v_rs = aint32_to_int32 v_rs in
-    let (dm,m,v) =
+    let (dm,sl,m,v) =
       match con_v_rs with
-      | None -> ld_any ps.hmem
+      | None -> 
+         let dm,m,v = ld_any ps.hmem in
+         (dm,sl,m,v)
       | Some (con_v_rs) ->
-         get_memval_hword (imm + con_v_rs) ps.hmem
+         get_memval_hword (imm + con_v_rs) sl ps.hmem
     in
     let r' = setreg rt v r in
     let ticks,pip = pipeline_update (Mem (Some rt, Some rs, None)) ps.pipeline (df,1,1,dm,1) in
@@ -1373,7 +1393,8 @@ let lh rt imm rs ms =
                        us(sprintf " imm=%d(" imm) ^.
                          (reg2ustr rs) ^. us"=" ^. (preg rs r) ^. us")"))
     else ();
-    ps |> updatemem r' m |> updatepipl pip |> tick ticks |> nobranch
+    ps |> updatemem r' m |> updatesl sl |>
+         updatepipl pip |> tick ticks |> nobranch
   in
   let ps = proc_branches proc_ps ms.pstate in
   ps |> to_mstate ms |> inc_pc
@@ -1381,7 +1402,7 @@ let lh rt imm rs ms =
 (*TODO(Romy): Not implemented*)
 let lhu rt imm rs ms = lh rt imm rs ms
 
-let slt_main signed r v_rs v_rt rd rs rt ps ms =
+let slt_main signed r v_rs v_rt rd rs rt sl ps ms =
   let proc_ps st rd_v ps =
     let df,ps = instruction_fetch ms.pc ps in
     let ticks,pip = pipeline_update (ND (Some rd, None, Some rs, Some rt))
@@ -1393,7 +1414,7 @@ let slt_main signed r v_rs v_rt rd rs rt ps ms =
                                           setreg rd rd_v
                                                  (setreg rs sval
                                                          (setreg rt tval r))}
-                               |> updatepipl pip
+                               |> updatesl sl |> updatepipl pip
                                |> tick ticks))
     | None -> None
   in
@@ -1402,7 +1423,7 @@ let slt_main signed r v_rs v_rt rd rs rt ps ms =
     let ticks,pip = pipeline_update (ND (Some rd, None, Some rs, Some rt))
                                     ps.pipeline (df,1,1,1,1) in
     Some (Nobranch ({ps with reg = setreg rd rd_v r}
-                    |> updatepipl pip
+                    |> updatesl sl |> updatepipl pip
                     |> tick ticks))
   in
   let (t,f) = (if signed then aint32_test_less_than else
@@ -1432,26 +1453,26 @@ let slt_main signed r v_rs v_rt rd rs rt ps ms =
 let slt rd rs rt ms =
   let ps = ms.pstate in
   let proc_ps ps =
-    let (r,v_rs) = getreg rs ps.reg in
-    let (r,v_rt) = getreg rt r in
-    slt_main true r v_rs v_rt rd rs rt ps ms 
+    let (r,sl,v_rs) = getreg rs ps.input_set ps.reg in
+    let (r,sl,v_rt) = getreg rt sl r in
+    slt_main true r v_rs v_rt rd rs rt sl ps ms 
   in    
   proc_slt proc_ps ps |> to_mstate ms |> inc_pc
     
 let sltu rd rs rt ms = 
   let ps = ms.pstate in
   let proc_ps ps =
-    let (r,v_rs) = getreg rs ps.reg in
-    let (r,v_rt) = getreg rt r in
-    slt_main false r v_rs v_rt rd rs rt ps ms 
+    let (r,sl,v_rs) = getreg rs ps.input_set ps.reg in
+    let (r,sl,v_rt) = getreg rt sl r in
+    slt_main false r v_rs v_rt rd rs rt sl ps ms 
   in    
   proc_slt proc_ps ps |> to_mstate ms |> inc_pc
 
 let slti rd rs imm ms =
   let ps = ms.pstate in
   let proc_ps ps =
-    let (r,v_rs) = getreg rs ps.reg in
-    slt_main true r v_rs (aint32_const imm) rd rs zero ps ms
+    let (r,sl,v_rs) = getreg rs ps.input_set ps.reg in
+    slt_main true r v_rs (aint32_const imm) rd rs zero sl ps ms
   in
   proc_slt proc_ps ps |> to_mstate ms |> inc_pc
                                       
@@ -1460,8 +1481,8 @@ let slti rd rs imm ms =
 let sltiu rd rs imm ms =
   let ps = ms.pstate in
   let proc_ps ps =
-    let (r,v_rs) = getreg rs ps.reg in
-    slt_main true r v_rs (aint32_const imm) rd rs zero ps ms
+    let (r,sl,v_rs) = getreg rs ps.input_set ps.reg in
+    slt_main true r v_rs (aint32_const imm) rd rs zero sl ps ms
   in
   proc_slt proc_ps ps |> to_mstate ms |> inc_pc
   
