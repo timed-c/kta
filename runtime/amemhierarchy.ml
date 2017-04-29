@@ -218,7 +218,7 @@ let getval_aint32 bigendian v =
        aint16_merge (aint8_merge v0 v1) (aint8_merge v2 v3)
      else
        aint16_merge (aint8_merge v3 v2) (aint8_merge v1 v0)
-  | AAny -> aint32_any
+  | AAny -> aint32_any_set true
 
 let getval_aint16 bigendian v =
   let v0,v2 =
@@ -230,7 +230,7 @@ let getval_aint16 bigendian v =
          ((aint8_merge v0 v1),(aint8_merge v2 v3))
        else
          ((aint8_merge v1 v0),(aint8_merge v3 v2))
-    | AAny -> (aint32_any,aint32_any)
+    | AAny -> (aint32_any_set true,aint32_any_set true)
   in (v0,v2)
     
 let getval_aint8 bigendian v =
@@ -245,7 +245,7 @@ let getval_aint8 bigendian v =
        let v2,v3 = aint16_split bigendian v2 in
        (v0,v1,v2,v3)
     | AInt8 (v0,v1,v2,v3) -> (v0,v1,v2,v3)
-    | AAny -> (aint32_any,aint32_any,aint32_any,aint32_any)
+    | AAny -> (aint32_any_set true,aint32_any_set true,aint32_any_set true,aint32_any_set true)
 
 
 (**************** Read and Write operations ****************)

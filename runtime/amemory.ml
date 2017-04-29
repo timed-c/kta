@@ -59,7 +59,7 @@ let get_memval addr mem =
                    (addr >= sbss_addr && addr < sbss_addr + sbss_size)
               then
                 AInt32 (aint32_const 0)
-              else AAny
+              else AInt32 (aint32_any_set false)
            | m::rest ->
               List.fold_left
                 (fun v1 mem ->

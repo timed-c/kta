@@ -45,7 +45,18 @@ let uhighval16 = 65535
 let aint32_any = Any false
 
 let aint32_any_set v = Any v
+
   
+let get_initialized =
+  function | Any i | Interval (_,i) | IntervalList(_,_,i) -> i
+
+let set_initialized v i =
+  match v with
+  | Any _ -> Any i
+  | Interval (v,_) -> Interval (v,i)
+  | IntervalList(lv,sp,_) -> IntervalList(lv,sp,i)
+     
+    
 exception AnyException
 
 

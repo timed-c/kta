@@ -27,7 +27,7 @@ let amem_join bigendian v1 v2 =
           aint16_merge (aint8_merge v0 v1) (aint8_merge v2 v3)
         else
           aint16_merge (aint8_merge v3 v2) (aint8_merge v1 v0)
-     | AAny -> aint32_any)
+     | AAny -> aint32_any_set true)
   in
   match v1,v2 with
   | AInt32 v1, AInt32 v2 -> AInt32 (aint32_join v1 v2)
