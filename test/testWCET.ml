@@ -56,8 +56,8 @@ let run_test test_file =
          let exp_bcet = int_of_string (String.trim exp_bcet) in
          let debug = if debug = "false" then false else true in
          let bcet,wcet = compile_file fname func argslist opt debug bsconfig in      
-         Utest.test_fint (sprintf "%s, opt=-O%d, func=%s, input=[%s], %s=%d" fname opt func args "BCET" exp_bcet) (>=) bcet exp_bcet;
-         Utest.test_fint (sprintf "%s, opt=-O%d, func=%s, input=[%s], %s=%d" fname opt func args "WCET" exp_wcet) (>=) wcet exp_wcet;
+         Utest.test_fint (sprintf "%s, opt=-O%d, func=%s, input=[%s], %s=%d" fname opt func args "BCET" bcet) (>=) bcet exp_bcet;
+         Utest.test_fint (sprintf "%s, opt=-O%d, func=%s, input=[%s], %s=%d" fname opt func args "WCET" wcet) (>=) wcet exp_wcet;
       | _ -> printf "Wrong format in %s\n%!" test_file;
     done;
   with 
@@ -68,7 +68,7 @@ let run_test test_file =
 
 type compOpTypes =
   (* General compiler options used by all commands *)
-| OpCSVFile
+  | OpCSVFile
 
 let bench_options = 
   [(OpCSVFile, Uargs.Str,  us"-csvfile",  us"",
