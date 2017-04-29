@@ -98,52 +98,112 @@ let rec reverse_append l1 l2 =
   | l::ls -> reverse_append ls (l::l2)
 
 let get_tmaps t ts =
-  let amap_others = List.map access_read ts in
+  let amap_others = List.map amap_read ts in
   let amap_others =
     match amap_others with
     | [] -> None
-    | m::ms -> List.fold_left access_merge m ms
-  in
-  check_coherence amap_others (access_read t)
+    | m::ms -> List.fold_left amap_merge m ms
+  in (*map,oh*)
+  check_coherence amap_others (amap_read t)
 
-let write_mem addr aval ctype cache mem amap =
-  let rec write_caches caches ticks ncaches amap =
-    match caches with
-    | [] -> ticks + mem.access_time, List.rev ncaches, amap
-    | c::cs ->
-       let amap' = if ticks = 0 then amap else None in
-       let nticks,resp,c',amap' = write_cache addr (get_cache ctype c) amap' in
-       match resp with
-       | Hit -> ticks + nticks, reverse_append ncaches ((update_cache c ctype c')::cs), amap
-       | Miss -> write_caches cs (ticks+nticks) ((update_cache c ctype c')::ncaches) (if ticks = 0 then amap' else amap)
-  in
+let write_mem addr aval ctype caches mem amap =
   let mem = set_memval addr aval mem in
-  if (!nocache) then
-    (mem.access_time,cache,mem,None,amap)
-  else 
-    let ticks, cache,amap = write_caches cache 0 [] amap in
-    (ticks,cache,mem,None,amap)    
-     
-let read_mem addr ctype cache mem amap =
-  let rec read_caches caches ticks ncaches amap =
+
+  let rec write_caches caches ticks ncaches =
     match caches with
-    | [] ->
-       ticks + mem.access_time, List.rev ncaches, amap
+    | [] -> ticks + mem.access_time, List.rev ncaches
     | c::cs ->
-       let amap' = if ticks = 0 then amap else None in
-       let nticks,resp,c',amap' = read_cache addr (get_cache ctype c) amap' in
+       let nticks,resp,c',_,_ = write_cache addr (get_cache ctype c) None in
        match resp with
        | Hit ->
-          ticks + nticks, reverse_append ncaches ((update_cache c ctype c')::cs), (if ticks = 0 then amap' else amap)
+          ticks + nticks,
+         reverse_append ncaches ((update_cache c ctype c')::cs)
        | Miss ->
-          read_caches cs (ticks+nticks) ((update_cache c ctype c')::ncaches)  (if ticks = 0 then amap' else amap)
+          write_caches cs (ticks+nticks)
+            ((update_cache c ctype c')::ncaches) 
   in
-  let mem,v = get_memval addr mem in
+  (*TODO(Romy): Check if needed None*)
+  let write_cache_one caches amap =
+    match caches with
+    | [] -> mem.access_time,[],mem,None,amap
+    | c::cs ->
+       let nticks,resp,c',amap',coh = write_cache addr (get_cache ctype c) amap in
+       let c' = (update_cache c ctype c') in
+       match resp,coh with
+       | Hit,Some Private | Hit, None -> nticks, c'::cs, mem, None,amap'
+       | Miss,Some Private | Miss, None ->
+          let ticks, caches = write_caches cs nticks [c'] in
+          ticks, c'::cs, mem, None, amap'
+       | Hit,Some (OtherRead(_)) ->
+          nticks + !inv_penalty, c'::cs, mem, None,amap'
+       (*TODO(Romy): go up to the first shared cache/mem*)
+       | Miss,Some (OtherRead(_)) ->
+          let ticks, caches = write_caches cs nticks [c'] in
+          max ticks !cache_penalty, c'::cs, mem, None, amap'
+       | Hit,Some (ThisRead) | Miss,Some (ThisRead) ->
+          let ticks, caches = write_caches cs nticks [c'] in
+          max ticks !cache_penalty, c'::cs, mem, None, amap'
+       | Hit,Some (ThisRW(_)) | Miss,Some (ThisRW(_)) ->
+          let ticks, caches = write_caches cs nticks [c'] in
+          max ticks (!cache_penalty + !inv_penalty), c'::cs, mem, None, amap'
+  (* match resp with *)
+  (* | Hit -> nticks, c'::cs, mem,None,amap' *)
+  (* | Miss -> *)
+  (*    let ticks, caches = write_caches cs nticks [c'] in *)
+  (*    ticks, c'::cs, mem,None,amap' *)
+  in
+
   if (!nocache) then
-    (mem.access_time,cache,mem,v,amap)
+    (mem.access_time,caches,mem,None,amap)
+  else
+    write_cache_one caches amap
+
+      
+let read_mem addr ctype caches mem amap =
+  let mem,v = get_memval addr mem in
+  let rec read_caches caches ticks ncaches =
+    match caches with
+    | [] -> ticks + mem.access_time, List.rev ncaches
+    | c::cs ->
+       let nticks,resp,c',_,_ = read_cache addr
+         (get_cache ctype c) None in
+       match resp with
+       | Hit ->
+          ticks + nticks, reverse_append ncaches ((update_cache c ctype c')::cs)
+       | Miss ->
+          read_caches cs (ticks+nticks) ((update_cache c ctype c')::ncaches) 
+  in
+  let read_cache_one caches amap =
+    match caches with
+    | [] -> mem.access_time,[],mem,v,amap
+    | c::cs ->
+       let nticks,resp,c',amap',coh = read_cache addr (get_cache ctype c) amap in
+       let c' = (update_cache c ctype c') in
+       match resp,coh with
+       | Hit,Some Private | Hit, None -> nticks, c'::cs, mem, v,amap'
+       | Miss,Some Private | Miss, None ->
+          let ticks, caches = read_caches cs nticks [c'] in
+          ticks, c'::cs, mem, v, amap'
+       | Hit,Some (OtherRead(_)) -> nticks, c'::cs, mem, v,amap'
+       (*TODO(Romy): go up to the first shared cache/mem*)
+       | Miss,Some (OtherRead(_)) ->
+          let ticks, caches = read_caches cs nticks [c'] in
+          max ticks !cache_penalty, c'::cs, mem, v, amap'
+       | Hit,Some (ThisRead) | Miss,Some (ThisRead) ->
+          let ticks, caches = read_caches cs nticks [c'] in
+          max ticks !cache_penalty, c'::cs, mem, v, amap'
+       | Hit,Some (ThisRW(_)) | Miss,Some (ThisRW(_)) ->
+          let ticks, caches = read_caches cs nticks [c'] in
+          max ticks (!cache_penalty + !inv_penalty), c'::cs, mem, v, amap'
+  in
+  if (!nocache) then
+    (mem.access_time,caches,mem,v,amap)
   else 
-    let ticks, cache, amap = read_caches cache 0 [] amap in
-    (ticks,cache,mem,v,amap)
+    read_cache_one caches amap 
+(* let ticks, cache, caches, amap = read_cache_one caches amap in *)
+    
+    (* let ticks, caches, amap = read_caches caches ticks [] None in *)
+    (* (ticks,cache::caches,mem,v,amap) *)
 
 (************************* MAIN MEMORY OPERATIONS ************************)
     
@@ -272,7 +332,7 @@ let hmem_join m1 m2 =
   {
     mem = mem_join [m1.mem;m2.mem];
     cache = hcache_join m1.cache m2.cache;
-    amap = access_join m1.amap m2.amap;
+    amap = amap_join m1.amap m2.amap;
   }
   
 
@@ -306,14 +366,14 @@ let st_any hmem =
 let print_amem str hmem =
   match hmem.amap with
   | Some (RMap amap) ->
-     access_print str amap
+     amap_print str amap
   | _ -> ""
 
 let print_amem2 str amap =
-  access_print str amap
+  amap_print str amap
     
 let read_amem lst =
-  access_read lst
+  amap_read lst
 
 let print_hmem_stats hmem = ()
   (* match hmem.cache with *)

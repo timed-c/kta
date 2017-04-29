@@ -1515,18 +1515,27 @@ let analyze_main startblock bblocks gp_addr args init_mem task_amem =
   let stack_addr = 0x80000000 - 8 in
   let reg = setreg sp (aint32_const stack_addr) ps.reg in
   let reg = setreg gp (aint32_const gp_addr) reg in
-  let hmem = disable_dcache ps.hmem in
-  let hmem = memory_init false init_mem hmem in
-  let hmem = enable_dcache hmem in
+  (* let hmem = disable_dcache ps.hmem in *)
+  let nocache = !nocache in
+  set_nocache true;
+  let hmem = memory_init false init_mem ps.hmem in
+  set_nocache nocache;
+  (* let hmem = enable_dcache hmem in *)
 
-  let tmap =
-    match task_amem with
-    | [] -> None
-    | t::ts -> Some (get_tmaps t ts)
+  (* TODO(Romy): Overhead *)
+  let hmem =
+    if not !record_mtags then
+      let tmap,oh =
+        match task_amem with
+        | [] | _::[] -> None,0
+        | t::ts -> get_tmaps t ts
+      in
+      {hmem with amap=tmap}
+    else
+      hmem
   in
-
-  let ps = {ps with reg = reg; hmem=hmem} in
   
+  let ps = {ps with reg = reg; hmem=hmem} in
   
   (* Create the main state *)
   let mstate = {
@@ -1549,13 +1558,14 @@ let analyze_main startblock bblocks gp_addr args init_mem task_amem =
 
 let _ = if !dbg && !dbg_trace then Printexc.record_backtrace true else ()
 
+(*TODO(Romy): remove Unused*)
 let print_memacc_read lst =
   print_amem2 "fjeiowjf" (read_amem lst)
     
 (** Print main state info *)
 let print_mstate str ms =
   let print_pstate ps =
-    if !record_mtags then
+    if !record_mtags then 
       Ustring.write_file (sprintf "memmap_%s.ml" str) (us (print_amem str ps.hmem))
     else  (
       printf "Counter: %d\n" !counter;
@@ -1604,7 +1614,7 @@ let analyze startblock bblocks gp_addr mem defaultargs tasks =
   enable_debug debug;
 
   set_record (Uargs.has_op OpRecord ops);
-
+  
   if Uargs.has_op OpConfigMaxCycles ops then
     (set_max_cycles (Uargs.int_op OpConfigMaxCycles ops));
   if Uargs.has_op OpConfigBatchSize ops then

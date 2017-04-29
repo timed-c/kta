@@ -504,7 +504,7 @@ let wcet_command args =
      MipsCfg.test prog (Ustring.to_utf8 func_name) (prog_args, max_cycles, bsconfig, tasks, false, print_out_option)
     )
   else
-    MipsCfg.test prog (Ustring.to_utf8 func_name) (prog_args, max_cycles, bsconfig, [], false, print_out_option);
+    MipsCfg.test prog (Ustring.to_utf8 func_name) (prog_args, max_cycles, bsconfig, [], true, print_out_option);
   us""
 
 

@@ -37,7 +37,10 @@ let enable_debug enable =
 
 (* disable cache *)
 let nocache = ref false
+let set_nocache v =
+  nocache := v
 
+    
 let levels = ref 1
                        
 (* Data/Unified Cache parameters *)

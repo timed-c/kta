@@ -66,7 +66,7 @@ let pipeline_update instr p dp =
     let (f,d,e,m,w) = dp in
     (f+d+e+m+w,((0,0,0,0,0),None))
   else(
-    let map5 f (a,b,c,d,e) = (f a, f b, f c, f d, f e) in
+    let map4 f (a,b,c,d) = (f a, f b, f c, f d) in
     let (df,dd,de,dm,dw) = dp in
     let (f,d,e,m,w),dr = p in 
     let t1,t2 = get_dependencies dr instr in
@@ -74,7 +74,8 @@ let pipeline_update instr p dp =
     let (e,m,w,t,del) =
       if f' > e then
         let delay = f' - e in
-        map5 (fun x -> x+delay) (e,m,w,t2,delay)
+        let (e,m,w,t2) = map4 ((+) delay) (e,m,w,t2) in
+          (e,m,w,t2,delay)
       else (e,m,w,t2,0)
     in
     let d' = max (max (f'+ dd) (e)) t2 in

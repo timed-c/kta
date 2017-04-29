@@ -7,14 +7,14 @@ type l1cache_type =
 let cache_model =
   [S (
        (*Icache*)
-       { assoc = 1; size = 1024;
+       { assoc = 1; size = 2048;
          word_size = 4; block_size = 16;
          write_allocate = true; write_back = true;
          hit_time = 1;
          shared = false; 
        },
        (*Dcache*)
-       { assoc = 2; size = 1024;
+       { assoc = 4; size = 2048;
          word_size = 4; block_size = 16;
          write_allocate = true; write_back = true;
          hit_time = 1;
@@ -30,7 +30,7 @@ let cache_model =
    U ({ assoc = 8; size = 32768;
         word_size = 4; block_size = 16;
         write_allocate = true; write_back = true;
-        hit_time = 50;
+        hit_time = 5;
         shared = false;
       })
   ]

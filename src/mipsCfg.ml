@@ -359,14 +359,14 @@ let pprint_ocaml_cps_from_cfgmap record fnames nice_output name cfgmap prog =
                       print_mem_sec prog.sbss_sec ".sbss" ^. 
                        print_mem_sec prog.bss_sec ".bss"
   in
-(* Intro header *)
+  (* Intro header *)
   let intro =
     us"open AbstractMIPS\n\n" ^.
       us"open Printf\n\n" ^.
       (if not record then
           List.fold_left
             (fun str fn -> (us("open Memmap_") ^. fn ^. us "\n\n") ^. str)
-            (us"") fnames
+            (us"") ((us name)::fnames)
        else us "") ^.
         us (sprintf "let gp_addr=%d\n" prog.gp) ^.
           mem_start ^. mem_all ^. mem_end ^.
@@ -426,19 +426,20 @@ let pprint_ocaml_cps_from_cfgmap record fnames nice_output name cfgmap prog =
   ) (us"") namelist
   in
   let bbtable = bbtable_start ^. bbtable_list ^. bbtable_end in
-  
+
   (* Analyze text *)
   let analyze = us"(* -- Start of Analysis -- *)\n\n" ^.
                   us"let main = \n\t"
                   ^. us"let _st_time = Sys.time() in\n"
       ^. us"\tanalyze " ^. us name ^. us"_ bblocks gp_addr mem []" ^.
-      (if not record then
-          us" [" ^.
-            List.fold_left
-            (fun str fn -> (us "amap_" ^. fn ^. us ";") ^. str)
-            (us"]") fnames
-       else us " []") ^.
-                  us ";\n"
+                  (if not record then
+                      (
+                      us" [" ^.
+                         List.fold_left
+                         (fun str fn -> (us "amap_" ^. fn ^. us ";") ^. str)
+                         (us"]") (fnames @ [us name]))
+                   else us " []")
+    ^. us ";\n"
     ^. us"\tprintf \"Time Elapsed %fs\\n\" (Sys.time() -. _st_time)\n" in
   
   (* Return the complete .ml file *)
@@ -477,6 +478,7 @@ let test prog fname cm_args =
      try
        let debug = MipsSys.verbose_enabled() in
        let program_code = pprint_ocaml_cps_from_cfgmap record fnames true fname cfgmap prog in
+       let record = if record && fnames != [] then true else false in
        args |> MipsSys.wcet_compile fname debug max_cycles bsconfig record program_code |> print_endline;
      with Sys_error e ->
         e |> eprintf "%s\n";

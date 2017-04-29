@@ -191,7 +191,7 @@ type memaccess_t = int * int * int
                                    
 type accessmap_t = memaccess_t AccMap.t
 
-let access_read lst =
+let amap_read lst =
   let rec aread_int lst amap =
     match lst with
     | [] -> Some amap
@@ -199,7 +199,7 @@ let access_read lst =
   in
   aread_int lst AccMap.empty
     
-let access_print str amap =
+let amap_print str amap =
   match amap with
   | None -> "None"
   | Some amap ->
@@ -210,21 +210,22 @@ let access_print str amap =
        "]\n"
 
        
-type cohtype = OtherRead of int | ThisRead | ThisRW of int
+type cohtype = OtherRead of int | ThisRead | ThisRW of int | Private
     
 type mapstype = RMap of accessmap_t option | TMap of cohtype AccMap.t option 
 
 let tag_init =
   if !record_mtags
-  then Some (RMap (Some AccMap.empty))
+  then
+    Some (RMap (Some AccMap.empty))
   else Some (TMap None)
-         
-let access_join tm1 tm2 = 
+
+let amap_join tm1 tm2 = 
   match tm1, tm2 with
-  | None, None -> None
+  | None, None ->None
   | Some (RMap (Some tm1)),
-    Some (RMap (Some tm2)) -> Some
-     (RMap (Some (AccMap.merge
+    Some (RMap (Some tm2)) ->
+     Some (RMap (Some (AccMap.merge
                     (fun t m1 m2 ->
                       match m1,m2 with
                       | Some (r1,w1,bs1), Some (r2,w2,bs2) ->
@@ -240,10 +241,10 @@ let get_set address cache =
   (address.set * cache.byteinfo.num * cache.wordinfo.num)
   lor (address.tag * cache.byteinfo.num * cache.wordinfo.num * cache.setinfo.num)
 
-let access_update write address cache amap =
+let amap_update write address cache amap =
   match amap with
     | None -> None (* Disabled amap - No recording *)
-    | Some amap ->
+    | Some amap -> 
        let set_address = get_set address cache in
        let (r,w,bsize) =
          try
@@ -264,7 +265,7 @@ let access_update write address cache amap =
                         (r,w,bsize) amap)
 
 (* Merge the memory accesses of two time interfering tasks *)
-let access_merge amap1 amap2 =
+let amap_merge amap1 amap2 =
   match amap1,amap2 with
   | None, _ | _, None -> None
   | Some amap1, Some amap2 -> Some
@@ -303,8 +304,18 @@ let check_coherence amap_others amap_this =
            | OtherRead(n) | ThisRW(n) -> oh+n
            | _ -> oh
          ) cohmap 0 in
-     (Some cohmap, overhead)
+     (Some (TMap (Some cohmap)), overhead)
 
+let get_coherence_penalty address amap =
+  match amap with
+  | None -> None
+  | Some amap ->
+     let res =
+       try
+         AccMap.find address amap
+       with Not_found ->
+         Private
+     in Some res
 
 (****************** Insert Function **********************)
         
@@ -351,28 +362,31 @@ let access_cache write addr cache amap =
   let address = split_address addr cache in
   (* TODO(Romy): fix invalid coherence *)
   let invalid = false in
-  let amap = 
+  let amap,coh = 
     match amap with
-    | None -> None
-    | Some (RMap amap) -> Some (RMap (access_update write address cache amap ))
-    | Some (TMap tmap) -> Some (TMap tmap)
+    | None -> None,None
+    | Some (RMap amap) -> Some (RMap (amap_update write address cache amap )),None
+    | Some (TMap tmap) ->
+       let set_address = get_set address cache in
+       Some (TMap tmap), get_coherence_penalty set_address tmap
   in
   try
     let set = Cache.find address.set cache.cache in
     let (resp,set) = update_cache address write invalid set in
     let cache = update_set address.set set cache in
-    (resp,address,set,cache,amap)
+    (resp,address,set,cache,amap,coh)
   with
   | Not_found ->
      let set = new_cache_set () in
      let cache = update_set address.set set cache in
-     (Miss,address,set,cache,amap)
+     (Miss,address,set,cache,amap,coh)
          
 let read_line_from_mem tag dirty invalid = (tag,dirty,invalid)
                                 
 let read_cache addr cache amap =
-  let (resp,address,set,cache,amap) = access_cache false addr cache amap in
-  let ticks,cache =
+    let (resp,address,set,cache,amap,coh) =
+      access_cache false addr cache amap in
+    let ticks,cache =
     match resp,cache with
     | Miss, cache ->
        let cache = cache_misses_inc cache in
@@ -399,11 +413,12 @@ let read_cache addr cache amap =
          printf "HIT: read_cache addr:0x%x\n%!" addr;
        (cache.cacheinfo.hit_time,cache)
     (* | Nocache, _ -> (1,cache) *)
-  in ticks,resp,cache,amap
+  in ticks,resp,cache,amap,coh
 
                
 let write_cache addr cache amap =
-  let (resp,address,set,cache,amap) = access_cache true addr cache amap in
+  let (resp,address,set,cache,amap,coh) =
+    access_cache true addr cache amap in
   let hit_time = cache.cacheinfo.hit_time in
   let (ticks,cache) = 
     match resp with
@@ -447,7 +462,7 @@ let write_cache addr cache amap =
          (* (cache.hit_time + cache.miss_penalty,cache) *)
          (hit_time,cache)        
     (* | Nocache -> (1,cache) *)
-  in (ticks,resp,cache,amap)
+  in (ticks,resp,cache,amap,coh)
 
 (******** Cache to any (similar to mem_to_any) *********)
 
