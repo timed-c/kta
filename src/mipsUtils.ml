@@ -365,7 +365,8 @@ let add_branch_symbols prog =
             (x := !x + 1;
             (l,Sym2Addr.add l addr s2a,Addr2Sym.add addr l a2s))
           else
-            find_unique()
+            (x := !x + 1;
+             find_unique())
         in find_unique()
     in
   

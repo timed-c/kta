@@ -129,8 +129,8 @@ let get_program filename =
   let l_bss = try Some(List.assoc ".bss" l_sections) with _ -> None in
   let l_sbss = try Some(List.assoc ".sbss" l_sections) with _ -> None in
   let l_rodata = try Some(List.assoc ".rodata" l_sections) with _ -> None in
-  let l_textcode = get_section filename ".text" in 
-{ 
+  let l_textcode = get_section filename ".text" in
+  { 
   filename = filename;
   symbols = l_symbols;
   sym2addr = List.fold_left (fun m (s,a) -> Sym2Addr.add s a m) 

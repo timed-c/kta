@@ -467,9 +467,7 @@ type bblock =
 }
                                   
 let test prog fname cm_args =
-  
   let (prog,cfgmap) = make_cfgmap fname prog in
-
   match cm_args with
   | (_,_,_,fnames,record,true) ->
      let program_code = pprint_ocaml_cps_from_cfgmap record fnames true fname cfgmap prog in
