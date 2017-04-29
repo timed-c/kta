@@ -1523,16 +1523,16 @@ let analyze_main startblock bblocks gp_addr args init_mem task_amem =
   (* let hmem = enable_dcache hmem in *)
 
   (* TODO(Romy): Overhead *)
-  let hmem =
+  let hmem,ps =
     if not !record_mtags then
       let tmap,oh =
         match task_amem with
         | [] | _::[] -> None,0
         | t::ts -> get_tmaps t ts
       in
-      {hmem with amap=tmap}
+      hmem |> hmem_update_amap tmap, ps |> tick oh
     else
-      hmem
+      hmem,ps
   in
   
   let ps = {ps with reg = reg; hmem=hmem} in

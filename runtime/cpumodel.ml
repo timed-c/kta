@@ -30,7 +30,7 @@ let cache_model =
    U ({ assoc = 8; size = 32768;
         word_size = 4; block_size = 16;
         write_allocate = true; write_back = true;
-        hit_time = 5;
+        hit_time = 50;
         shared = false;
       })
   ]
@@ -41,7 +41,7 @@ let mem_access_time = ref 100
 
 (****** COHERENCE PENALTY ******)
 
-let coherence_penalty = ref 130
+(* let coherence_penalty = ref 130 *)
 let inv_penalty = ref 15
 let wb_penalty = ref 10
 let cache_penalty = ref 40
