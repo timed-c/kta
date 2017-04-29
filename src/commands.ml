@@ -499,13 +499,13 @@ let wcet_command args =
   let prog = MipsSys.get_program binfile_name |>  MipsUtils.add_branch_symbols in
 
   if record then
-    (MipsCfg.test prog (Ustring.to_utf8 func_name) (prog_args, max_cycles, bsconfig, tasks, record, print_out_option);
-     List.iter (fun fname ->
-       MipsCfg.test prog (Ustring.to_utf8 fname) (prog_args, max_cycles, bsconfig, tasks, record, print_out_option)) tasks;
-     MipsCfg.test prog (Ustring.to_utf8 func_name) (prog_args, max_cycles, bsconfig, tasks, false, print_out_option)
+    (MipsCfg.test prog (Ustring.to_utf8 func_name) (prog_args, max_cycles, bsconfig, tasks, record, 0, print_out_option);
+     List.iteri (fun i fname ->
+       MipsCfg.test prog (Ustring.to_utf8 fname) (prog_args, max_cycles, bsconfig, tasks, record, i+1, print_out_option)) tasks;
+     MipsCfg.test prog (Ustring.to_utf8 func_name) (prog_args, max_cycles, bsconfig, tasks, false, 0, print_out_option)
     )
   else 
-    MipsCfg.test prog (Ustring.to_utf8 func_name) (prog_args, max_cycles, bsconfig, [], true, print_out_option);
+    MipsCfg.test prog (Ustring.to_utf8 func_name) (prog_args, max_cycles, bsconfig, [], true, 0, print_out_option);
   us""
 
 

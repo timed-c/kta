@@ -121,7 +121,7 @@ let get_tmaps t ts =
   in (*map,oh*)
   check_coherence amap_others (amap_read t)
 
-let write_mem addr aval ctype caches mem amap stack =
+let write_mem addr aval ctype caches mem amap =
   let mem = set_memval addr aval mem in
 
   let rec write_caches caches ticks ncaches =
@@ -142,7 +142,7 @@ let write_mem addr aval ctype caches mem amap stack =
     match caches with
     | [] -> mem.access_time,[],mem,None,amap
     | c::cs ->
-       let nticks,resp,c',amap',coh = write_cache addr (get_cache ctype c) amap stack in
+       let nticks,resp,c',amap',coh = write_cache addr (get_cache ctype c) amap in
        let c' = (update_cache c ctype c') in
        match resp,coh with
        | Hit,Some Private | Hit, None -> nticks, c'::cs, mem, None,amap'
@@ -271,9 +271,9 @@ let getval_aint8 bigendian v =
 
 (**************** Read and Write operations ****************)
 
-let set_memval_word addr v mem stack =
+let set_memval_word addr v mem =
   let ticks,c,m,_,amap = write_mem addr (AInt32 v) DCache
-                                   mem.cache mem.mem mem.amap stack in
+                                   mem.cache mem.mem mem.amap in
   (ticks,mem |> hmem_update_cache c
          |> hmem_update_mem m |> hmem_update_amap amap)
 

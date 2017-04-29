@@ -1510,7 +1510,7 @@ let lii rd l h ms =
 (* ------------------- MAIN ANALYSIS FUNCTIONS ----------------------*)
     
 (** Main function for analyzing an assembly function *)
-let analyze_main startblock bblocks gp_addr args init_mem task_amem =
+let analyze_main startblock bblocks gp_addr args init_mem task_amem n =
   (* Get the block info of the first basic block *)  
   let bi = bblocks.(startblock) in
 
@@ -1521,7 +1521,7 @@ let analyze_main startblock bblocks gp_addr args init_mem task_amem =
 
 
   (* Initiate the stack pointer *)
-  let stack_addr = 0x80000000 - 8 in
+  let stack_addr = 0x80000000 - 8 - (n*0x01000000) in
   let reg = setreg sp (aint32_const stack_addr) ps.reg in
   let reg = setreg gp (aint32_const gp_addr) reg in
   (* let hmem = disable_dcache ps.hmem in *)
@@ -1616,7 +1616,7 @@ let options =
 
 
   
-let analyze startblock bblocks gp_addr mem defaultargs tasks =
+let analyze startblock bblocks gp_addr mem defaultargs tasks n =
   let args = (Array.to_list Sys.argv |> List.tl) in
   let (ops, args) = Uargs.parse args options in
   let debug = Uargs.has_op OpDebug ops in
@@ -1637,14 +1637,14 @@ let analyze startblock bblocks gp_addr mem defaultargs tasks =
   let args = if args = [] then defaultargs else args in
   if !dbg && !dbg_trace then
     let v =     
-      try analyze_main startblock bblocks gp_addr args mem tasks |> print_mstate bblocks.(startblock).name
+      try analyze_main startblock bblocks gp_addr args mem tasks n |> print_mstate bblocks.(startblock).name
       with
       | MaxCyclesException -> printf "A path reached the maximum cycles allowed: %d\n%!" (!config_max_cycles);
       | _ -> Printexc.print_backtrace stdout
     in v
   else
     try
-      analyze_main startblock bblocks gp_addr args mem tasks |> print_mstate bblocks.(startblock).name
+      analyze_main startblock bblocks gp_addr args mem tasks n |> print_mstate bblocks.(startblock).name
     with
     | MaxCyclesException -> printf "Analysis not finished. A path reached the maximum cycles allowed: %d\n%!" (!config_max_cycles)
     
