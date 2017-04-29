@@ -345,7 +345,7 @@ let get_instruction addr hmem =
 let ld_any hmem =
   let caches = hmem.cache in
   let ticks = List.fold_left (fun t c -> t + miss_cache (get_cache DCache c)) 0 caches in
-  (ticks, hmem, Any)
+  (ticks, hmem, aint32_any_set true)
 
 let st_any hmem =
   let cache_to_any cache = 

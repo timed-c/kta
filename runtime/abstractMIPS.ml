@@ -24,7 +24,13 @@ type blockid = int     (* The block ID type *)
 type distance = int    (* The type for describing distances of blocks *)
 
 
-
+type spliter = | Abstract
+               | AbstractL
+               | AbstractR
+               | ConcreteM
+               | ConcreteL
+               | ConcreteR
+                   
 (** Abstract program state. Contains a concrete value
     for the program counter and abstract values for 
     registers and memory *)
@@ -34,6 +40,7 @@ type progstate = {
   pipeline : apipeline;
   bcet  : int;
   wcet  : int;
+  input_set : spliter list;
 }
 
 
@@ -185,6 +192,7 @@ let init_pstate =
     pipeline = pipeline_init;
     bcet = 0;
     wcet = 0;
+    input_set = [];
   }
 
 (** Join two program states, assuming they have the same program counter value *)
@@ -203,6 +211,7 @@ let rec join_pstates ps1 ps2 =
          pipeline = pipeline_join ps1.pipeline ps2.pipeline;
          bcet  = min ps1.bcet ps2.bcet;
          wcet  = max ps1.wcet ps2.wcet;
+         input_set = ps1.input_set; (*TODO(Romy):????*)
        }
   | Sbranch _ , _ | _, Sbranch _ ->
      failwith (sprintf "ERROR: Should not happen - join_pstates sbranch")

@@ -15,11 +15,13 @@ let getPairSym() =
   pairSym := !pairSym + 1;
   !pairSym
 
+type initialized = bool
+  
 type interval = (low * step * number)
 type aint32 =
-| Any 
-| Interval of interval
-| IntervalList of interval list * safepair
+| Any of initialized
+| Interval of interval * initialized
+| IntervalList of interval list * safepair * initialized
 
 let baseaddr_fail() = failwith "Error: cannot perform operations on base addresses"     
 let fail_aint32() = failwith "Error: aint32 error that should not happen."
@@ -40,8 +42,10 @@ let highval16 = 32767
 let ulowval16 = 0
 let uhighval16 = 65535
 
-let aint32_any = Any
-                   
+let aint32_any = Any false
+
+let aint32_any_set v = Any v
+  
 exception AnyException
 
 
@@ -75,10 +79,10 @@ let check_aint16 v =
   in
   try
     match v with
-    | Any -> Any
-    | Interval(v) -> Interval (check_aint16_int v)
-    | IntervalList(l,sp) -> IntervalList(List.map check_aint16_int l,sp)
-  with AnyException -> Any
+    | Any i -> Any i
+    | Interval((v,i)) -> Interval (check_aint16_int v,i)
+    | IntervalList(l,sp,i) -> IntervalList(List.map check_aint16_int l,sp,i)
+  with AnyException -> Any false
 
 let check_aint8 v =
   let check_aint8_int v =
@@ -89,10 +93,10 @@ let check_aint8 v =
   in
   try
     match v with
-    | Any -> Any
-    | Interval(v) -> Interval (check_aint8_int v)
-    | IntervalList(l,sp) -> IntervalList(List.map check_aint8_int l,sp)
-  with AnyException -> Any
+    | Any i -> Any i
+    | Interval(v,i) -> Interval ((check_aint8_int v),i)
+    | IntervalList(l,sp,i) -> IntervalList(List.map check_aint8_int l,sp,i)
+  with AnyException -> Any false
 
 
 let interval_merge (l1,s1,n1) (l2,s2,n2) =
@@ -111,8 +115,8 @@ let interval_merge_list lst =
     
 let aint32_to_int32 v =
   match v with
-  | Interval(l,_,1) -> Some l
-  | Any | IntervalList(_,_)
+  | Interval((l,_,1),i) -> Some l
+  | Any _ | IntervalList(_,_,_)
     | Interval(_) -> None
 
     
@@ -128,9 +132,9 @@ let aint32_pprint debug v =
        us (sprintf "[%d,%d,%d] " l s (high l s n))
   in  
   match v with
-  | Any -> us"Any "
-  | Interval(l,s,n) -> prn (l,s,n)
-  | IntervalList(lst,sp) ->
+  | Any _ -> us"Any "
+  | Interval((l,s,n),i) -> prn (l,s,n)
+  | IntervalList(lst,sp,i) ->
     us(if debug && sp != nopair then sprintf "{%d}" sp else "") ^.
     (if debug then
       us"[" ^. Ustring.concat (us", ") (List.map prn lst) ^. us"]"
@@ -154,23 +158,24 @@ let rec aint32_mem_byte byte signed v =
      let n = number h l s in 
      (l, s, n) in
   match v with
-  | Interval(v) -> Interval(get_byte byte v)
-  | _ -> Any
+  | Interval(v,i) -> Interval(get_byte byte v,i)
+  | Any i | IntervalList(_,_,i) -> Any i 
           
 
 let aint32_binop op v1 v2 =
   try 
     match v1,v2 with
-    | Any,_|_,Any -> Any
-    | Interval(vv1), Interval(vv2) ->
-      Interval (op vv1 vv2)
-    | Interval(vv1),IntervalList(lst,sp) | IntervalList(lst,sp), Interval(vv1) ->
-      IntervalList(List.map (fun vv2 -> op vv1 vv2) lst, sp)
-    | IntervalList(l1,sp1), IntervalList(l2,sp2) when sp1 = sp2 ->
-      IntervalList(List.rev (List.rev_map2 (fun v1 v2 -> op v1 v2) l1 l2), sp1)     
-    | IntervalList(l1,_), IntervalList(l2,_) ->
-      Interval (op (interval_merge_list l1) (interval_merge_list l2))
-  with AnyException -> Any
+    | Any i,_|_,Any i -> Any i
+    (*?????*)
+    | Interval(vv1,i1), Interval(vv2,i2) ->
+      Interval (op vv1 vv2,i1 && i2)
+    | Interval(vv1,i1),IntervalList(lst,sp,i2) | IntervalList(lst,sp,i1), Interval(vv1,i2) ->
+      IntervalList(List.map (fun vv2 -> op vv1 vv2) lst, sp,i1 && i2)
+    | IntervalList(l1,sp1,i1), IntervalList(l2,sp2,i2) when sp1 = sp2 ->
+      IntervalList(List.rev (List.rev_map2 (fun v1 v2 -> op v1 v2) l1 l2), sp1,i1 && i2)     
+    | IntervalList(l1,_,i1), IntervalList(l2,_,i2) ->
+      Interval (op (interval_merge_list l1) (interval_merge_list l2),i1&&i2)
+  with AnyException -> Any false
 
 
 (*n*)
@@ -241,8 +246,8 @@ let aint32_and v1 v2 =
   in
   let (v1,v2) = 
     match v1,v2 with
-    | Any, Interval(l,0,1) when is_power_2 l -> (Interval(0,l,2),v2)
-    | Interval(l,0,1),Any when is_power_2 l -> (v1,Interval(0,l,2))
+    | Any i1, Interval((l,0,1),i2) when is_power_2 l -> (Interval((0,l,2),i1),v2)
+    | Interval((l,0,1),i1),Any i2 when is_power_2 l -> (v1,Interval((0,l,2),i2))
     | _,_ -> (v1,v2)
   in
   aint32_binop aint32_and_f v1 v2
@@ -307,20 +312,20 @@ let aint32_mul v1 v2 =
 let aint64_binop op v1 v2 =
   try 
     match v1,v2 with
-    | Any,_|_,Any -> (Any,Any)
-    | Interval(vv1), Interval(vv2) ->
+    | Any i,_|_,Any i -> (Any i,Any i)
+    | Interval(vv1,i1), Interval(vv2,i2) ->
        let (r1,r2) = op vv1 vv2 in
-       (Interval(r1), Interval(r2))
-    | Interval(vv1),IntervalList(lst,sp) | IntervalList(lst,sp), Interval(vv1) ->
+       (Interval(r1,i1), Interval(r2,i2))
+    | Interval(vv1,i1),IntervalList(lst,sp,i2) | IntervalList(lst,sp,i1), Interval(vv1,i2) ->
        let (r1,r2) = List.split (List.map (fun vv2 -> op vv1 vv2) lst) in
-       (IntervalList(r1,sp),IntervalList(r2,sp))
-    | IntervalList(l1,sp1), IntervalList(l2,sp2) when sp1 = sp2 ->
+       (IntervalList(r1,sp,i1),IntervalList(r2,sp,i2))
+    | IntervalList(l1,sp1,i1), IntervalList(l2,sp2,i2) when sp1 = sp2 ->
        let (r1,r2) = List.split (List.rev (List.rev_map2 (fun v1 v2 -> op v1 v2) l1 l2)) in
-       (IntervalList(r1,sp1),IntervalList(r2,sp1))
-    | IntervalList(l1,_), IntervalList(l2,_) ->
+       (IntervalList(r1,sp1,i1),IntervalList(r2,sp1,i2))
+    | IntervalList(l1,_,i1), IntervalList(l2,_,i2) ->
        let (r1,r2) = op (interval_merge_list l1) (interval_merge_list l2) in
-       (Interval(r1),Interval(r2))
-  with AnyException -> (Any,Any)
+       (Interval(r1,i1),Interval(r2,i2))
+  with AnyException -> (Any true,Any true)
 
 let aint64_mult v1 v2 =
   aint64_binop (
@@ -389,14 +394,14 @@ let aint32_srav v1 v2 =
                
 let aint32_div v1 v2 =
   match v1, v2 with
-  | Any, Interval(l,0,1) ->
+  | Any i1, Interval((l,0,1),i2) ->
      let h = highval/l in
      let l = lowval/l in
      let s = 1 in
      let n = number h l s in
      if l<lowval || h>highval then raise AnyException
-     else Interval(l, s, n)
-  | Any,_ | _,Any -> Any
+     else Interval((l,s,n),i1&&i2)
+  | Any i,_ | _,Any i -> Any i
   | _ ->
      aint32_binop (fun (l1,s1,n1) (l2,s2,n2) ->
          let h1 = high l1 s1 n1 in
@@ -422,29 +427,30 @@ let aint32_clz v1 =
   in
   match v1 with
   (* All possible results *)
-  | Interval(l,s,n) ->
+  | Interval((l,s,n),i) ->
      let h = high l s n in
-     if h < 0 then Interval(0,0,1)
-     else if l < 0 then Interval(0,1,number 32 0 1)
+     if h < 0 then Interval((0,0,1),true)
+     else if l < 0 then Interval((0,1,number 32 0 1),true)
      else 
        ( let l1 = leading_zeros h 32 in
          let h1 = leading_zeros l 32 in
          let s1 = if l1 = h1 then 0 else 1 in
-         Interval(l1,s1,number h1 l1 s1)
+         Interval((l1,s1,number h1 l1 s1),i)
        )
-  | _ -> Interval(0,1,number 32 0 1) 
+  | _ -> Interval((0,1,number 32 0 1),true) 
                   
 let aint32_mod v1 v2 =
   match v1, v2 with
-  | Any, Interval(l,s,n) ->
+  | Any i1, Interval((l,s,n),i2) ->
+     assert (i1 = i2);
      let h = high l s n in
      let modl = min l (-h) in
      let modh = max h (-l) in
      let mods = 1 in
      let modn = number modh modl mods in 
      if modl<lowval || modh>highval then raise AnyException
-     else Interval(modl, mods, modn)
-  | Any,_ | _,Any -> Any
+     else Interval((modl, mods, modn),i1)
+  | Any i,_ | _,Any i -> Any i
   | _ ->
      aint32_binop (fun (l1,s1,n1) (l2,s2,n2) ->
          let h1 = high l1 s1 n1 in
@@ -469,43 +475,47 @@ let aint32_mod v1 v2 =
 
     
 let aint32_const v =
-    Interval(v,0,1)
+    Interval((v,0,1),true)
 
 let aint32_interval l h =
   let h = h in
-  if l = h then Interval(l,0,1)
-  else Interval(l,1,number h l 1)
+  if l = h then Interval((l,0,1),true)
+  else Interval((l,1,number h l 1),true)
 
 let aint32_join v1 v2 =
   match v1, v2 with
-  | Any,_|_,Any -> Any
-  | Interval(v1),Interval(v2) ->
-    Interval(interval_merge v1 v2)
-  | Interval(v1),IntervalList(lst,_) | IntervalList(lst,_),Interval(v1) ->
-    Interval(interval_merge_list (v1::lst))
-  | IntervalList(l1,_),IntervalList(l2,_) ->
-    Interval(interval_merge (interval_merge_list l1) (interval_merge_list l2)) 
+  | Any i,_|_,Any i -> Any i
+  | Interval((v1),i1),Interval((v2),i2) ->
+     assert(i1=i2);
+     Interval(interval_merge v1 v2,i1)
+  | Interval((v1),i1),IntervalList(lst,_,i2) | IntervalList(lst,_,i1),Interval(v1,i2) ->
+     assert (i1 = i2);
+    Interval((interval_merge_list (v1::lst),i1))
+  | IntervalList(l1,_,i1),IntervalList(l2,_,i2) ->
+     assert (i1 = i2);
+    Interval((interval_merge (interval_merge_list l1)) (interval_merge_list l2),i1) 
 
 let aint_merge v1 v2 bits =
   let mask = (0x1 lsl bits) - 1 in 
   match v1, v2 with
-  | Interval(v1),Interval(v2) ->
+  | Interval((v1),i1),Interval((v2),i2) ->
+     assert (i1 = i2);
      (match v1,v2 with
-     | (l1,0,1),(l2,0,1) -> Interval((l1 lsl bits) lor (l2 land mask),0,1)
-     | (l1,0,1),(l2,s2,n2) when l2>=0 -> Interval((l1 lsl bits) lor (l2 land mask),s2,n2)
+     | (l1,0,1),(l2,0,1) -> Interval(((l1 lsl bits) lor (l2 land mask),0,1),i1)
+     | (l1,0,1),(l2,s2,n2) when l2>=0 -> Interval(((l1 lsl bits) lor (l2 land mask),s2,n2),i1)
      | (l1,0,1),(l2,s2,n2) when l2<0 ->
         let h2 = high l2 s2 n2 in
-        if h2<0 then Interval((l1 lsl bits) lor (h2 land mask),s2,n2)
+        if h2<0 then Interval(((l1 lsl bits) lor (h2 land mask),s2,n2),i1)
         else
           let l = min (h2 land mask) (l1 land mask) in
           let h = max (h2 land mask) (l1 land mask) in
           let s = if l=h then 0 else 1 in
           let n = number h l s in
-          Interval((l1 lsl bits) lor l,s,n)
-     | (l1,s1,n1),(l2,0,1) -> Interval((l1 lsl bits) lor (l2 land mask),(s1 lsl bits),n1)
-     | (l1,s1,n1),(l2,s2,n2) -> Any
+          Interval(((l1 lsl bits) lor l,s,n),i1)
+     | (l1,s1,n1),(l2,0,1) -> Interval(((l1 lsl bits) lor (l2 land mask),(s1 lsl bits),n1),i1)
+     | (l1,s1,n1),(l2,s2,n2) -> Any i1
      ) 
-  | _,_ -> Any
+  | _,_ -> Any true (*TODO(Romy):?????*) 
 
              
 let aint16_merge v1 v2 = aint_merge v1 v2 16
@@ -522,30 +532,30 @@ let signextend v bit =
 
 let aint_split bigendian v bits =
   match v with
-  | Interval(l,0,1) ->
-     let v1,v2 = (Interval(l asr bits, 0, 1),
-                  Interval(signextend l bits, 0, 1)) in
+  | Interval((l,0,1),true) ->
+     let v1,v2 = (Interval((l asr bits, 0, 1),true),
+                  Interval((signextend l bits, 0, 1),true)) in
      if bigendian then (v1,v2)
      else (v2,v1)
-  | Interval(l,s,n) ->
+  | Interval((l,s,n),i) ->
      let h = high l s n in
      let l1 = l asr bits in
      let h1 = h asr bits in
      (* TODO(Romy): Tighten for s lsr bits != 0 *)
      let s1 = if (l1 = h1) then 0 else 1 in
      let n1 = number h l s in
-     let v1 = Interval(l1,s1,n1) in
+     let v1 = Interval((l1,s1,n1),i) in
      let v2 =
        if n1 = 1 then
-         Interval(l,s,n)
+         Interval((l,s,n),i)
        else
-         Any
+         Any i
      in
      if bigendian then
        (v1, v2)
      else
        (v2, v1)
-  | _ -> (Any,Any)
+  | _ -> (Any true ,Any true)
 
 let aint32_split bigendian v = aint_split bigendian v 16
 
@@ -724,8 +734,10 @@ let split_rev lst =
   *)        
 let rec aint32_test_less_than v1 v2 =
   match v1,v2 with
-  | Any,Any -> (Some(Any,Any),Some(Any,Any))
-  | Any,Interval(l,s,n) ->
+  | Any i1,Any i2 ->
+     assert (i1 = i2);
+    (Some(Any i1,Any i1),Some(Any i1,Any i1))
+  | Any i1,Interval((l,s,n),i2) ->
      let h = high l s n in
      let anyl1 = lowval in
      let anyh1 = h - 1 in
@@ -735,9 +747,10 @@ let rec aint32_test_less_than v1 v2 =
      let anyh2 = highval in
      let anys2 = if anyh2 = anyl2 then 0 else 1 in
      let anyn2 = number anyh2 anyl2 anys2 in
-     (Some(Interval(anyl1,anys1,anyn1),v2),Some(Interval(anyl2,anys2,anyn2),v2))
-  | Any,_ -> (Some(Any,v2),Some(Any,v2))
-  | Interval(l,s,n),Any ->
+     (Some(Interval((anyl1,anys1,anyn1),i1),v2),Some(Interval((anyl2,anys2,anyn2),i1),v2))
+  | Any i,_ -> (Some(Any i,v2),Some(Any i,v2))
+  | Interval((l,s,n),i1),Any i ->
+     assert (i1 = i);
      let h = high l s n in
      let anyl1 = l + 1 in
      let anyh1 = highval in
@@ -747,9 +760,10 @@ let rec aint32_test_less_than v1 v2 =
      let anyh2 = h in
      let anys2 = if anyl2 = anyh2 then 0 else 1 in
      let anyn2 = number anyh2 anyl2 anys2 in
-     (Some(v1, Interval(anyl1,anys1,anyn1)),Some(v1,Interval(anyl2,anys2,anyn2)))               
-  | _,Any -> (Some(v1,Any),Some(v1,Any))
-  | Interval((l1,s1,n1)), Interval((l2,s2,n2)) ->
+     (Some(v1, Interval((anyl1,anys1,anyn1),i)),Some(v1,Interval((anyl2,anys2,anyn2),i)))               
+  | _,Any i -> (Some(v1,Any i),Some(v1,Any i))
+  | Interval((l1,s1,n1),i1), Interval((l2,s2,n2),i2) ->
+     assert (i1 = i2);
      let h1 = high l1 s1 n1 in
      let h2 = high l2 s2 n2 in
      ((if l1 < h2 then
@@ -759,7 +773,7 @@ let rec aint32_test_less_than v1 v2 =
          in
          let s1 = if h11 = l1 then 0 else s1 in
          let s2 = if l22 = h2 then 0 else s2 in        
-         Some(Interval(l1,s1,number h11 l1 s1), Interval(l22,s2,number h2 l22 s2))
+         Some(Interval((l1,s1,number h11 l1 s1),i1), Interval((l22,s2,number h2 l22 s2),i2))
       else None),
       (if h1 >= l2 then
         let l11 = if s1 = 0 || l1 > l2
@@ -769,19 +783,24 @@ let rec aint32_test_less_than v1 v2 =
         let h22 = min h2 h1 in
         let s1 = if l11 = h1 then 0 else s1 in
         let s2 = if l2 = h22 then 0 else s2 in
-        Some(Interval(l11,s1,number h1 l11 s1), Interval(l2,s2,number h22 l2 s2)        
+        Some(Interval((l11,s1,number h1 l11 s1),i1), Interval((l2,s2,number h22 l2 s2),i2)        
          )else None))
-  | Interval(v1),IntervalList(l1,_) | IntervalList(l1,_), Interval(v1) ->
-    aint32_test_less_than (Interval(v1)) (Interval(interval_merge_list l1))
-  | IntervalList(l1,_), IntervalList(l2,_) ->
-    aint32_test_less_than (Interval(interval_merge_list l1))
-                          (Interval(interval_merge_list l2))
+  | Interval(v1,i1),IntervalList(l1,_,i) | IntervalList(l1,_,i), Interval(v1,i1) ->
+     assert (i1 = i);
+    aint32_test_less_than (Interval(v1,i)) (Interval(interval_merge_list l1,i))
+  | IntervalList(l1,_,i), IntervalList(l2,_,i1) ->
+     assert (i1 = i);
+     aint32_test_less_than (Interval(interval_merge_list l1,i))
+                          (Interval(interval_merge_list l2,i))
 
 (* Same as the above, but conservative for negative numbers *)      
 let rec aint32_test_less_than_unsigned v1 v2 =
   match v1,v2 with
-  | Any,Any -> (Some(Any,Any),Some(Any,Any))
-  | Any,Interval(l,s,n) ->
+  | Any i1,Any i2 ->
+     assert (i1 = i2);
+     (Some(Any i1,Any i1),Some(Any i1,Any i2))
+  | Any i1,Interval((l,s,n),i2) ->
+     assert (i1 = i2);
      let h = high l s n in
      let anyl1 = lowval in
      let anyh1 = h - 1 in
@@ -791,9 +810,10 @@ let rec aint32_test_less_than_unsigned v1 v2 =
      let anyh2 = highval in
      let anys2 = if anyl2=anyh2 then 0 else 1 in
      let anyn2 = number anyh2 anyl2 anys2 in
-     (Some(Interval(anyl1,anys1,anyn1),v2),Some(Interval(anyl2,anys2,anyn2),v2))
-  | Any,_ -> (Some(Any,v2),Some(Any,v2))
-  | Interval(l,s,n),Any ->
+     (Some(Interval((anyl1,anys1,anyn1),i1),v2),Some(Interval((anyl2,anys2,anyn2),i1),v2))
+  | Any i,_ -> (Some(Any i,v2),Some(Any i,v2))
+  | Interval((l,s,n),i1),Any i2 ->
+     assert (i1 = i2);
      let h = high l s n in
      let anyl1 = l + 1 in
      let anyh1 = highval in
@@ -803,9 +823,9 @@ let rec aint32_test_less_than_unsigned v1 v2 =
      let anyh2 = h in
      let anys2 = if anyl2=anyh2 then 0 else 1 in
      let anyn2 = number anyh2 anyl2 anys2 in
-     (Some(v1, Interval(anyl1,anys1,anyn1)),Some(v1, Interval(anyl2,anys2,anyn2)))               
-  | _,Any -> (Some(v1,Any),Some(v1,Any))
-  | Interval((l1,s1,n1)), Interval((l2,s2,n2)) ->
+     (Some(v1, Interval((anyl1,anys1,anyn1),i1)),Some(v1, Interval((anyl2,anys2,anyn2),i2)))               
+  | _,Any i -> (Some(v1,Any i),Some(v1,Any i))
+  | Interval((l1,s1,n1),i1), Interval((l2,s2,n2),i2) ->
      let h1 = high l1 s1 n1 in
      let h2 = high l2 s2 n2 in
      (*if l1 < 0 || l2 < 0 then (Some(Any,Any),Some(Any,Any))
@@ -820,7 +840,7 @@ let rec aint32_test_less_than_unsigned v1 v2 =
            in
            let s2 = if l22 = h2 then 0 else s2 in
            
-           Some(Interval(l1,s1,number h11 l1 s1), Interval(l22,s2,number h2 l2 s2))
+           Some(Interval((l1,s1,number h11 l1 s1),i1), Interval((l22,s2,number h2 l2 s2),i2))
          else None),
         (if h1 >= l2 then
            let l11 = if s1 = 0 || l1 > l2
@@ -830,13 +850,14 @@ let rec aint32_test_less_than_unsigned v1 v2 =
            let s1 = if h1 = l11 then 0 else s1 in
            let h22 = min h1 h2 in
            let s2 = if h22 = l2 then 0 else s2 in
-           Some(Interval(l11,s1,number h1 l11 s1), Interval(l2,s2, number h22 l2 s2 ))        
+           Some(Interval((l11,s1,number h1 l11 s1),i1), Interval((l2,s2, number h22 l2 s2),i2))        
          else None))
-  | Interval(v1),IntervalList(l1,_) | IntervalList(l1,_), Interval(v1) ->
-    aint32_test_less_than_unsigned (Interval(v1)) (Interval(interval_merge_list l1))
-  | IntervalList(l1,_), IntervalList(l2,_) ->
-    aint32_test_less_than_unsigned (Interval(interval_merge_list l1))
-                          (Interval(interval_merge_list l2))
+  | Interval(v1,i1),IntervalList(l1,_,i2) | IntervalList(l1,_,i1), Interval(v1,i2) ->
+    aint32_test_less_than_unsigned (Interval(v1,i1)) (Interval((interval_merge_list l1),i1))
+  | IntervalList(l1,_,i1), IntervalList(l2,_,i2) ->
+     assert (i1 = i2);
+    aint32_test_less_than_unsigned (Interval((interval_merge_list l1),i1))
+                          (Interval(interval_merge_list l2,i1))
   
       
 (*  We can divide into 6 different cases when checking
@@ -886,8 +907,11 @@ let rec aint32_test_less_than_unsigned v1 v2 =
   *)        
 let rec aint32_test_less_than_equal v1 v2 =
   match v1,v2 with
-  | Any,Any -> (Some(Any,Any),Some(Any,Any))
-  | Any,Interval(l,s,n) ->
+  | Any i1,Any i2 ->
+     assert (i1 = i2);
+    (Some(Any i1,Any i2),Some(Any i1,Any i2))
+  | Any i1,Interval((l,s,n),i) ->
+     assert (i1 = i);
      let h = high l s n in
      let anyl1 = lowval in
      let anys = 1 in
@@ -896,9 +920,10 @@ let rec aint32_test_less_than_equal v1 v2 =
      let anyl2 = l + 1 in
      let anyh2 = highval in
      let anyn2 = number anyh2 anyl2 anys in
-     (Some(Interval(anyl1,anys,anyn1),v2),Some(Interval(anyl2,anys,anyn2),v2))
-  | Any,_ -> (Some(Any,v2),Some(Any,v2))
-  | Interval(l,s,n),Any ->
+     (Some(Interval((anyl1,anys,anyn1),i),v2),Some(Interval((anyl2,anys,anyn2),i),v2))
+  | Any i,_ -> (Some(Any i,v2),Some(Any i,v2))
+  | Interval((l,s,n),i),Any i1 ->
+     assert (i1 = i);
      let h = high l s n in
      let anyl1 = l in
      let anys = 1 in
@@ -907,9 +932,10 @@ let rec aint32_test_less_than_equal v1 v2 =
      let anyl2 = lowval in
      let anyh2 = h - 1 in
      let anyn2 = number anyh2 anyl2 anys in
-     (Some(v1,Interval(anyl1,anys,anyn1)),Some(v1, Interval(anyl2,anys,anyn2)))
-  | _,Any -> (Some(v1,Any),Some(v1,Any))
-  | Interval((l1,s1,n1)), Interval((l2,s2,n2)) ->
+     (Some(v1,Interval((anyl1,anys,anyn1),i)),Some(v1, Interval((anyl2,anys,anyn2),i)))
+  | _,Any i -> (Some(v1,Any i),Some(v1,Any i))
+  | Interval(((l1,s1,n1),i1)), Interval(((l2,s2,n2),i)) ->
+     assert (i1 = i);
      let h1 = high l1 s1 n1 in
      let h2 = high l2 s2 n2 in
      ((if l1 <= h2 then
@@ -920,7 +946,7 @@ let rec aint32_test_less_than_equal v1 v2 =
                    else l2 + ((l1 + s1 - l2) / s2) * s2
          in
          let s2 = if l22 = h2 then 0 else s2 in
-         Some(Interval(l1,s1,number h11 l1 s1), Interval(l22,s2, number h2 l22 s2))
+         Some(Interval((l1,s1,number h11 l1 s1),i), Interval((l22,s2, number h2 l22 s2),i))
       else None),
      (if h1 > l2 then
         let l11 = if s1 = 0 || l1 > l2
@@ -930,13 +956,15 @@ let rec aint32_test_less_than_equal v1 v2 =
         let h22 = min (h1-(max s1 1)) h2 in
         let s2 = if l2 = h22 then 0 else s2 in
         let s1 = if l11 = h1 then 0 else s1 in
-        Some(Interval(l11,s1,number h1 l11 s1), Interval(l2,s2,number h22 l2 s2))        
+        Some(Interval((l11,s1,number h1 l11 s1),i), Interval((l2,s2,number h22 l2 s2),i))        
       else None))
-  | Interval(v1),IntervalList(l1,_) | IntervalList(l1,_), Interval(v1) ->
-    aint32_test_less_than_equal (Interval(v1)) (Interval(interval_merge_list l1))
-  | IntervalList(l1,_), IntervalList(l2,_) ->
-    aint32_test_less_than_equal (Interval(interval_merge_list l1))
-                          (Interval(interval_merge_list l2))
+  | Interval((v1),i1),IntervalList(l1,_,i2) | IntervalList(l1,_,i1), Interval((v1),i2) ->
+     assert (i1 = i2);
+    aint32_test_less_than_equal (Interval((v1),i1)) (Interval((interval_merge_list l1),i1))
+  | IntervalList(l1,_,i1), IntervalList(l2,_,i2) ->
+     assert (i1 = i2);
+    aint32_test_less_than_equal (Interval((interval_merge_list l1),i1))
+                          (Interval((interval_merge_list l2),i1))
                           
     
       
@@ -945,19 +973,22 @@ let rec aint32_test_less_than_equal v1 v2 =
    branch *)
 let rec aint32_test_equal v1 v2 =
   match v1,v2 with
-  | Any,Any -> (Some(Any,Any),Some(Any,Any))
-  | Any,v ->  (Some(v,v),Some(Any,v))
-  | v,Any ->  (Some(v,v),Some(v,Any))
+  | Any i1,Any i2 ->
+     assert (i1 = i2);
+    (Some(Any i1,Any i1),Some(Any i1,Any i1))
+  | Any i,v ->  (Some(v,v),Some(Any i,v))
+  | v,Any i ->  (Some(v,v),Some(v,Any i))
   (* Case when we just compare two intervals. May generate safe pair lists *)
-  | Interval(v1),Interval(v2) ->
-    let mkval vlst =
+  | Interval((v1),i1),Interval((v2),i) ->
+     assert (i1 = i);
+     let mkval vlst =
         match vlst with
         | [] -> None
-        | [(v1,v2)] -> Some(Interval(v1),Interval(v2))
+        | [(v1,v2)] -> Some(Interval((v1),i),Interval((v2),i))
         | v ->
           let (v1,v2) = split_rev v in
           let s = getPairSym() in
-          Some(IntervalList(v1,s),IntervalList(v2,s))
+          Some(IntervalList(v1,s,i),IntervalList(v2,s,i))
     in
     (* Make the actual equality tests *)
     let (t,f) = test_equal v1 v2 in
@@ -965,37 +996,40 @@ let rec aint32_test_equal v1 v2 =
 
       
   (* Case when we have two paired interval lists *)
-  | IntervalList(l1,sp1), IntervalList(l2,sp2)
+  | IntervalList(l1,sp1,i1), IntervalList(l2,sp2,i2)
     when sp1=sp2       
     -> (* Tail-recursive test of interval lists *)
-       let rec newlists list1 list2 acc1 acc2 =
-         match list1,list2 with
-         | v1::ls1,v2::ls2 ->
-             let (t,f) = test_equal v1 v2 in
-             newlists ls1 ls2 (t@acc1) (f@acc2)
-         | [],[] -> (acc1,acc2)
-         | _,_ -> fail_aint32()
-       in let (t,f) = newlists l1 l2 [] [] in
+     assert (i1 = i2);
+      let rec newlists list1 list2 acc1 acc2 =
+        match list1,list2 with
+        | v1::ls1,v2::ls2 ->
+           let (t,f) = test_equal v1 v2 in
+           newlists ls1 ls2 (t@acc1) (f@acc2)
+        | [],[] -> (acc1,acc2)
+        | _,_ -> fail_aint32()
+      in let (t,f) = newlists l1 l2 [] [] in
        (* Remove duplicates *)
-       let (t,f) = (List.sort_uniq compare t, List.sort_uniq compare f) in
+         let (t,f) = (List.sort_uniq compare t, List.sort_uniq compare f) in
        (* Split into the two variable alternatives *)
-       let (t1,t2) = split_rev t in
-       let (f1,f2) = split_rev f in
+         let (t1,t2) = split_rev t in
+         let (f1,f2) = split_rev f in
        (* Return results *)
-       ((if t1=[] then None else
-           let s = getPairSym() in
-           Some(IntervalList(t1,s),IntervalList(t2,s))),
-        (if f1=[] then None else
-           let s = getPairSym() in
-           Some(IntervalList(f1,s),IntervalList(f2,s))))
+         ((if t1=[] then None else
+             let s = getPairSym() in
+             Some(IntervalList(t1,s,i1),IntervalList(t2,s,i1))),
+          (if f1=[] then None else
+              let s = getPairSym() in
+              Some(IntervalList(f1,s,i1),IntervalList(f2,s,i1))))
 
   (* Cases where there a no safe pairs. We then collaps the structure 
      and perform interval test for equality *)
-  | Interval(v1),IntervalList(l1,_) | IntervalList(l1,_), Interval(v1) ->
-    aint32_test_equal (Interval(v1)) (Interval(interval_merge_list l1))
-  | IntervalList(l1,_), IntervalList(l2,_) ->
-    aint32_test_equal (Interval(interval_merge_list l1))
-                         (Interval(interval_merge_list l2))
+  | Interval((v1),i1),IntervalList(l1,_,i2) | IntervalList(l1,_,i1), Interval((v1),i2) ->
+     assert (i1 = i2);
+    aint32_test_equal (Interval((v1),i1)) (Interval((interval_merge_list l1),i1))
+  | IntervalList(l1,_,i1), IntervalList(l2,_,i2) ->
+     assert (i1 = i2);
+     aint32_test_equal (Interval((interval_merge_list l1),i1))
+                         (Interval((interval_merge_list l2),i2))
 
 let aint32_test_greater_than_equal v1 v2 =
   let t,f = aint32_test_less_than v1 v2 in

@@ -10,8 +10,8 @@ int array[64] = {10,1,2,3,4,5,6,7,
 
 
 volatile int k = 0;
-volatile int l2 = 0;
 volatile int l = 0;
+volatile int l2 = 0;
 volatile int ll = 0;
 
 
