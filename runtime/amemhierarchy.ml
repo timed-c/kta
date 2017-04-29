@@ -21,7 +21,22 @@ type amemhierarchy = {
   }
 
 type memory_access_t = | DCache | ICache
-                 
+
+let get_initialized_amh = function
+  | AAny -> false
+  | AInt32 v | AInt16(v,_) | AInt8(v,_,_,_) -> get_initialized v
+
+
+let set_initialized_amh v i =
+  match v with
+  | AAny -> AInt32 (aint32_any_set i)
+  | AInt32 v -> AInt32 (set_initialized v i)
+  | AInt16(v1,v2) -> AInt16(set_initialized v1 i,set_initialized v2 i)
+  | AInt8(v1,v2,v3,v4) -> AInt8(set_initialized v1 i,
+                                set_initialized v2 i,
+                                set_initialized v3 i,
+                                set_initialized v4 i)
+
 let get_cache ctype cache =
   match ctype,cache with
   | DCache, Uni dcache
@@ -106,7 +121,7 @@ let get_tmaps t ts =
   in (*map,oh*)
   check_coherence amap_others (amap_read t)
 
-let write_mem addr aval ctype caches mem amap =
+let write_mem addr aval ctype caches mem amap stack =
   let mem = set_memval addr aval mem in
 
   let rec write_caches caches ticks ncaches =
@@ -127,7 +142,7 @@ let write_mem addr aval ctype caches mem amap =
     match caches with
     | [] -> mem.access_time,[],mem,None,amap
     | c::cs ->
-       let nticks,resp,c',amap',coh = write_cache addr (get_cache ctype c) amap in
+       let nticks,resp,c',amap',coh = write_cache addr (get_cache ctype c) amap stack in
        let c' = (update_cache c ctype c') in
        match resp,coh with
        | Hit,Some Private | Hit, None -> nticks, c'::cs, mem, None,amap'
@@ -142,9 +157,13 @@ let write_mem addr aval ctype caches mem amap =
           max ticks !cache_penalty, c'::cs, mem, None, amap'
        | Hit,Some (ThisRead) | Miss,Some (ThisRead) ->
           let ticks, caches = write_caches cs nticks [c'] in
+          (* possible write - any data *)
+          let mem = set_memval addr (AInt32 (aint32_any_set true)) mem in
           max ticks !cache_penalty, c'::cs, mem, None, amap'
        | Hit,Some (ThisRW(_)) | Miss,Some (ThisRW(_)) ->
           let ticks, caches = write_caches cs nticks [c'] in
+          (* possible write - any data *)
+          let mem = set_memval addr (AInt32 (aint32_any_set true)) mem in
           max ticks (!cache_penalty + !inv_penalty), c'::cs, mem, None, amap'
   (* match resp with *)
   (* | Hit -> nticks, c'::cs, mem,None,amap' *)
@@ -191,9 +210,11 @@ let read_mem addr ctype caches mem amap =
           max ticks !cache_penalty, c'::cs, mem, v, amap'
        | Hit,Some (ThisRead) | Miss,Some (ThisRead) ->
           let ticks, caches = read_caches cs nticks [c'] in
+          let v = AInt32 (aint32_any_set (get_initialized_amh v)) in
           max ticks !cache_penalty, c'::cs, mem, v, amap'
        | Hit,Some (ThisRW(_)) | Miss,Some (ThisRW(_)) ->
           let ticks, caches = read_caches cs nticks [c'] in
+          let v = AInt32 (aint32_any_set (get_initialized_amh v)) in
           max ticks (!cache_penalty + !inv_penalty), c'::cs, mem, v, amap'
   in
   if (!nocache) then
@@ -250,9 +271,9 @@ let getval_aint8 bigendian v =
 
 (**************** Read and Write operations ****************)
 
-let set_memval_word addr v mem =
+let set_memval_word addr v mem stack =
   let ticks,c,m,_,amap = write_mem addr (AInt32 v) DCache
-                                   mem.cache mem.mem mem.amap in
+                                   mem.cache mem.mem mem.amap stack in
   (ticks,mem |> hmem_update_cache c
          |> hmem_update_mem m |> hmem_update_amap amap)
 
