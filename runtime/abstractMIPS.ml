@@ -1594,11 +1594,67 @@ let wcetfunc bound inputlist =
 
 (* -------------- BORDER ------------ *)
 
-    
 (*     
-let sound_abstract_search bound wcetfunc =
-  let rec search inputset_U 
-*)
+type spliter = | Abstract
+               | AbstractL
+               | AbstractR
+               | ConcreteL
+               | ConcreteR
+               | ConcreteML
+               | ConcreteMR
+*)    
+    
+module IntMap = Map.Make(struct type t = int let compare = compare end)
+module InputMap = Map.Make(struct type t = spliter list let compare = compare end)
+
+(* Split an abstract input into two parts *)  
+let abstractSplit u =
+  match List.rev u with
+  | Abstract::rest -> (List.rev (Abstract::AbstractR::rest), List.rev (Abstract::AbstractL::rest))
+  | _ -> failwith "This split should not happen"
+
+(* Generate concrete input values from an abstract input *)
+let generateConcrete u =
+  let rec work u accL accR =
+    match u with
+    | Abstract::us -> work us (ConcreteL::accL) (ConcreteR::accR)
+    | AbstractL::us -> work us (ConcreteL::accL) (ConcreteML::accR)
+    | AbstractR::us -> work us (ConcreteMR::accL) (ConcreteR::accR)
+    | [] -> (List.rev accL, List.rev accR)
+    | _ -> failwith "Generate concrete should not happen"
+  in work u [] []
+
+(* Implements the sound abstract search, according to the paper *)  
+let sound_abstract_search bound wcetfunc  =
+  let rec search inputsetU c w =
+    match inputsetU with
+    (* Pick an interval and abstractly execute it *)
+    | u::us -> let ta = wcetfunc bound u in
+               (* Check if the interval has a sound WCET *)
+               if ta = bound then
+                 (* Not sound. Check if out of bound *)
+                 let (i1,i2) = generateConcrete u in
+                 let tc1 = wcetfunc bound i1 in
+                 let tc2 = wcetfunc bound i1 in
+                 if tc1 = bound || tc2 = bound then
+                   (* Out of bound *)
+                   None
+                 else
+                   let c = InputMap.add i1 tc1 c in
+                   let c = InputMap.add i2 tc2 c in
+                   (* Split the interval *)
+                   let (u1,u2) = abstractSplit u in
+                   search (u1::u2::us) c w
+               else
+                 let w = IntMap.add ta u w in
+                 search us c w
+    | [] -> Some(w,c)                   
+  in
+   search [[Abstract]] (InputMap.empty) (IntMap.empty) 
+
+     
+let abstract_search bound wcetfunc =
+()  
     
     
 
@@ -1685,7 +1741,7 @@ let analyze startblock bblocks gp_addr mem defaultargs tasks n =
     with
     | MaxCyclesException -> printf "Analysis not finished. A path reached the maximum cycles allowed: %d\n%!" (!config_max_cycles)
     
-  
+
 
 
 
