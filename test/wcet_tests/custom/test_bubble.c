@@ -11,9 +11,9 @@ int array[64] = {10,1,2,3,4,5,6,7,
 
 volatile int k = 0;
 volatile int l = 0;
+volatile int foo[12] = {0};
 volatile int l2 = 0;
 volatile int ll = 0;
-
 
 
 int swap(int i, int j) {
@@ -73,7 +73,6 @@ int test_4 (int N) {
 
 // read array; read k
 int test_5 (int N) {
-  int l2;
   int i,j;
   for (i=0; i<N; i++)
     for (j=i+1; j<N; j++) {
