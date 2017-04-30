@@ -1529,7 +1529,9 @@ let lii rd l h ms =
   
 
 (* ------------------- MAIN ANALYSIS FUNCTIONS ----------------------*)
-    
+
+
+      
 (** Main function for analyzing an assembly function *)
 let analyze_main startblock bblocks gp_addr args init_mem task_amem n =
   (* Get the block info of the first basic block *)  
@@ -1584,7 +1586,21 @@ let analyze_main startblock bblocks gp_addr args init_mem task_amem n =
   (* Continue the process and execute the next basic block from the queue *)
   continue mstate 
 
+(* Input:
+   integer bound, input list
+   Output: execution time (as an integer). *)
+let wcetfunc bound inputlist =
+  ()
 
+(* -------------- BORDER ------------ *)
+
+    
+(*     
+let sound_abstract_search bound wcetfunc =
+  let rec search inputset_U 
+*)
+    
+    
 
 let _ = if !dbg && !dbg_trace then Printexc.record_backtrace true else ()
 
