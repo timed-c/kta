@@ -1,7 +1,7 @@
 
 # KTA 
 
-KTA (KTH's Time-aware Analyzer) is a tool for static analysis of C and machine code. Currently, only the MIPS32 ISA is supported. The current version of KTA can perform two types of analysis:
+KTA (KTH's Timing Analyzer) is a tool for static analysis of C and machine code. Currently, only the MIPS32 ISA is supported. The current version of KTA can perform two types of analysis:
 
 * **Interactive Timing Analysis:** The tool takes as input a `.ta` timing analysis file that contains information about what kind of analysis that should be done. The interactive timing analysis is intended to be used together with the [KIELER project](http://www.rtsys.informatik.uni-kiel.de/en/research/kieler/). The interactive timing analysis is experimental and performs an exhaustive search. For more information, see the following [paper](https://people.kth.se/~dbro/papers/fuhrmann-et-al-2016-time-for-reactive-modeling.pdf).  
 
