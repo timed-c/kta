@@ -1533,15 +1533,16 @@ let lii rd l h ms =
 
       
 (** Main function for analyzing an assembly function *)
-let analyze_main startblock bblocks gp_addr args init_mem task_amem n =
+let analyze_main startblock bblocks gp_addr args init_mem task_amem n bound inputlist =
   (* Get the block info of the first basic block *)  
   let bi = bblocks.(startblock) in
 
   (* Update the program states with abstract inputs from program arguments *)
+  set_max_cycles bound;    
   let ps = 
     try pstate_input init_pstate args
     with Failure s -> (printf "Error: %s\n" s; exit 1) in 
-
+  let ps = updatesl inputlist ps in
 
   (* Initiate the stack pointer *)
   let stack_addr = 0x80000000 - 8 - (n*0x01000000) in
@@ -1589,23 +1590,27 @@ let analyze_main startblock bblocks gp_addr args init_mem task_amem n =
 (* Input:
    integer bound, input list
    Output: execution time (as an integer). *)
-let wcetfunc bound inputlist =
-  ()
 
+let mywcetfunc 
+  st bbl gp_addr args mem tasks n bound inputlist =
+    let get_wcet ms =
+      let ps = ms.pstate in
+      match ps with
+      | Nobranch ps -> ps.wcet
+      | _ -> should_not_happen 12
+    in
+    set_max_cycles bound;    
+    try
+      analyze_main st bbl gp_addr args mem tasks n bound inputlist |> get_wcet
+    with
+    | MaxCyclesException -> bound
+
+
+    
 (* -------------- BORDER ------------ *)
 
-(*     
-type spliter = | Abstract
-               | AbstractL
-               | AbstractR
-               | ConcreteL
-               | ConcreteR
-               | ConcreteML
-               | ConcreteMR
-*)    
     
 module IntMap = Map.Make(struct type t = int let compare = compare end)
-module InputMap = Map.Make(struct type t = spliter list let compare = compare end)
 
 (* Split an abstract input into two parts *)  
 let abstractSplit u =
@@ -1613,6 +1618,7 @@ let abstractSplit u =
   | Abstract::rest -> (List.rev (Abstract::AbstractR::rest), List.rev (Abstract::AbstractL::rest))
   | _ -> failwith "This split should not happen"
 
+    
 (* Generate concrete input values from an abstract input *)
 let generateConcrete u =
   let rec work u accL accR =
@@ -1624,39 +1630,71 @@ let generateConcrete u =
     | _ -> failwith "Generate concrete should not happen"
   in work u [] []
 
+  
 (* Implements the sound abstract search, according to the paper *)  
 let sound_abstract_search bound wcetfunc  =
-  let rec search inputsetU c w =
+  let rec search inputsetU w =
     match inputsetU with
     (* Pick an interval and abstractly execute it *)
-    | u::us -> let ta = wcetfunc bound u in
+    | u::us -> let t_a = wcetfunc bound u in
                (* Check if the interval has a sound WCET *)
-               if ta = bound then
+               if t_a = bound then
                  (* Not sound. Check if out of bound *)
                  let (i1,i2) = generateConcrete u in
-                 let tc1 = wcetfunc bound i1 in
-                 let tc2 = wcetfunc bound i1 in
-                 if tc1 = bound || tc2 = bound then
+                 let t_c1 = wcetfunc bound i1 in
+                 let t_c2 = wcetfunc bound i1 in
+                 if t_c1 = bound || t_c2 = bound then
                    (* Out of bound *)
                    None
                  else
-                   let c = InputMap.add i1 tc1 c in
-                   let c = InputMap.add i2 tc2 c in
                    (* Split the interval *)
                    let (u1,u2) = abstractSplit u in
-                   search (u1::u2::us) c w
+                   search (u1::u2::us) w
                else
-                 let w = IntMap.add ta u w in
-                 search us c w
-    | [] -> Some(w,c)                   
+                 let w = IntMap.add t_a u w in
+                 search us w
+    | [] -> Some(w)                   
   in
-   search [[Abstract]] (InputMap.empty) (IntMap.empty) 
+   search [[Abstract]] (IntMap.empty) 
 
      
+(* Implements the optimal abstract search, according to the paper *)
+let optimal_abstract_search w bound wcetfunc =
+  let rec search w =
+    (* Pick the input set with the highest WCET *)
+    let (t_o,u) = IntMap.max_binding w in
+    let w = IntMap.remove t_o w in
+    (* Check if it is the optimal interval *)
+    let (i1,i2) = generateConcrete u in
+    let t_c1 = wcetfunc bound i1 in
+    let t_c2 = wcetfunc bound i1 in
+    if t_c1 = t_o || t_c2 = t_o then
+      (* Optimal value *)
+      t_o
+    else      
+      (* Split the interval *)
+      let (u1,u2) = abstractSplit u in
+      let t_a1 = wcetfunc bound u1 in
+      let t_a2 = wcetfunc bound u2 in
+      let w = IntMap.add t_a1 u1 w in
+      let w = IntMap.add t_a2 u2 w in
+      search w
+  in
+    search w
+  
+(* Performs abstract search, but first trying to find a sound bound, and then, 
+   if successful, find the optimal bound *)          
 let abstract_search bound wcetfunc =
-()  
-    
-    
+  match sound_abstract_search bound wcetfunc with
+  | None ->
+    printf "Found counter example. For certain input, the execution\n";
+    printf "time exceeds the execution bound of %d cycles.\n" bound
+  | Some(w) ->
+    let (t_s,u) = IntMap.max_binding w in
+    printf "Found a sound WCET bound of %d cycles.\n" t_s;
+    printf "Trying to find the optimal WCET\n";
+    let t_o = optimal_abstract_search w bound wcetfunc in
+    printf "Found an optimal WCET bound of %d cycles.\n" t_o    
 
 let _ = if !dbg && !dbg_trace then Printexc.record_backtrace true else ()
 
@@ -1728,18 +1766,8 @@ let analyze startblock bblocks gp_addr mem defaultargs tasks n =
       []
   in
   let args = if args = [] then defaultargs else args in
-  if !dbg && !dbg_trace then
-    let v =     
-      try analyze_main startblock bblocks gp_addr args mem tasks n |> print_mstate bblocks.(startblock).name
-      with
-      | MaxCyclesException -> printf "A path reached the maximum cycles allowed: %d\n%!" (!config_max_cycles);
-      | _ -> Printexc.print_backtrace stdout
-    in v
-  else
-    try
-      analyze_main startblock bblocks gp_addr args mem tasks n |> print_mstate bblocks.(startblock).name
-    with
-    | MaxCyclesException -> printf "Analysis not finished. A path reached the maximum cycles allowed: %d\n%!" (!config_max_cycles)
+  abstract_search (!config_max_cycles)
+    (mywcetfunc startblock bblocks gp_addr args mem tasks n )
     
 
 
