@@ -89,7 +89,8 @@ let dec_num n = max 1 (n-1)
 type spliter = | Abstract
                | AbstractL
                | AbstractR
-               | ConcreteM
+               | ConcreteMR
+               | ConcreteML
                | ConcreteL
                | ConcreteR
                    
@@ -188,8 +189,10 @@ let split_aint32 v slist =
          (l',s',n')
       | ConcreteL -> (l,0,1)
       | ConcreteR -> (high l s n,0,1)
-      | ConcreteM -> (l+s*((half n)-1),0,1)
-  in
+      | ConcreteML -> (l+s*((half n)-1),0,1)
+      | ConcreteMR -> (l+s*((half n)),0,1)
+
+    in
     match v,slist with
     | (l,0,1), _ -> (v,slist)
     | (l,s,n), [] -> (v,[]) (* failwith "Should not happen split" *)
