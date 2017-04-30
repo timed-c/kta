@@ -27,7 +27,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *)
 
 (** 
-    KTA - KTH's Time-aware Analyzer. Copyright (C) 2015 David Broman.
+    KTA - KTH's Timing Analyzer. Copyright (C) 2015 David Broman.
 
     module: Main
 
@@ -43,7 +43,7 @@ open Ustring.Op
 (* ---------------------------------------------------------------------*)
 (* The top text message *)
 let top_text =     
-  us"KTA - KTH's Time-aware Analyzer.\nCopyright (C) 2015-2017 David Broman.\n" 
+  us"KTA - KTH's Timing Analyzer.\nCopyright (C) 2015-2017 David Broman.\n" 
 
   
 (* ---------------------------------------------------------------------*)
