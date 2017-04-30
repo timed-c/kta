@@ -1766,9 +1766,14 @@ let analyze startblock bblocks gp_addr mem defaultargs tasks n =
       []
   in
   let args = if args = [] then defaultargs else args in
-  abstract_search (!config_max_cycles)
-    (mywcetfunc startblock bblocks gp_addr args mem tasks n )
-    
+  if !dbg && !dbg_trace then
+    (try
+      analyze_main startblock bblocks gp_addr args mem tasks n (!config_max_cycles) [Abstract] |> print_mstate bblocks.(startblock).name;
+    with
+    | MaxCyclesException -> printf "Analysis not finished. A path reached the maximum cycles allowed: %d\n%!" (!config_max_cycles);)
+  else
+    abstract_search (!config_max_cycles)
+      (mywcetfunc startblock bblocks gp_addr args mem tasks n )
 
 
 
