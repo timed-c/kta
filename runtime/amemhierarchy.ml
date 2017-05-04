@@ -210,11 +210,11 @@ let read_mem addr slist ctype caches mem amap =
           max ticks !cache_penalty, sl, c'::cs, mem, v, amap'
        | Hit,Some (ThisRead) | Miss,Some (ThisRead) ->
           let ticks, caches = read_caches cs nticks [c'] in
-          let v = AInt32 (aint32_any_set (get_initialized_amh v)) in
+          let v = AInt32 (aint32_any_set true) in (* (get_initialized_amh v)) in *)
           max ticks !cache_penalty, sl, c'::cs, mem, v, amap'
        | Hit,Some (ThisRW(_)) | Miss,Some (ThisRW(_)) ->
           let ticks, caches = read_caches cs nticks [c'] in
-          let v = AInt32 (aint32_any_set (get_initialized_amh v)) in
+          let v = AInt32 (aint32_any_set true) in (* (get_initialized_amh v)) in *)
           max ticks (!cache_penalty + !inv_penalty), sl, c'::cs, mem, v, amap'
   in
   if (!nocache) then

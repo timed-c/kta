@@ -1546,8 +1546,10 @@ let analyze_main startblock bblocks gp_addr args init_mem task_amem n bound inpu
 
   (* Initiate the stack pointer *)
   let stack_addr = 0x80000000 - 8 - (n*0x01000000) in
+  let fun_ptr = 0x04000000 - 8 - (n*0x01000000) in
   let reg = setreg sp (aint32_const stack_addr) ps.reg in
   let reg = setreg gp (aint32_const gp_addr) reg in
+  let reg = setreg fp (aint32_const fun_ptr) reg in
   (* let hmem = disable_dcache ps.hmem in *)
   let nocache = !nocache in
   set_nocache true;
@@ -1633,6 +1635,7 @@ let generateConcrete u =
   
 (* Implements the sound abstract search, according to the paper *)  
 let sound_abstract_search bound wcetfunc  =
+  printf "Sound abstract search\n%!";
   let rec search inputsetU w =
     match inputsetU with
     (* Pick an interval and abstractly execute it *)
@@ -1662,22 +1665,35 @@ let sound_abstract_search bound wcetfunc  =
 let optimal_abstract_search w bound wcetfunc =
   let rec search w =
     (* Pick the input set with the highest WCET *)
+    
+    (* printf "size %d\n%!" (IntMap.cardinal w); *)
     let (t_o,u) = IntMap.max_binding w in
+    (* print_spliter u; *)
     let w = IntMap.remove t_o w in
+    (* printf "Rsize %d\n%!" (IntMap.cardinal w); *)
     (* Check if it is the optimal interval *)
     let (i1,i2) = generateConcrete u in
+    (* printf "print spliter concrete\n%!"; *)
+    (* print_spliter i1; *)
+    (* print_spliter i2; *)
     let t_c1 = wcetfunc bound i1 in
-    let t_c2 = wcetfunc bound i1 in
+    let t_c2 = wcetfunc bound i2 in
+    (* printf "tc1tc2 %d %d\n%!" t_c1 t_c2; *)
     if t_c1 = t_o || t_c2 = t_o then
       (* Optimal value *)
       t_o
     else      
       (* Split the interval *)
       let (u1,u2) = abstractSplit u in
+      (* printf "print spliter\n%!"; *)
+      (* print_spliter u1; *)
+      (* print_spliter u2; *)
       let t_a1 = wcetfunc bound u1 in
       let t_a2 = wcetfunc bound u2 in
       let w = IntMap.add t_a1 u1 w in
       let w = IntMap.add t_a2 u2 w in
+      (* printf "tc1tc2 %d %d\n%!" t_a2 t_a1; *)
+      (* printf "Size %d\n%!" (IntMap.cardinal w); *)
       search w
   in
     search w
@@ -1685,22 +1701,20 @@ let optimal_abstract_search w bound wcetfunc =
 (* Performs abstract search, but first trying to find a sound bound, and then, 
    if successful, find the optimal bound *)          
 let abstract_search bound wcetfunc =
+  printf "abstract_serach\n%!";
   match sound_abstract_search bound wcetfunc with
   | None ->
-    printf "Found counter example. For certain input, the execution\n";
-    printf "time exceeds the execution bound of %d cycles.\n" bound
+    printf "Found counter example. For certain input, the execution\n%!";
+    printf "time exceeds the execution bound of %d cycles.\n%!" bound
   | Some(w) ->
     let (t_s,u) = IntMap.max_binding w in
-    printf "Found a sound WCET bound of %d cycles.\n" t_s;
-    printf "Trying to find the optimal WCET\n";
+    printf "Found a sound WCET bound of %d cycles.\n%!" t_s;
+    printf "Trying to find the optimal WCET\n%!";
     let t_o = optimal_abstract_search w bound wcetfunc in
-    printf "Found an optimal WCET bound of %d cycles.\n" t_o    
+    printf "Found an optimal WCET bound of %d cycles.\n%!" t_o    
 
 let _ = if !dbg && !dbg_trace then Printexc.record_backtrace true else ()
 
-(*TODO(Romy): remove Unused*)
-let print_memacc_read lst =
-  print_amem2 "fjeiowjf" (read_amem lst)
     
 (** Print main state info *)
 let print_mstate str ms =
@@ -1766,14 +1780,14 @@ let analyze startblock bblocks gp_addr mem defaultargs tasks n =
       []
   in
   let args = if args = [] then defaultargs else args in
-  if !dbg && !dbg_trace then
-    (try
-      analyze_main startblock bblocks gp_addr args mem tasks n (!config_max_cycles) [Abstract] |> print_mstate bblocks.(startblock).name;
-    with
-    | MaxCyclesException -> printf "Analysis not finished. A path reached the maximum cycles allowed: %d\n%!" (!config_max_cycles);)
-  else
-    abstract_search (!config_max_cycles)
-      (mywcetfunc startblock bblocks gp_addr args mem tasks n )
+  (* if !dbg && !dbg_trace then *)
+  (*   (try *)
+  (*     analyze_main startblock bblocks gp_addr args mem tasks n (!config_max_cycles) [Abstract] |> print_mstate bblocks.(startblock).name; *)
+  (*   with *)
+  (*   | MaxCyclesException -> printf "Analysis not finished. A path reached the maximum cycles allowed: %d\n%!" (!config_max_cycles);) *)
+  (* else *)
+  abstract_search (!config_max_cycles)
+    (mywcetfunc startblock bblocks gp_addr args mem tasks n )
 
 
 

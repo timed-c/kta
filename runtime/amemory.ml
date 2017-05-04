@@ -60,7 +60,7 @@ let get_memval addr slist mem =
               then
                 AInt32 (aint32_const 0),slist
               else
-                let spl_any,slist' = split_aint32 (aint32_any_set false) slist in
+                let spl_any,slist' = Any true,slist in (* split_aint32 (aint32_any_set true) slist in *)
                 AInt32 spl_any,slist'
            | m::rest ->
               List.fold_left

@@ -46,7 +46,7 @@ let highval16 = 32767
 let ulowval16 = 0
 let uhighval16 = 65535
 
-let aint32_any = Any false
+let aint32_any = Any true
 
 let aint32_any_set v = Any v
 
@@ -94,8 +94,25 @@ type spliter = | Abstract
                | ConcreteL
                | ConcreteR
                    
+let rec print_spliter spllist = 
+  let print_spliter_internal =
+    function
+    | Abstract -> printf "Abstract\n%!";
+    | AbstractL -> printf "AbstractL\n%!";
+    | AbstractR -> printf "AbstractR\n%!";
+    | ConcreteR -> printf "ConcreteR\n%!";
+    | ConcreteMR -> printf "ConcreteMR\n%!";
+    | ConcreteML -> printf "ConcreteML\n%!";
+    | ConcreteL -> printf "ConcreteL\n%!";
+  in
+  match spllist with
+  | [] -> ();
+  | spl::spls -> print_spliter_internal spl;
+    print_spliter spls
 
 
+
+      
 let check_aint16 v =
   let check_aint16_int v =
     let (l,s,n) = v in
@@ -176,6 +193,8 @@ let split_aint32 v slist =
   let rec split_interval v slist =
     let split_interval_one (l,s,n) sl =
       let half n = n/2 + n mod 2 in
+      (* printf "Before %d %d %d\n" l s n ; *)
+      let l,s,n = 
       match sl with
       | Abstract -> (l,s,n)
       | AbstractL ->
@@ -191,7 +210,9 @@ let split_aint32 v slist =
       | ConcreteR -> (high l s n,0,1)
       | ConcreteML -> (l+s*((half n)-1),0,1)
       | ConcreteMR -> (l+s*((half n)),0,1)
-
+      in
+      (* printf "After %d %d %d" l s n ; *)
+      (l,s,n)
     in
     match v,slist with
     | (l,0,1), _ -> (v,slist)
