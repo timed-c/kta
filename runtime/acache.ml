@@ -2,6 +2,7 @@ open Printf
 open Ustring.Op
 open Amemtype
 open Config
+open Cpumodel
 
 module Cache =
   Map.Make(
@@ -45,17 +46,6 @@ type cache_stats_t =
 
 
 (*************************** ACACHE ****************************)
-type acache_info_t = {
-    assoc : int;
-    size : int;
-    word_size : int;
-    block_size : int;
-    write_allocate : bool;
-    write_back : bool;
-    hit_time : int; (* * int;*)
-    (* miss_penalty : int; (\* * int;*\) *)
-    shared : bool;
-  }
 
 type acache = {
     cache : aset_t Cache.t; 
@@ -399,13 +389,15 @@ let read_cache addr cache amap =
        let line = read_line_from_mem address.tag false invalid in
        let blru,set = insert_line line set cache in
        let cache = update_set address.set set cache in
-       (* if cache.write_back && exists_dirty blru then *)
-       (*   (\* write back to mem --- penalty *\) *)
-       (*   (cache.hit_time + cache.miss_penalty,cache) *)
-       (* else *)
-       (*   (\* write_back - nodirty || write through *\) *)
-       (*   (cache.hit_time + cache.miss_penalty,cache) *)
-       (cache.cacheinfo.hit_time, cache)
+       let hit_time = 
+         if cache.cacheinfo.write_back && exists_dirty blru then
+           (* write back to mem --- penalty *)
+           cache.cacheinfo.hit_time + !wb_penalty
+         else
+           (* write_back - nodirty || write through *)
+           cache.cacheinfo.hit_time
+       in
+       (hit_time, cache)
     | Hit, cache ->
        let cache = cache_hits_inc cache in
        if !dbg_cache then
@@ -433,22 +425,22 @@ let write_cache addr cache amap =
          let line = read_line_from_mem address.tag true invalid in
          let blru,set = insert_line line set cache in
          let cache = update_set address.set set cache in
-         (* if cache.write_back then *)
-         (*   if exists_dirty blru then  *)
-         (*     (\* write_allocate && write_back -> MISS *\) *)
-         (*     (\* update main_mem?? *\) *)
-         (*     (cache.hit_time + cache.miss_penalty,cache) *)
-         (*   else *)
-         (*     (cache.hit_time + cache.miss_penalty,cache) *)
-         (* else *)
-         (*   (\* write_allocate && write_through -> MISS *\) *)
-         (*   (cache.hit_time + cache.miss_penalty,cache) *)
+         let hit_time = 
+           if cache.cacheinfo.write_back then
+             if exists_dirty blru then
+               (* write_allocate && write_back -> MISS *)
+               hit_time + !wb_penalty
+           else
+               hit_time
+         else
+           (* write_allocate && write_through -> MISS *)
+             hit_time + !wb_penalty
+         in
          (hit_time,cache)
        )
        else
          (hit_time,cache)
          (* write_no_allocate -> MISS *)
-         (* (cache.hit_time + cache.miss_penalty,cache) *)
     | Hit ->
        if !dbg_cache then
          (* TODO(Romy): fix debugging msg *)
@@ -459,8 +451,7 @@ let write_cache addr cache amap =
          (hit_time,cache)
        else
          (* write_through -> HIT - has to be written to the main mem *)
-         (* (cache.hit_time + cache.miss_penalty,cache) *)
-         (hit_time,cache)        
+         (hit_time + !wb_penalty,cache)        
     (* | Nocache -> (1,cache) *)
   in (ticks,resp,cache,amap,coh)
 

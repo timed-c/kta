@@ -1,4 +1,15 @@
-open Acache
+
+type acache_info_t = {
+  assoc : int;
+  size : int;
+  word_size : int;
+  block_size : int;
+  write_allocate : bool;
+  write_back : bool;
+  hit_time : int; (* * int;*)
+    (* miss_penalty : int; (\* * int;*\) *)
+  shared : bool;
+}
 
 type l1cache_type =
   | U of acache_info_t
