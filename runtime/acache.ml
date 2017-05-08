@@ -200,7 +200,7 @@ let amap_print str amap =
        "]\n"
 
        
-type cohtype = OtherRead of int | ThisRead | ThisRW of int | Private
+type cohtype = OtherRead of int * int | ThisRead | ThisRW of int * int | Private
     
 type mapstype = RMap of accessmap_t option | TMap of cohtype AccMap.t option 
 
@@ -278,20 +278,16 @@ let check_coherence amap_others amap_this =
          (fun t other task ->
            match other,task with
            | None,_ |_,None -> None
-           | Some(r,0,_), Some task ->
-              (match task with
-              | _,0,_ -> Some (OtherRead (0))
-              | _ -> Some (OtherRead (r))
-              )
+           | Some(r,0,_), Some (_,w,_) -> Some (OtherRead (r,w))
            | Some other, Some (r,0,_) -> Some ThisRead
-           | Some (ro,wo,_), Some (_,w,_) -> Some (ThisRW(ro+wo))
+           | Some (ro,wo,_), Some (_,w,_) -> Some (ThisRW(ro+wo,w))
          ) others this
      in
      let overhead =
        AccMap.fold
          (fun t cmap oh ->
            match cmap with
-           | OtherRead(n) | ThisRW(n) -> oh+n
+           | OtherRead(n,w) | ThisRW(n,w) -> oh + (min n w)
            | _ -> oh
          ) cohmap 0 in
      (Some (TMap (Some cohmap)), overhead)
