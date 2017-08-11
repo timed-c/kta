@@ -466,7 +466,7 @@ let aint32_sllv v1 v2 =
               else if n2 = 1 then (s1 lsl l2)
               else (gcd l1 s1) lsl l2 in
       let n = number h l s in
-      if l<lowval || h>highval then raise AnyException
+      if (l<lowval || h>highval)  && (l<ulowval || h>uhighval) then raise AnyException
       else (l,s,n)
     ) v1 v2
 
