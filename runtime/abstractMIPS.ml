@@ -1546,10 +1546,10 @@ let analyze_main startblock bblocks gp_addr args init_mem task_amem n bound inpu
 
   (* Initiate the stack pointer *)
   let stack_addr = 0x80000000 - 8 - (n*0x01000000) in
-  let fun_ptr = 0x04000000 - 8 - (n*0x01000000) in
+  let frame_ptr = 0x04000000 - 8 - (n*0x01000000) in
   let reg = setreg sp (aint32_const stack_addr) ps.reg in
   let reg = setreg gp (aint32_const gp_addr) reg in
-  let reg = setreg fp (aint32_const fun_ptr) reg in
+  let reg = setreg fp (aint32_const frame_ptr) reg in
   (* let hmem = disable_dcache ps.hmem in *)
   let nocache = !nocache in
   set_nocache true;
@@ -1780,12 +1780,12 @@ let analyze startblock bblocks gp_addr mem defaultargs tasks n =
       []
   in
   let args = if args = [] then defaultargs else args in
-  (* if !dbg && !dbg_trace then *)
-  (*   (try *)
-  (*     analyze_main startblock bblocks gp_addr args mem tasks n (!config_max_cycles) [Abstract] |> print_mstate bblocks.(startblock).name; *)
-  (*   with *)
-  (*   | MaxCyclesException -> printf "Analysis not finished. A path reached the maximum cycles allowed: %d\n%!" (!config_max_cycles);) *)
-  (* else *)
+  if !dbg && !dbg_trace then
+    (try
+      analyze_main startblock bblocks gp_addr args mem tasks n (!config_max_cycles) [Abstract] |> print_mstate bblocks.(startblock).name;
+    with
+    | MaxCyclesException -> printf "Analysis not finished. A path reached the maximum cycles allowed: %d\n%!" (!config_max_cycles);)
+  else
   abstract_search (!config_max_cycles)
     (mywcetfunc startblock bblocks gp_addr args mem tasks n )
 
