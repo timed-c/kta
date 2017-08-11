@@ -74,7 +74,7 @@
 
 
 
-long long int a[50][50], b[50], x[50];
+long int a[50][50], b[50], x[50];
 
 int ludcmp(int nmax, int n);
 
@@ -90,7 +90,7 @@ int ludcmp(int nmax, int n);
 void test(int nmax, int n)
 {
   int      i, j, chkerr;
-  long long int /* eps, */ w;
+  long int /* eps, */ w;
 
   /* eps = 1.0e-6; */
 
@@ -115,7 +115,7 @@ void test(int nmax, int n)
 void main()
 {
   int      i, j, nmax = 50, n = 5, chkerr;
-  long long int /* eps, */ w;
+  long int /* eps, */ w;
 
   /* eps = 1.0e-6; */
 
@@ -140,7 +140,7 @@ void main()
 int ludcmp(int nmax, int n)
 {
   int i, j, k;
-  long long w, y[100];
+  long w, y[100];
 
   /* if(n > 99 || eps <= 0.0) return(999); */
   for(i = 0; i < n; i++)
