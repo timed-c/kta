@@ -1719,9 +1719,11 @@ let _ = if !dbg && !dbg_trace then Printexc.record_backtrace true else ()
 (** Print main state info *)
 let print_mstate str ms =
   let print_pstate ps =
-    if !record_mtags then 
-      Ustring.write_file (sprintf "memmap_%s.ml" str) (us (print_amem str ps.hmem))
-    else  (
+    if recording() then (*!record_mtags then *)
+      Ustring.write_file
+        (sprintf "memmap_%s_%s.ml" str (string_of_int (!record_ntask)))
+        (us (print_amem str ps.hmem))
+      else  (
       printf "Counter: %d\n" !counter;
       printf "BCET:  %d cycles\n" ps.bcet;
       printf "WCET:  %d cycles\n" ps.wcet;
@@ -1744,20 +1746,23 @@ type options_t =
   | OpConfigBatchSize
   | OpConfigMaxCycles
   | OpRecord
+  | OpOptimize
       
 open Ustring.Op
        
 let options =
   [ (OpDebug, Uargs.No, us"-debug", us"",
      us"Enable debug.");
-    (OpRecord, Uargs.No, us"-record", us"",
+    (OpOptimize, Uargs.No, us"-optimization", us"",
+     us"Enable search based optimization.");
+    (OpRecord, Uargs.Int, us"-record", us"",
      us"Record memory accesses.");
     (OpConfigBatchSize, Uargs.Int, us"-bsconfig", us"",
      us"Configure maximum batch size.");
     (OpConfigMaxCycles, Uargs.Int, us"-max_cycles", us"",
      us"Configure maximum cycles.");
     (OpArgs, Uargs.StrList, us"-args", us" <args>",
-     us"Accepts Initial Intervals for Registers a0, a1, a2 and a3.");  ]
+     us"Accepts Initial Intervals for Registers a0, a1, a2, and a3.");  ]
 
 
   
@@ -1767,7 +1772,12 @@ let analyze startblock bblocks gp_addr mem defaultargs tasks n =
   let debug = Uargs.has_op OpDebug ops in
   enable_debug debug;
 
-  set_record (Uargs.has_op OpRecord ops);
+  let optimization = Uargs.has_op OpOptimize ops in
+
+  if Uargs.has_op OpRecord ops then
+    set_record true (Uargs.int_op OpRecord ops)
+  else 
+    set_record false 0;
   
   if Uargs.has_op OpConfigMaxCycles ops then
     (set_max_cycles (Uargs.int_op OpConfigMaxCycles ops));
@@ -1780,31 +1790,16 @@ let analyze startblock bblocks gp_addr mem defaultargs tasks n =
       []
   in
   let args = if args = [] then defaultargs else args in
-  if !dbg && !dbg_trace then
-    (try
-      analyze_main startblock bblocks gp_addr args mem tasks n (!config_max_cycles) [Abstract] |> print_mstate bblocks.(startblock).name;
-    with
-    | MaxCyclesException -> printf "Analysis not finished. A path reached the maximum cycles allowed: %d\n%!" (!config_max_cycles);)
-  else
-  abstract_search (!config_max_cycles)
-    (mywcetfunc startblock bblocks gp_addr args mem tasks n )
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  
-  
+  if !record_mtags then
+    (printf "RECORDING\n%!";
+    analyze_main startblock bblocks gp_addr args mem tasks n (!config_max_cycles) [Abstract] |> print_mstate bblocks.(startblock).name
+    )else if optimization then
+        (printf "OPT\n%!";
+         abstract_search (!config_max_cycles)
+           (mywcetfunc startblock bblocks gp_addr args mem tasks n ))  
+      else
+        (printf "NORMAL\n%!";try
+           analyze_main startblock bblocks gp_addr args mem tasks n (!config_max_cycles) [Abstract] |> print_mstate bblocks.(startblock).name;
+         with
+         | MaxCyclesException -> printf "Analysis not finished. A path reached the maximum cycles allowed: %d\n%!" (!config_max_cycles)
+        );  

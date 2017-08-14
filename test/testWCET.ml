@@ -9,14 +9,25 @@ open Utest
        
 let tmpfile = "temp-file-090916-070704.tmp"
                
-let compile_file filename fname args optimize debug bsconfig =
+(* 
+   filename - Name of the file 
+   fname - Function name
+   args - The function arguments
+   optimization - Apply search-based optimization to improve the WCET result
+   optimize - Set the optimization level
+   debug - Set debug on - Print debugging messages
+   bsconfig - configure the merge batch size
+*)
+
+let compile_file filename fname args optimization optimize debug bsconfig =
   try
      MipsSys.pic32_compile [filename] false optimize tmpfile;
      let prog = MipsSys.get_program tmpfile |>  MipsUtils.add_branch_symbols in
      let (prog,cfgmap) = MipsCfg.make_cfgmap fname prog in
      let program_code = MipsCfg.pprint_ocaml_cps_from_cfgmap true [] 0 true fname cfgmap prog in
 
-     let stdout = MipsSys.wcet_compile fname debug (Some 20000000) bsconfig false program_code args in
+     let stdout = MipsSys.wcet_compile fname optimization debug (Some 20000000)
+       bsconfig false 0 program_code args in
      if debug then printf "%s\n%!" stdout;
      try
        let regex = Str.regexp "BCET:[^0-9]*\\([0-9]+\\)\\(.\\|\n\\)*WCET:[^0-9]*\\([0-9]+\\)" in
@@ -55,7 +66,8 @@ let run_test test_file =
          let exp_wcet = int_of_string (String.trim exp_wcet) in
          let exp_bcet = int_of_string (String.trim exp_bcet) in
          let debug = if debug = "false" then false else true in
-         let bcet,wcet = compile_file fname func argslist opt debug bsconfig in      
+	 let optimization = false in
+         let bcet,wcet = compile_file fname func argslist optimization opt debug bsconfig in      
          Utest.test_fint (sprintf "%s, opt=-O%d, func=%s, input=[%s], %s=%d" fname opt func args "BCET" bcet) (>=) bcet exp_bcet;
          Utest.test_fint (sprintf "%s, opt=-O%d, func=%s, input=[%s], %s=%d" fname opt func args "WCET" wcet) (>=) wcet exp_wcet;
       | _ -> printf "Wrong format in %s\n%!" test_file;

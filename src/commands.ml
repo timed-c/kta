@@ -58,6 +58,7 @@ type compOpTypes =
 | OpWCET_BSConfig
 | OpWCET_MCConfig  
 | OpWCET_Tasks  
+| OpWCET_Optimize
 
 (* List of compiler options *)
 let extra_options = 
@@ -136,6 +137,8 @@ let wcet_options =
     us"Run the OCaml Code directly with <args> in the form: <reg>=[int,int]|int. Set environment variable KTA_WCET_RUNTIME_PATH=$KTA_PATH/runtime.");
    (OpWCET_BSConfig, Uargs.Int,  us"-bsconfig",  us"",
     us"Configure maximum batch size.");
+   (OpWCET_Optimize, Uargs.No,  us"-optimization",  us"",
+    us"Enable Search-base optimization.");
    (OpWCET_MCConfig, Uargs.Int,  us"-max_cycles",  us"",
     us"Configure maximum cycles allowed.");
    (OpWCET_Tasks, Uargs.StrList,  us"-tasks",  us"",
@@ -492,20 +495,22 @@ let wcet_command args =
     else
       None
   in
+  let optimize = Uargs.has_op OpWCET_Optimize ops in
   (* Get function name. Should be better error control of input here... TODO *)
   let func_name = List.hd funcargs in
 
   (* Load the program *)
   let prog = MipsSys.get_program binfile_name |>  MipsUtils.add_branch_symbols in
 
+  let tasks = List.mapi (fun i fname -> (i+1,fname)) tasks in
   if record then
-    (MipsCfg.test prog (Ustring.to_utf8 func_name) (prog_args, max_cycles, bsconfig, tasks, record, 0, print_out_option);
-     List.iteri (fun i fname ->
-       MipsCfg.test prog (Ustring.to_utf8 fname) (prog_args, max_cycles, bsconfig, tasks, record, i+1, print_out_option)) tasks;
-     MipsCfg.test prog (Ustring.to_utf8 func_name) (prog_args, max_cycles, bsconfig, tasks, false, 0, print_out_option)
+    (MipsCfg.test prog (Ustring.to_utf8 func_name) (prog_args, optimize, max_cycles, bsconfig, tasks, record, 0, print_out_option);
+     List.iter (fun (i,fname) -> 
+       MipsCfg.test prog (Ustring.to_utf8 fname) (prog_args, optimize, max_cycles, bsconfig, tasks, record, i, print_out_option)) tasks;
+     MipsCfg.test prog (Ustring.to_utf8 func_name) (prog_args, optimize, max_cycles, bsconfig, tasks, false, 0, print_out_option)
     )
   else 
-    MipsCfg.test prog (Ustring.to_utf8 func_name) (prog_args, max_cycles, bsconfig, [], true, 0, print_out_option);
+    MipsCfg.test prog (Ustring.to_utf8 func_name) (prog_args, optimize, max_cycles, bsconfig, [], true, 0, print_out_option);
   us""
 
 

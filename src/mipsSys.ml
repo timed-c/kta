@@ -288,7 +288,7 @@ let get_init_state_vals ?(bigendian=false) prog initfunc statelist =
 
 
 (* ---------------------------------------------------------------------*)
-let wcet_compile fname debug max_cycles bsconfig record program_code args =
+let wcet_compile fname optimize debug max_cycles bsconfig record task_num program_code args =
   let remove_file fname = if Sys.file_exists fname then
                             Sys.remove fname
                           else () in  
@@ -302,12 +302,13 @@ let wcet_compile fname debug max_cycles bsconfig record program_code args =
     | None -> ""
     | Some i -> sprintf " -max_cycles %d " i
   in
-  let recordflag = if record then " -record " else "" in
+  let recordflag = if record then (sprintf " -record %d " task_num) else "" in
+  let optimflag = if optimize then " -optimization " else "" in
   let flags = (if debug then " -debug " else "")
-              ^ bsconfigflag ^ mcflag ^ recordflag in
+              ^ bsconfigflag ^ mcflag ^ recordflag ^ optimflag in
   let args = List.fold_left (fun x -> (^) (x ^ " ")) " -args " args in
   let ocamlargs = " -lib str -- " ^ flags ^ args in
-  let ocamlflnm = "temp_1214325_" ^ fname in
+  let ocamlflnm = "temp_1214325_" ^ fname ^ (string_of_int task_num) in
 
   let runtime_path =
     try

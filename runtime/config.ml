@@ -3,7 +3,7 @@ let count() = counter := !counter + 1
                                       
 let config_max_batch_size = ref 4
 
-let config_max_cycles = ref 1000000
+let config_max_cycles = ref 100000000
                             
 let set_max_batch_size size =
   config_max_batch_size := size
@@ -63,10 +63,14 @@ let shared = ref true
                  
 (****** TAG RECORD ******)
 let record_mtags = ref true
+let record_ntask = ref (-1)
 
-let set_record v =
-  record_mtags := v
+let set_record v n =
+  record_mtags := v;
+  record_ntask := n
 
+let recording() =
+  !record_mtags
 (****** PIPELINE ******)
 let disable_pipeline = ref false
 
