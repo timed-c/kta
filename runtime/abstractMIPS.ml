@@ -5,7 +5,8 @@
 *)
 
 
-open Aint32congruence
+(* open Aint32congruence *)
+open Aint32relint
 open Aregsimple
 open Amemhierarchy
 open Apipeline
@@ -520,7 +521,7 @@ let instruction_fetch pc ps =
 (* ------------------------ INSTRUCTIONS -------------------------*)
 
   
-let r_instruction str binop rd rs rt ms =
+let r_instruction str de binop rd rs rt ms =
   (* let ticks = 1 in *)
   let proc_ps ps =
     let df,ps = instruction_fetch ms.pc ps in
@@ -528,7 +529,7 @@ let r_instruction str binop rd rs rt ms =
     let (r,sl,v_rs) = getreg rs ps.input_set r in
     let (r,sl,v_rt) = getreg rt sl r in
     let r' = setreg rd (binop v_rs v_rt) r in
-    let ticks,pip = pipeline_update (ND (Some rd, None, (Some rt),(Some rs))) ps.pipeline (df,1,1,1,1) in
+    let ticks,pip = pipeline_update (ND (Some rd, None, (Some rt),(Some rs))) ps.pipeline (df,1,de,1,1) in
     if !dbg then
       prn_inst_no_linebreak ms str;
     if !dbg && !dbg_inst then
@@ -545,48 +546,49 @@ let r_instruction str binop rd rs rt ms =
 
       
 let add =
-  r_instruction (us"add") aint32_add
+  r_instruction (us"add") 1 aint32_add
 
 let addu =
-  r_instruction (us"addu") aint32_add
+  r_instruction (us"addu") 1 aint32_add
 
 let sub =
-  r_instruction (us"sub") aint32_sub
+  r_instruction (us"sub") 1 aint32_sub
 
 let subu =
-  r_instruction (us"subu") aint32_sub
+  r_instruction (us"subu") 1 aint32_sub
 
 let mul =
-  r_instruction (us"mul") aint32_mul
+  r_instruction (us"mul") 5 aint32_mul
             
 let and_ = 
-  r_instruction (us"and") aint32_and
+  r_instruction (us"and") 1 aint32_and
 
 let or_ = 
-  r_instruction (us"or") aint32_or
+  r_instruction (us"or") 1 aint32_or
 
 let nor = 
-  r_instruction (us"nor") aint32_nor
+  r_instruction (us"nor") 1 aint32_nor
 
 let xor = 
-  r_instruction (us"xor") aint32_xor
+  r_instruction (us"xor") 1 aint32_xor
 
 let sllv =
-  r_instruction (us"sllv") aint32_sllv
+  r_instruction (us"sllv") 1 aint32_sllv
 
 let srlv =
-  r_instruction (us"srlv") aint32_srlv
+  r_instruction (us"srlv") 1 aint32_srlv
 
 
 (* Shift Word Right Arithmetic Variable
    Copies the sign bit.
 *)
 let srav =
-  r_instruction (us"srav") aint32_srav
+  r_instruction (us"srav") 1 aint32_srav
 
                 
 (* TODO: handle 64-bit. Right now, we only use 32-bit multiplication. *)    
 let mult rs rt ms =
+  let de = 5 in
   (* let ticks = 1 in *)
   let proc_ps ps = 
     let df,ps = instruction_fetch ms.pc ps in
@@ -596,7 +598,7 @@ let mult rs rt ms =
     let (v_rhi,v_rlo) = aint64_mult v_rs v_rt in
     let r = setreg internal_lo v_rlo r in
     let r = setreg internal_hi v_rhi r in
-    let ticks,pip = pipeline_update (ND (Some internal_lo, Some internal_hi, Some rs,Some rt)) ps.pipeline (df,1,1,1,1) in
+    let ticks,pip = pipeline_update (ND (Some internal_lo, Some internal_hi, Some rs,Some rt)) ps.pipeline (df,1,de,1,1) in
     if !dbg then prn_inst ms ((us "mult ")
                               ^.
                                 (reg2ustr internal_lo) ^. us"=" ^. (preg internal_lo r) ^.
@@ -630,15 +632,16 @@ let madd rs rt ms =
   ps |> to_mstate ms |> inc_pc
 
 let div rs rt ms =
+  let de = 16 in
   (* let ticks = 1 in *)
-  let proc_ps ps = 
+  let proc_ps ps =
     let df,ps = instruction_fetch ms.pc ps in
     let r = ps.reg in
     let (r,sl,v_rs) = getreg rs ps.input_set r in
     let (r,sl,v_rt) = getreg rt sl r in
     let r = setreg internal_lo (aint32_div v_rs v_rt) r in
     let r = setreg internal_hi (aint32_mod v_rs v_rt) r in
-    let ticks,pip = pipeline_update (ND (Some internal_lo, Some internal_hi,Some rs,Some rt)) ps.pipeline (df,1,1,1,1) in
+    let ticks,pip = pipeline_update (ND (Some internal_lo, Some internal_hi,Some rs,Some rt)) ps.pipeline (df,1,de,1,1) in
     if !dbg then prn_inst ms ((us "div ") ^.
                                 (reg2ustr internal_lo) ^. us"=" ^. (preg internal_lo r) ^.
                                   (reg2ustr internal_hi) ^. us"=" ^. (preg internal_hi r) ^.
@@ -687,7 +690,7 @@ let mflo rd ms =
   let dbg_f rd rt r rnew ms =
     prn_inst ms (us "mflo");
   in
-  let de = 1 in
+  let de = 2 in (*Execution time for pipeline*)
   let ps = ms.pstate in
   let ps = process_ps rd internal_lo (fun v-> v) de dbg_f ps ms in
   ps |> to_mstate ms |> inc_pc
@@ -697,7 +700,7 @@ let mfhi rd ms =
   let dbg_f rd rt r rnew ms =
     prn_inst ms (us "mfhi");
   in
-  let de = 1 in (*Execution time for pipeline*)
+  let de = 2 in (*Execution time for pipeline*)
   let ps = ms.pstate in
   let ps = process_ps rd internal_hi (fun v-> v) de dbg_f ps ms in
   ps |> to_mstate ms |> inc_pc
@@ -862,11 +865,12 @@ let movn rd rs rt ms =
                                                        
 (* LWL - not implemented. *) 
 let lwl rt imm rs ms =
+  let de = 2 in
   let proc_ps ps =
     let df,ps = instruction_fetch ms.pc ps in
     let dm,m,v = ld_any ps.hmem in
     let r = setreg rt v ps.reg in
-    let ticks,pip = pipeline_update (Mem (Some rt, Some rs, None)) ps.pipeline (df,1,1,dm,1) in
+    let ticks,pip = pipeline_update (Mem (Some rt, Some rs, None)) ps.pipeline (df,1,de,dm,1) in
     ps |> updatemem r m 
     |> updatepipl pip
     |> tick ticks
@@ -877,10 +881,11 @@ let lwl rt imm rs ms =
 (* LWL - not implemented. *) 
 let lwr rt imm rs ms =
   (* let ticks = 1 in *)
+  let de = 2 in
   let proc_ps ps =
     let df,ps = instruction_fetch ms.pc ps in
     let dm,m,v = ld_any ps.hmem in
-    let ticks,pip = pipeline_update (Mem (Some rt, Some rs, None)) ps.pipeline (df,1,1,dm,1) in
+    let ticks,pip = pipeline_update (Mem (Some rt, Some rs, None)) ps.pipeline (df,1,de,dm,1) in
     let r = setreg rt v ps.reg in
     ps |> updatemem r m 
     |> updatepipl pip 
@@ -1226,6 +1231,7 @@ let jds label ms =
      should_not_happen 6
   
 let sw rt imm rs ms =
+  let de = 2 in
   (* let ticks = 1 in *)
   let proc_ps ps = 
     let df,ps = instruction_fetch ms.pc ps in
@@ -1240,7 +1246,7 @@ let sw rt imm rs ms =
       | Some (con_v_rs) ->
          set_memval_word (imm + con_v_rs) v_rt ps.hmem
     in
-    let ticks,pip = pipeline_update (ND (None, None, Some rs, Some rt)) ps.pipeline (df,1,1,dm,1) in
+    let ticks,pip = pipeline_update (ND (None, None, Some rs, Some rt)) ps.pipeline (df,1,de,dm,1) in
     if !dbg then(
       prn_inst ms (us"sw " ^. 
                      (reg2ustr rt) ^. us"=" ^. (preg rt r) ^.
@@ -1254,6 +1260,7 @@ let sw rt imm rs ms =
 
 
 let sb rt imm rs ms =
+  let de = 2 in
   let proc_ps ps =
     let df,ps = instruction_fetch ms.pc ps in
     let r = ps.reg in
@@ -1267,7 +1274,7 @@ let sb rt imm rs ms =
       | Some (con_v_rs) ->
          set_memval_byte (imm + con_v_rs) v_rt ps.hmem
     in
-    let ticks,pip = pipeline_update  (ND (None, None, Some rs, Some rt)) ps.pipeline (df,1,1,dm,1) in
+    let ticks,pip = pipeline_update  (ND (None, None, Some rs, Some rt)) ps.pipeline (df,1,de,dm,1) in
     if !dbg then(
       prn_inst ms (us"sb " ^. 
                      (reg2ustr rt) ^. us"=" ^. (preg rt r) ^.
@@ -1281,6 +1288,7 @@ let sb rt imm rs ms =
 
 let sh rt imm rs ms =
   (* let ticks = 1 in *)
+  let de = 2 in
   let proc_ps ps = 
     let df,ps = instruction_fetch ms.pc ps in
     let r = ps.reg in
@@ -1294,7 +1302,7 @@ let sh rt imm rs ms =
       | Some (con_v_rs) ->
          set_memval_hword (imm + con_v_rs) v_rt ps.hmem
     in
-    let ticks,pip = pipeline_update (ND (None, None, Some rs, Some rt)) ps.pipeline (df,1,1,dm,1) in
+    let ticks,pip = pipeline_update (ND (None, None, Some rs, Some rt)) ps.pipeline (df,1,de,dm,1) in
     if !dbg then(
       prn_inst ms (us"sh " ^. 
                      (reg2ustr rt) ^. us"=" ^. (preg rt r) ^.
@@ -1309,6 +1317,7 @@ let sh rt imm rs ms =
                                              
 let lw rt imm rs ms =
   (* let ticks = 1 in *)
+  let de = 2 in
   let ps = ms.pstate in
   let proc_ps ps =
     let df,ps = instruction_fetch ms.pc ps in
@@ -1325,7 +1334,7 @@ let lw rt imm rs ms =
          get_memval_word (imm + con_v_rs) sl ps.hmem
     in
     let r' = setreg rt v r in
-    let ticks,pip = pipeline_update (Mem (Some rt, Some rs, None)) ps.pipeline (df,1,1,dm,1) in
+    let ticks,pip = pipeline_update (Mem (Some rt, Some rs, None)) ps.pipeline (df,1,de,dm,1) in
     if !dbg then
       (prn_inst ms (us"lw " ^. 
                       (reg2ustr rt) ^. us"=" ^. (preg rt r') ^.
@@ -1337,7 +1346,8 @@ let lw rt imm rs ms =
   let ps = proc_branches proc_ps ps in
   ps |> to_mstate ms |> inc_pc
 
-let lb rt imm rs ms = 
+let lb rt imm rs ms =
+  let de = 2 in
   (* let ticks = 1 in *)
   let proc_ps ps =
     let df,ps = instruction_fetch ms.pc ps in
@@ -1354,7 +1364,7 @@ let lb rt imm rs ms =
          get_memval_byte (imm + con_v_rs) sl ps.hmem
     in
     let r' = setreg rt v r in
-    let ticks,pip = pipeline_update (Mem (Some rt, Some rs, None))  ps.pipeline (df,1,1,dm,1) in
+    let ticks,pip = pipeline_update (Mem (Some rt, Some rs, None))  ps.pipeline (df,1,de,dm,1) in
     if !dbg then(
       prn_inst ms (us"lb " ^. 
                      (reg2ustr rt) ^. us"=" ^. (preg rt r') ^.
@@ -1371,6 +1381,7 @@ let lbu rt imm rs ms = lb rt imm rs ms
 
 
 let lh rt imm rs ms = 
+  let de = 2 in
   let proc_ps ps =
     let df,ps = instruction_fetch ms.pc ps in
     let r = ps.reg in
@@ -1386,7 +1397,7 @@ let lh rt imm rs ms =
          get_memval_hword (imm + con_v_rs) sl ps.hmem
     in
     let r' = setreg rt v r in
-    let ticks,pip = pipeline_update (Mem (Some rt, Some rs, None)) ps.pipeline (df,1,1,dm,1) in
+    let ticks,pip = pipeline_update (Mem (Some rt, Some rs, None)) ps.pipeline (df,1,de,dm,1) in
     if !dbg then(
       prn_inst ms (us"lh " ^. 
                      (reg2ustr rt) ^. us"=" ^. (preg rt r') ^.
