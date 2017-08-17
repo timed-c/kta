@@ -661,7 +661,7 @@ let aint_split bigendian v bits =
      let n1 = number h l s in
      let v1 = Interval((l1,s1,n1),i) in
      let v2 =
-       if n1 = 1 then
+       if n1 == 1 then
          Interval((l,s,n),i)
        else
          Any i
