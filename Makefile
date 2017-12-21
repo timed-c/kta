@@ -59,6 +59,10 @@ test-mdh:
 	@ocamlbuild -lib str -Is $(DIRS) testWCET.native -- -csvfile test/wcet_tests/testWCET_mdh.csv
 	@rm -f testWCET.native
 
+test-mdh-concrete:
+	@ocamlbuild -lib str -Is $(DIRS) testWCET.native -- -csvfile test/wcet_tests/testWCET_mdh_concrete.csv
+	@rm -f testWCET.native
+
 test-custom:
 	@ocamlbuild -lib str -Is $(DIRS) testWCET.native -- -csvfile test/wcet_tests/testWCET_custom.csv
 	@rm -f testWCET.native
@@ -80,7 +84,8 @@ clean:
 	@ocamlbuild -clean	
 	@rm -rf bin
 	@rm -rf doc/api
-	@rm -f doc/userguide/*.html
+	@rm -f  doc/userguide/*.html
+	@rm -rf  runtime/_build
 	@echo " Finished cleaning up."
 
 

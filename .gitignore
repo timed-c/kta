@@ -13,3 +13,4 @@ doc/user/manual.html
 *.byte
 *.ll
 *~
+runtime/memmap*.ml

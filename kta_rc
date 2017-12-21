@@ -2,6 +2,9 @@
 
 RPATH=${PWD}/runtime #${BASH_SOURCE[0]}/runtime
 BPATH=${PWD}/bin #${BASH_SOURCE[0]}/runtime
+MCB_PATH="/opt/mcb32tools/"
+#COMPILER_PATH="${MCB_PATH}/bin/"
+source ${MCB_PATH}/environment
 # echo $RPATH
 # echo $BPATH
 yellow=$(tput setaf 3)
@@ -12,3 +15,5 @@ unset white
 
 export KTA_WCET_RUNTIME_PATH=$RPATH
 export PATH="${BPATH}:${PATH}"
+
+# ulimit -Sv 500000
