@@ -30,16 +30,17 @@ let compile_file filename fname args optimization optimize debug bsconfig =
        bsconfig false 0 program_code args in
      if debug then printf "%s\n%!" stdout;
      try
-       let regex = Str.regexp "BCET:[^0-9]*\\([0-9]+\\)\\(.\\|\n\\)*WCET:[^0-9]*\\([0-9]+\\)" in
+       let regex = Str.regexp "BCET:[^0-9]*\\([0-9]+\\)\\(.\\|\n\\)*WCET:[^0-9]*\\([0-9]+\\)\\(.\\|\n\\)*Time Elapsed:[^0-9]*\\([0-9\.]+\\)s" in
        let _ = Str.search_forward regex stdout 0 in
-       let bcet, wcet = int_of_string (Str.matched_group 1 stdout), int_of_string (Str.matched_group 3 stdout) in
-       (bcet,wcet)                                                 
+       let bcet, wcet= int_of_string (Str.matched_group 1 stdout), int_of_string (Str.matched_group 3 stdout) in
+       let time_elapsed = float_of_string (Str.matched_group 5 stdout) in
+       (bcet,wcet,time_elapsed)                                                 
      with Not_found ->
-          (-1,-1)
+          (-1,-1,-1.)
   with
   | Sys_error e ->
-     e |> printf "Error %s"; (-1,-1)
-  | _ -> (-1,-1)
+     e |> printf "Error %s"; (-1,-1,-1.)
+  | _ -> (-1,-1,-1.)
                                
 (*    (eprintf "Error: BCET/WCET Not_Found\n";
      raise Not_found)
@@ -67,9 +68,9 @@ let run_test test_file =
          let exp_bcet = int_of_string (String.trim exp_bcet) in
          let debug = if debug = "false" then false else true in
 	 let optimization = false in
-         let bcet,wcet = compile_file fname func argslist optimization opt debug bsconfig in      
-         Utest.test_fint (sprintf "%s, opt=-O%d, func=%s, input=[%s], %s=%d" fname opt func args "BCET" bcet) (>=) bcet exp_bcet;
-         Utest.test_fint (sprintf "%s, opt=-O%d, func=%s, input=[%s], %s=%d" fname opt func args "WCET" wcet) (>=) wcet exp_wcet;
+         let bcet,wcet,time_elapsed = compile_file fname func argslist optimization opt debug bsconfig in      
+         Utest.test_fint (sprintf "%s, opt=-O%d, func=%s, input=[%s], %s=%d, time=%fs" fname opt func args "BCET" bcet time_elapsed) (>=) bcet exp_bcet;
+         Utest.test_fint (sprintf "%s, opt=-O%d, func=%s, input=[%s], %s=%d, time=%fs" fname opt func args "WCET" wcet time_elapsed) (>=) wcet exp_wcet;
       | _ -> printf "Wrong format in %s\n%!" test_file;
     done;
   with 

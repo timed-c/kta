@@ -1,4 +1,15 @@
 filename|function name|inputs|optimization flag|batch config (-1 for default)|expected bcet|expected wcet|verbose|comments|
+test/wcet_tests/mdh/ud3.c|ludcmp|a0=[1,30];a1=[1,30]|1|-1|-1|-1|false||
+test/wcet_tests/mdh/ud3.c|ludcmp|a0=[1,30];a1=[1,30]|2|-1|-1|-1|false||
+test/wcet_tests/mdh/ud3.c|ludcmp|a0=[1,30];a1=[1,30]|3|-1|-1|-1|false||
+test/wcet_tests/mdh/ud.c|ludcmp|a0=[1,30];a1=[1,30]|0|-1|-1|-1|false||
+test/wcet_tests/mdh/ud.c|ludcmp|a0=[1,30];a1=[1,30]|1|-1|-1|-1|false||
+test/wcet_tests/mdh/ud.c|ludcmp|a0=[1,30];a1=[1,30]|2|-1|-1|-1|false||
+test/wcet_tests/mdh/ud.c|ludcmp|a0=[1,30];a1=[1,30]|3|-1|-1|-1|false||
+test/wcet_tests/mdh/expint.c|expint|a0=[30,50];a1=[1,10]|0|-1|-1|-1|false||
+test/wcet_tests/mdh/expint.c|expint|a0=[30,50];a1=[1,10]|1|-1|-1|-1|false||
+test/wcet_tests/mdh/expint.c|expint|a0=[30,50];a1=[1,10]|2|-1|-1|-1|false||
+test/wcet_tests/mdh/expint.c|expint|a0=[30,50];a1=[1,10]|3|-1|-1|-1|false||
 test/wcet_tests/mdh/edn.c|main||0|-1|-1|-1|false||
 test/wcet_tests/mdh/edn.c|main||1|-1|-1|-1|false||
 test/wcet_tests/mdh/lcdnum.c|main||0|-1|-1|-1|false||
@@ -9,14 +20,9 @@ test/wcet_tests/mdh/crc.c|main||3|-1|-1|-1|false||
 test/wcet_tests/mdh/crc.c|icrc|a0=[0,5];a1=[40,50];a2=[0,5];a3=[1,5]|3|-1|-1|-1|false||
 test/wcet_tests/mdh/janne_complex.c|complex|a0=[1,30];a1=[1,30]|0|-1|-1|-1|false||
 test/wcet_tests/mdh/janne_complex.c|complex|a0=[1,30];a1=[1,30]|3|-1|-1|-1|false||
-test/wcet_tests/mdh/ud.c|test|a0=[1,30];a1=[1,30]|0|-1|-1|-1|false||
-test/wcet_tests/mdh/ud.c|test|a0=[1,30];a1=[1,30]|1|-1|-1|-1|false||
-test/wcet_tests/mdh/ud.c|test|a0=[1,30];a1=[1,30]|2|-1|-1|-1|false||
-test/wcet_tests/mdh/ud.c|test|a0=[1,30];a1=[1,30]|3|-1|-1|-1|false||
-test/wcet_tests/mdh/expint.c|expint|a0=[30,50];a1=[1,10]|0|-1|-1|-1|false||
-test/wcet_tests/mdh/expint.c|expint|a0=[30,50];a1=[1,10]|1|-1|-1|-1|false||
-test/wcet_tests/mdh/expint.c|expint|a0=[30,50];a1=[1,10]|2|-1|-1|-1|false||
-test/wcet_tests/mdh/expint.c|expint|a0=[30,50];a1=[1,10]|3|-1|-1|-1|false||
-test/wcet_tests/mdh/compress.c|main||0|-1|-1|-1|false||
 test/wcet_tests/mdh/compress.c|main||2|-1|-1|-1|false||
 test/wcet_tests/mdh/compress.c|main||3|-1|-1|-1|false||
+test/wcet_tests/mdh/cover.c|main||0|-1|-1|-1|false||
+test/wcet_tests/mdh/cover.c|main||1|-1|-1|-1|false||
+test/wcet_tests/mdh/cover.c|main||2|-1|-1|-1|false||
+test/wcet_tests/mdh/cover.c|main||3|-1|-1|-1|false||
