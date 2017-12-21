@@ -89,6 +89,9 @@ let rec getblockcode prog addr acc_code =
   | MipsJ(_,s) ->
     let (prog,codelist,_) = ds_help prog in
     (prog,codelist,ExitTypeJump(s))
+  | MipsB(_,s) ->
+    let (prog,codelist,_) = ds_help prog in
+    (prog,codelist,ExitTypeJump(s))
   | MipsJAL(_,s) ->
     let (prog,codelist,next_addr_sym) = ds_help prog in
     (prog,codelist,ExitTypeCall(s,next_addr_sym))
@@ -116,7 +119,7 @@ let make_cfg addr prog =
   let rec traverse addr prog graph visited funccalls = 
     (* Check if already visited *)
     if IntSet.mem addr visited then (prog,graph,visited,funccalls)
-    else
+    else(
       (* Get one basic block and add it to the graph *)
       let (prog,block) = getbblock prog addr in
       (* Add to graph, new symbol if necessary *)
@@ -124,11 +127,11 @@ let make_cfg addr prog =
       let graph = BlockMap.add sym block graph in
       (* Mark as visited *)
       let visited = IntSet.add addr visited in
-
+ 
       (* Go to next node *)
       match block.block_exit with
       | ExitTypeNext(nid) ->
-        traverse (s2a prog nid) prog graph visited funccalls
+         traverse (s2a prog nid) prog graph visited funccalls
       | ExitTypeBranch(tid,fid) ->
         let (prog,graph,visited,funccalls) =
           traverse (s2a prog fid) prog graph visited funccalls in
@@ -143,7 +146,7 @@ let make_cfg addr prog =
          traverse (s2a prog nid) prog graph visited (callid::funccalls)
       | ExitTypeReturn ->
         (prog,graph,visited,funccalls)
-  in
+    )in
   (* Second pass. Generate extra nodes for all likely finish nodes, e.g., bnel *)
   let rec expand_likely prog graph =
     let (likely,graph) = BlockMap.partition
@@ -260,15 +263,15 @@ let make_cfgmap startname prog =
   let rec traverse prog cfgmap visited funccalls =
     match funccalls with
     | f::fs ->
-      let addr = s2a prog f in
+       let addr = s2a prog f in
       if IntSet.mem addr visited then
         traverse prog cfgmap visited fs
-      else              
+      else(
         let (prog,cfg,newcalls) = make_cfg addr prog in
         let cfg = assign_distances cfg in
         let cfgmap = CfgMap.add f cfg cfgmap in
         let visited = IntSet.add addr visited in
-        traverse prog cfgmap visited (newcalls@funccalls)
+        traverse prog cfgmap visited (newcalls@funccalls))
     | [] -> (prog,cfgmap)
   in
   traverse prog CfgMap.empty IntSet.empty [startname]
@@ -342,8 +345,9 @@ let pprint_ocaml_cps_from_cfgmap record fnames task_n nice_output name cfgmap pr
     | 0,0 -> us ""
     | _,_ ->
        us"{" ^. 
-         us(sprintf "address=%d; size=%d; sect_name=\"%s\"; data=["
-                    sec.addr sec.size name) ^.               
+         us(sprintf "address=(%d); size=%d; sect_name=\"%s\"; data=["
+		(Utils.sign_extension (sec.addr land 0xffffffff) 32)
+                   sec.size name) ^.               
            (match name with
             | ".sbss" ->
                mem_zero_data (sec.size-1) (us"")
@@ -363,12 +367,14 @@ let pprint_ocaml_cps_from_cfgmap record fnames task_n nice_output name cfgmap pr
   let intro =
     us"open AbstractMIPS\n\n" ^.
       us"open Printf\n\n" ^.
+      us"open Unix\n\n" ^.
       (if not record then
           List.fold_left
             (fun str (i,fn) -> (us("open Memmap_") ^. fn ^. us "_" ^. (ustring_of_int i) ^. us "\n\n") ^. str)
             (us"") ((0, us name)::fnames)
        else us "") ^.
-        us (sprintf "let gp_addr=%d\n" prog.gp) ^.
+
+        us (sprintf "let gp_addr=(%d)\n" (Utils.sign_extension (prog.gp land 0xffffffff) 32)) ^.
           mem_start ^. mem_all ^. mem_end ^.
           us"(* -- Basic Block Identifiers -- *)\n\n"
   in
@@ -429,9 +435,9 @@ let pprint_ocaml_cps_from_cfgmap record fnames task_n nice_output name cfgmap pr
 
   (* Analyze text *)
   let analyze = us"(* -- Start of Analysis -- *)\n\n" ^.
-                  us"let main = \n\t"
-                  ^. us"let _st_time = Sys.time() in\n"
-      ^. us"\tanalyze " ^. us name ^. us"_ bblocks gp_addr mem []" ^.
+    us"let main = \n\t"
+                  ^. us"let _st_time = Unix.gettimeofday() in\n"
+                  ^. us"\tanalyze " ^. us name ^. us"_ bblocks gp_addr mem []" ^.
                   (if not record then
                       (
                       us" [" ^.
@@ -440,7 +446,7 @@ let pprint_ocaml_cps_from_cfgmap record fnames task_n nice_output name cfgmap pr
                          (us"] " ^. (ustring_of_int task_n)) (fnames @ [(0, us name)]))
                    else us " [] " ^. (ustring_of_int task_n))
     ^. us ";\n"
-    ^. us"\tprintf \"Time Elapsed %fs\\n\" (Sys.time() -. _st_time)\n" in
+    ^. us"\tprintf \"Time Elapsed: %fs\\n\" (Unix.gettimeofday() -. _st_time)\n" in
   
   (* Return the complete .ml file *)
   intro ^. ident_list ^. blocks_header ^.
@@ -469,15 +475,15 @@ type bblock =
 let test prog fname cm_args =
   let (prog,cfgmap) = make_cfgmap fname prog in
   match cm_args with
-  | (_,_,_,_,fnames,record,n,true) ->
+  | (_,_,_,_,fnames,record,n,true,_) ->
      let program_code = pprint_ocaml_cps_from_cfgmap record fnames 0 true fname cfgmap prog in
      uprint_endline program_code
-  | (args,optimize,max_cycles,bsconfig,fnames,record,task_n,pr_option)  ->
+  | (args,optimize,max_cycles,bsconfig,fnames,record,task_n,pr_option,nocache)  ->
      try
        let debug = MipsSys.verbose_enabled() in
        let program_code = pprint_ocaml_cps_from_cfgmap record fnames task_n true fname cfgmap prog in
        let record = if record && fnames != [] then record else  false in
-       args |> MipsSys.wcet_compile fname optimize debug max_cycles bsconfig record task_n program_code |> print_endline;
+       args |> MipsSys.wcet_compile fname optimize debug max_cycles bsconfig record task_n nocache program_code |> print_endline;
      with Sys_error e ->
         e |> eprintf "%s\n";
      

@@ -59,6 +59,7 @@ type compOpTypes =
 | OpWCET_MCConfig  
 | OpWCET_Tasks  
 | OpWCET_Optimize
+| OpWCET_NoCache
 
 (* List of compiler options *)
 let extra_options = 
@@ -139,6 +140,8 @@ let wcet_options =
     us"Configure maximum batch size.");
    (OpWCET_Optimize, Uargs.No,  us"-optimization",  us"",
     us"Enable Search-base optimization.");
+   (OpWCET_NoCache, Uargs.No,  us"-nocache",  us"",
+    us"Disable cache analysis.");
    (OpWCET_MCConfig, Uargs.Int,  us"-max_cycles",  us"",
     us"Configure maximum cycles allowed.");
    (OpWCET_Tasks, Uargs.StrList,  us"-tasks",  us"",
@@ -473,7 +476,6 @@ let ta_command args =
 (* ---------------------------------------------------------------------*)
                                                                      
 let wcet_command args =
-  
   (* Parse options and get the binary file name *)
   let (ops,args,binfile_name,funcargs) = parse_ops_get_filename args wcet_options in
 
@@ -483,6 +485,7 @@ let wcet_command args =
   let record = Uargs.has_op OpWCET_Tasks ops in
   let tasks = Uargs.strlist_op OpWCET_Tasks ops in
 
+  let nocache = Uargs.has_op OpWCET_NoCache ops in
   let bsconfig =
     if (Uargs.has_op OpWCET_BSConfig ops) then
       Some (Uargs.int_op OpWCET_BSConfig ops)
@@ -501,16 +504,16 @@ let wcet_command args =
 
   (* Load the program *)
   let prog = MipsSys.get_program binfile_name |>  MipsUtils.add_branch_symbols in
-
   let tasks = List.mapi (fun i fname -> (i+1,fname)) tasks in
   if record then
-    (MipsCfg.test prog (Ustring.to_utf8 func_name) (prog_args, optimize, max_cycles, bsconfig, tasks, record, 0, print_out_option);
+    (
+     MipsCfg.test prog (Ustring.to_utf8 func_name) (prog_args, optimize, max_cycles, bsconfig, tasks, record, 0, print_out_option, nocache);
      List.iter (fun (i,fname) -> 
-       MipsCfg.test prog (Ustring.to_utf8 fname) (prog_args, optimize, max_cycles, bsconfig, tasks, record, i, print_out_option)) tasks;
-     MipsCfg.test prog (Ustring.to_utf8 func_name) (prog_args, optimize, max_cycles, bsconfig, tasks, false, 0, print_out_option)
+       MipsCfg.test prog (Ustring.to_utf8 fname) (prog_args, optimize, max_cycles, bsconfig, tasks, record, i, print_out_option, nocache)) tasks;
+     MipsCfg.test prog (Ustring.to_utf8 func_name) (prog_args, optimize, max_cycles, bsconfig, tasks, false, 0, print_out_option, nocache);
     )
   else 
-    MipsCfg.test prog (Ustring.to_utf8 func_name) (prog_args, optimize, max_cycles, bsconfig, [], true, 0, print_out_option);
+    MipsCfg.test prog (Ustring.to_utf8 func_name) (prog_args, optimize, max_cycles, bsconfig, [], true, 0, print_out_option, nocache);
   us""
 
 

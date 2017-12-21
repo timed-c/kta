@@ -57,7 +57,8 @@ let decode_inst bininst =
            | _  -> MipsUnknown(bininst)) 
   | 2  -> MipsJ(address(),"")
   | 3  -> MipsJAL(address(),"")
-  | 4  -> MipsBEQ(rs(),rt(),imm(),"")
+  | 4  when rs() = 0 && rt() = 0 -> MipsB(imm(),"")
+  | 4 -> MipsBEQ(rs(),rt(),imm(),"")
   | 5  -> MipsBNE(rs(),rt(),imm(),"")
   | 6  -> MipsBLEZ(rs(),imm(),"")
   | 7  -> MipsBGTZ(rs(),imm(),"")
@@ -241,6 +242,7 @@ let pprint_inst_general inst com reg int2str delayslot dash =
   | MipsAND(rd,rs,rt)     -> (istr "and_") ^. (rdst rd rs rt)
   | MipsANDI(rt,rs,imm)   -> (istr "andi") ^. (rtsi rt rs imm)
   | MipsBEQ(rs,rt,imm,s)  -> (istrds "beq") ^. (rtsis rs rt imm s)
+  | MipsB(imm,s)  	  -> (istrds "j") ^. (address imm s)
   | MipsBEQL(rs,rt,imm,s) -> (istrds "beql") ^. (rtsis rs rt imm s)
   | MipsBGEZ(rs,imm,s)    -> (istrds "bgez") ^. (rsis rs imm s)    
   | MipsBGEZL(rs,imm,s)   -> (istrds "bgezl") ^. (rsis rs imm s)    
@@ -376,8 +378,9 @@ let add_branch_symbols prog =
       MipsBLEZ(_,imm,_)  | MipsBNE(_,_,imm,_)  | MipsBNEL(_,_,imm,_)  |
         MipsBLTZ(_,imm,_)  | MipsBGEZ(_,imm,_)   | MipsBGTZ(_,imm,_) |
           MipsBLTZL(_,imm,_)  | MipsBGEZL(_,imm,_)   | MipsBGTZL(_,imm,_) |
-            MipsBLEZL(_,imm,_) ->
-        let addr = i*4 + 4 + imm*4 + prog.text_sec.addr in
+            MipsBLEZL(_,imm,_) |
+	    MipsB(imm,_) ->
+       let addr = i*4 + 4 + imm*4 + prog.text_sec.addr in
         let (newlabel,s2a',a2s') = makenew addr in
         let i2 = (match inst with
           | MipsBEQ(rs,rt,_,_)  -> MipsBEQ(rs,rt,imm,newlabel)
@@ -392,13 +395,17 @@ let add_branch_symbols prog =
           | MipsBLTZL(rs,_,_) -> MipsBLTZL(rs,imm,newlabel)
           | MipsBNE(rs,rt,_,_)  -> MipsBNE(rs,rt,imm,newlabel)
           | MipsBNEL(rs,rt,_,_)  -> MipsBNEL(rs,rt,imm,newlabel)
+          | MipsB(_,_)  -> MipsB(addr,newlabel)
           | _ -> failwith "Should not happen"
         )in
         codearray.(i) <- i2;
         (i+1,s2a',a2s')
     (* Match jump instructions *)
     | MipsJ(saddr,_) | MipsJAL(saddr,_) -> 
-         let addr = ((i * 4) land 0xf0000000) lor (saddr lsl 2) in 
+       let addr = ((i * 4) land 0xf0000000)
+         lor (prog.text_sec.addr land 0xf0000000)
+         lor (saddr lsl 2) in
+
          let (newlabel,s2a',a2s') = makenew addr in
          let i2 = (match inst with 
                    | MipsJ(_,_) -> MipsJ(saddr,newlabel)
@@ -408,6 +415,7 @@ let add_branch_symbols prog =
          (i+1,s2a',a2s')
     | _ -> (i+1,s2a,a2s)
   ) (0,prog.sym2addr,prog.addr2sym) codearray in
+  
   { prog with code = codearray ; sym2addr = s2a ; addr2sym = a2s}
 
 

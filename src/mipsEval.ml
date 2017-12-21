@@ -265,6 +265,7 @@ let rec step bigendian prog state hookfunc hookval is_a_delay_slot =
     | MipsMOVZ(_)
     | MipsMOVN(_)
     | MipsCLZ(_)
+    | MipsB(_)
     | MipsUnknown(_) -> failwith ("Unknown instruction: " ^
                                     Ustring.to_utf8 (MipsUtils.pprint_inst inst))
    
@@ -348,6 +349,7 @@ let debug_print inst pc prog state is_a_delay_slot terminate (acc,prev_regfile) 
       | MipsMOVZ(_)
       | MipsMOVN(_)
       | MipsCLZ(_)
+      | MipsB(_)
       | MipsUnknown(_) -> (0,0,0)
   in
   let pad_right str int =

@@ -3,9 +3,14 @@ open Ustring.Op
 open MipsAst
 open Printf
 open MipsEval
-
+open Printf
        
-let comp_name = "mipsel-mcb32-elf"
+(*
+let comp_name = "mips-mti-elf"
+let cflags = " -ffreestanding -EL -mips32r3 -msoft-float -Wa,-msoft-float "
+*)
+let comp_name = "mipsel-mcb32-elf" 
+let cflags = " -ffreestanding -mips32 -mips2 -msoft-float -Wa,-msoft-float "
 let objcopy = comp_name ^ "-objcopy"
 let objdump = comp_name ^ "-objdump"
 let nm = comp_name ^ "-nm"
@@ -45,7 +50,7 @@ let get_section filename section =
 
 (* ---------------------------------------------------------------------*)
 let pic32_compile filenames only_compile optimization outputname =
-  let cflags = " -ffreestanding  -mips32 -mips2  -msoft-float -Wa,-msoft-float " in
+  (* let cflags = " -ffreestanding -mips32 -mips2 -msoft-float -Wa,-msoft-float " in *)
   (*"-I/opt/mcb32tools/include/ -L/opt/mcb32tools/lib/ -lm " in*)
 (* NOTE:  -march=mips32r2  and -mips32 -mips2  are not the same. *)
   let command = (gcc ^ cflags ^ (String.concat " " filenames) ^ " " ^
@@ -55,7 +60,7 @@ let pic32_compile filenames only_compile optimization outputname =
   if !enable_verbose then print_endline (command ^ "\n");
   let (code,stdout,stderr) = USys.shellcmd command in
   if code != 0 then raise (Sys_error (stderr ^ " " ^ stdout)) else ()
-  
+  (* () *)
 
     
 (* ---------------------------------------------------------------------*)
@@ -74,12 +79,13 @@ let section_info filename =
                               (Ustring.split x (us" ")))) lines in
   let filtered = List.filter 
     (fun list -> match list with 
-              | l::ls -> (try let _ = int_of_string (Ustring.to_utf8 l) in true 
+    | l::ls ->
+       (try let _ = int_of_string (Ustring.to_utf8 l) in true 
                           with _ -> false)
               | _ -> false) splits in                            
   List.map (fun line ->
             match line with
-            | _::sec::size::addr::_ -> 
+            | _::sec::size::addr::_ ->
                  (Ustring.to_utf8 sec, 
                   (int_of_string ("0x" ^ (Ustring.to_utf8 size)),
                    int_of_string ("0x" ^ (Ustring.to_utf8 addr))))
@@ -110,8 +116,11 @@ let symbol_table filename =
       match sp with
       | addr::_::sym::_ -> (
         try
-            let addrno = int_of_string ("0x" ^ (Ustring.to_utf8 addr)) in
-            (proc_str (Ustring.to_utf8 sym),addrno)::acc
+          let address = Ustring.to_utf8 addr in
+          let address = String.sub address ((String.length address) - 8)  8 in
+          (* let addrno = int_of_string ("0x" ^ (Ustring.to_utf8 addr)) in *)
+          let addrno = int_of_string ("0x" ^ address) in
+          (proc_str (Ustring.to_utf8 sym),addrno)::acc
           with _ -> acc)
       | _ -> acc
     ) [] lines
@@ -119,9 +128,11 @@ let symbol_table filename =
   
 (* ---------------------------------------------------------------------*)
 let get_program filename =
-  let build_in_names = ["_start"; "_gp"; "_ftext"; "_fdata";
+  let build_in_names = ["_start"; "_gp"; "_ftext"; "_fdata"; "_fdata_ram"; "_ftext_ram"; "_etext_ram"; "_edata_ram";
 			"_fbss"; "_end"; "_edata"; "__bss_start"] in
+  
   let l_symbols = List.rev (symbol_table filename) in
+  (* printf "symbols %s\n%!" (List.fold_left (fun x (y,_) -> x ^ " " ^ y) "" l_symbols); *)
   let l_sections = section_info filename in
   let l_text = try Some(List.assoc ".text" l_sections) with _ -> None in
   let l_data = try Some(List.assoc ".data" l_sections) with _ -> None in
@@ -130,9 +141,10 @@ let get_program filename =
   let l_sbss = try Some(List.assoc ".sbss" l_sections) with _ -> None in
   let l_rodata = try Some(List.assoc ".rodata" l_sections) with _ -> None in
   let l_textcode = get_section filename ".text" in
+
   { 
   filename = filename;
-  symbols = l_symbols;
+    symbols = l_symbols;
   sym2addr = List.fold_left (fun m (s,a) -> Sym2Addr.add s a m) 
                 Sym2Addr.empty l_symbols;
   addr2sym = List.fold_left (fun m (s,a) -> Addr2Sym.add a s m) 
@@ -288,7 +300,7 @@ let get_init_state_vals ?(bigendian=false) prog initfunc statelist =
 
 
 (* ---------------------------------------------------------------------*)
-let wcet_compile fname optimize debug max_cycles bsconfig record task_num program_code args =
+let wcet_compile fname optimize debug max_cycles bsconfig record task_num nocache program_code args =
   let remove_file fname = if Sys.file_exists fname then
                             Sys.remove fname
                           else () in  
@@ -304,10 +316,11 @@ let wcet_compile fname optimize debug max_cycles bsconfig record task_num progra
   in
   let recordflag = if record then (sprintf " -record %d " task_num) else "" in
   let optimflag = if optimize then " -optimization " else "" in
-  let flags = (if debug then " -debug " else "")
-              ^ bsconfigflag ^ mcflag ^ recordflag ^ optimflag in
+  let nocacheflag = if nocache then " -nocache " else "" in
+  let debugflag = if debug then " -debug " else "" in
+  let flags = debugflag ^ bsconfigflag ^ mcflag ^ recordflag ^ optimflag ^ nocacheflag in
   let args = List.fold_left (fun x -> (^) (x ^ " ")) " -args " args in
-  let ocamlargs = " -lib str -- " ^ flags ^ args in
+  let ocamlargs = " -lib str -lib unix -- " ^ flags ^ args in
   let ocamlflnm = "temp_1214325_" ^ fname ^ (string_of_int task_num) in
 
   let runtime_path =
@@ -316,7 +329,6 @@ let wcet_compile fname optimize debug max_cycles bsconfig record task_num progra
     with Not_found -> "runtime/"
   in
   let files = [".ml"; ".native"] |> List.map (fun x -> runtime_path ^ ocamlflnm ^ x) in
-
   Ustring.write_file (List.hd files) program_code;
   try      
     if Sys.is_directory runtime_path then	
