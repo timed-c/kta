@@ -76,9 +76,11 @@ let gcd a b =
 let high l s n = l+s*(n-1)
 
 let number h l s =
-  if s = 0 then 1
-  else (h-l)/s+1
+  if s == 0 then 1
+  (* else (h-l)/s+1 *)
+  else (h-l+1)/s
 
+    
 let dec_num n = max 1 (n-1) 
 (*n*)
 
@@ -148,7 +150,9 @@ let interval_merge (l1,s1,n1) (l2,s2,n2) =
   let l = min l1 l2 in
   let s = gcd (abs (l1-l2)) (gcd s1 s2) in
   let h = max h1 h2 in
-  (l, s, number h l s)
+  let n = number h l s in
+  let s = if n = 1 then 0 else s in
+  (l, s, n)
 
 let interval_merge_list lst =
   match lst with
@@ -293,8 +297,9 @@ let aint32_add v1 v2 =
       let h2 = high l2 s2 n2 in
       let l = l1 + l2 in
       let s = gcd s1 s2 in
-      let h = h1+h2 in
+      let h = h1 + h2 in
       let n = number h l s in
+      let s = if n = 1 then 0 else s in
     if l<lowval || h>highval then raise AnyException
     else (l,s,n)
   ) v1 v2
@@ -310,6 +315,7 @@ let aint32_sub v1 v2 =
       let l = l1+l2 in
       let h = h1+h2 in
       let n = number h l s in
+      let s = if n = 1 then 0 else s in
       if l<lowval || h>highval then raise AnyException
       else (l,s,n)
     ) v1 v2
@@ -331,6 +337,7 @@ let aint32_and_f (l1,s1,n1) (l2,s2,n2) =
      let h = max v1 v2 in
      let s = h - l in
      let n = number h l s in
+     let s = if n = 1 then 0 else s in
      (l,s,n)
   | _ ->
      let h1 = high l1 s1 n1 in
@@ -339,11 +346,18 @@ let aint32_and_f (l1,s1,n1) (l2,s2,n2) =
              else if l1*l2 < 0 then
                if h1>0 && h2>0 then 0
                else 0 (*TODO(Romy): (maybe) tighten*)
-             else leading_ones (min l1 l2) in
-     let h = if h1*h2<0 then max h1 h2
-             else min h1 h2 in
+             else
+		Utils.sign_extension ((leading_ones (min l1 l2)) land 0xffffffff) 32
+              (* -1 *((lnot (leading_ones (min l1 l2)) + 1) land 0xffffffff)*)
+     in
+     let h = if l1>=0 && l2>=0 then min h1 h2
+         else if h1*h2<0 then max h1 h2
+       else if l1<0 || l2<0 then max h1 h2
+       else max h1 h2 
+     in
      let s = if h=l then 0 else 1 in
      let n = number h l s in
+     let s = if n = 1 then 0 else s in
      if l<lowval || h>highval then raise AnyException
      else (l,s,n)
                                      
@@ -406,6 +420,7 @@ let mul_f v1 v2 =
      let h = max (max (l1*l2) (l1*h2)) (max (h1*l2) (h1*h2)) in
      let s = gcd (abs (l2*s1)) (gcd (abs (l1*s2)) (s1*s2)) in
      let n = number h l s in
+     let s = if n = 1 then 0 else s in
      (l,s,n)
                
 let aint32_mul v1 v2 =
@@ -440,7 +455,13 @@ let aint64_mult v1 v2 =
       fun v1 v2 ->
       let (l,s,n) = mul_f v1 v2 in
       let h = high l s n in
-      if  l<lowval || h>highval then raise AnyException
+      if  l<lowval || h>highval then (
+        (* let sg = if l>=0 then 1 else -1 in *)
+        let low = Utils.sign_extension (l land 0xffffffff) 32  in
+        (*let low = if (l land 0x80000000 ==0) then low else -1*((lnot(low)+1) land 0xffffffff) in*)
+        if n = 1 then ((l asr 32,0,1), (low,0,1))
+        else raise AnyException
+      )
       (*Sign extension*)
       else if l>=0 then ((0,0,1),(l,s,n))
       else if h<0 then ((-1,0,1),(l,s,n))
@@ -449,7 +470,7 @@ let aint64_mult v1 v2 =
 
 let mod5 (l,s,n) =
   let maxv = (1 lsl 5) - 1  in
-  if n = 1 then
+  if n == 1 then
     (l land 0x1f, 0, 1)
   else if (high l s n) > maxv || l < 0 then 
     (0, 1, number maxv 0 1)
@@ -466,6 +487,7 @@ let aint32_sllv v1 v2 =
               else if n2 = 1 then (s1 lsl l2)
               else (gcd l1 s1) lsl l2 in
       let n = number h l s in
+      let s = if n = 1 then 0 else s in
       if (l<lowval || h>highval)  && (l<ulowval || h>uhighval) then raise AnyException
       else (l,s,n)
     ) v1 v2
@@ -479,6 +501,7 @@ let aint32_srlv v1 v2 =
       let h = h1 lsr h2 in
       let s = if h = l then 0 else 1 in 
       let n = number h l s in
+      let s = if n = 1 then 0 else s in
       if l<lowval || h>highval then raise AnyException
       else if (n1 = 1 && n2 = 1) then (l1 lsr l2, 0, 1)
       else (l,s,n)
@@ -490,15 +513,14 @@ let aint32_srav v1 v2 =
       let (l2,s2,n2) = mod5 (l2,s2,n2) in
       let h1 = high l1 s1 n1 in
       let h2 = high l2 s2 n2 in
-      let l = l1 asr l2 in
-      let h = h1 asr h2 in
+      let l = l1 asr h2 in
+      let h = h1 asr l2 in
       let s = if h = l then 0 else 1 in 
       let n = number h l s in
       if l<lowval || h>highval then raise AnyException
       else if (n1 = 1 && n2 = 1) then (l1 asr l2, 0, 1)
       else (l,s,n)
     ) v1 v2
-
                
 let aint32_div v1 v2 =
   match v1, v2 with
@@ -508,6 +530,7 @@ let aint32_div v1 v2 =
      let l = lowval/l in
      let s = 1 in
      let n = number h l s in
+     let s = if n = 1 then 0 else s in
      if l<lowval || h>highval then raise AnyException
      else Interval((l,s,n),i1)
   | Any i,_ | _,Any i -> Any i
@@ -556,7 +579,8 @@ let aint32_mod v1 v2 =
      let modl = min l (-h) in
      let modh = max h (-l) in
      let mods = 1 in
-     let modn = number modh modl mods in 
+     let modn = number modh modl mods in
+     let mods = if modn = 1 then 0 else mods in
      if modl<lowval || modh>highval then raise AnyException
      else Interval((modl, mods, modn),i1)
   | Any i,_ | _,Any i -> Any i
@@ -566,7 +590,8 @@ let aint32_mod v1 v2 =
          let h2 = high l2 s2 n2 in
          if (l2<=0 && h2 >=0) then raise Division_by_zero
          else
-           if (n1 = 1 && n2 = 1) then (l1 mod l2, 0, 1)
+           if (n1 = 1 && n2 = 1) then
+             (l1 mod l2, 0, 1)
            else
              (* very conservative *)
              let k = max (max (abs l1) ((abs l2)-1))
@@ -1090,7 +1115,8 @@ let rec aint32_test_equal v1 v2 =
   match v1,v2 with
   | Any i1,Any i2 ->
      (* assert(i1 = i2) *)
-    (Some(Any i1,Any i1),Some(Any i1,Any i1))
+     (Some(Any i1,Any i1),Some(Any i1,Any i1))
+  (* | Any i,_| _,Any i ->      (Some(Any i,Any i),Some(Any i,Any i)) *)
   | Any i,v ->  (Some(v,v),Some(Any i,v))
   | v,Any i ->  (Some(v,v),Some(v,Any i))
   (* Case when we just compare two intervals. May generate safe pair lists *)

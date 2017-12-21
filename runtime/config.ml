@@ -3,7 +3,7 @@ let count() = counter := !counter + 1
                                       
 let config_max_batch_size = ref 4
 
-let config_max_cycles = ref 100000000
+let config_max_cycles = ref 1000000000
                             
 let set_max_batch_size size =
   config_max_batch_size := size

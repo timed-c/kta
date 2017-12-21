@@ -48,25 +48,25 @@ type cache_stats_t =
 (*************************** ACACHE ****************************)
 
 type acache = {
-    cache : aset_t Cache.t; 
+  cache : aset_t Cache.t;          (* The cache module - aset_t Map *) 
 
-    cacheinfo: acache_info_t;
-
-    setinfo : info_t;
-    wordinfo : info_t;
-    byteinfo : info_t;
-
-    disabled : bool;
-
-    cache_stats : cache_stats_t;
-  }
+  cacheinfo: acache_info_t;        (* Cache paramters - defined in "cpumodel.ml" *)
+  
+  setinfo : info_t;                (* Contain additional information about sets/words/byte *)
+  wordinfo : info_t;
+  byteinfo : info_t;
+  
+  disabled : bool;                 (* Enable or Disable Cache *)
+  
+  cache_stats : cache_stats_t;     (* Experimental field for statistics. *)
+}
 
 type address = {
-    tag : int;
-    set : int;
-    word : int;
-    byte : int;
-  }
+  tag : int;                       (* The "tag" part of the address *)
+  set : int;                       (* The part of the address that selects the set *)
+  word : int;                      (* The part of the address that selects the word in a block *)
+  byte : int;                      (* The part of the address that selects the byte in a block *)
+}
             
 type cache_responce =
   | Hit  | Miss (* | Nocache *)
@@ -154,6 +154,7 @@ let update_set num set cache =
   { cache with cache = Cache.add num set cache.cache }
     
 let split_address addr cache =
+  let addr = addr land 0xffffffff in
   let byte = addr mod cache.byteinfo.num in
   let word = (addr / cache.byteinfo.num) mod cache.wordinfo.num in
   let set = ((addr / cache.byteinfo.num) / cache.wordinfo.num) mod cache.setinfo.num in
@@ -164,11 +165,13 @@ let split_address addr cache =
   { tag = tag; set = set; word = word; byte = byte;}
 
 let merge_address address cache =
-  (address.byte land (cache.byteinfo.num-1))
-  lor (address.word * cache.byteinfo.num)
-  lor (address.set * cache.byteinfo.num * cache.wordinfo.num)
-  lor (address.tag * cache.byteinfo.num * cache.wordinfo.num * cache.setinfo.num)
-
+  let addr = 
+    (address.byte land (cache.byteinfo.num-1))
+    lor (address.word * cache.byteinfo.num)
+    lor (address.set * cache.byteinfo.num * cache.wordinfo.num)
+    lor (address.tag * cache.byteinfo.num * cache.wordinfo.num * cache.setinfo.num)
+  in
+  Utils.sign_extension (addr land 0xffffffff) 32
 
 (************************* Record accesses *************************)
 module AccMap =
@@ -185,7 +188,10 @@ let amap_read lst =
   let rec aread_int lst amap =
     match lst with
     | [] -> Some amap
-    | (addr,acc)::ls -> aread_int ls (AccMap.add addr acc amap)
+    | (addr,acc)::ls -> 
+ 	(*let addr = (Utils.sign_extension (addr land 0xffffffff) 32) in*)
+ 	let addr = addr land 0xffffffff in
+	aread_int ls (AccMap.add addr acc amap)
   in
   aread_int lst AccMap.empty
     
@@ -196,7 +202,9 @@ let amap_print str amap =
      (sprintf "let amap_%s = [" str) ^
        (AccMap.fold
           (fun t (r,w,bs) rest ->
-            rest ^ (sprintf "(0x%x,(%d,%d,%d));" t r w bs)) amap "") ^
+            rest ^ (sprintf "((0x%x),(%d,%d,%d));" 
+		(Utils.sign_extension (t land 0xffffffff) 32)
+			r w bs)) amap "") ^
        "]\n"
 
        
@@ -249,7 +257,6 @@ let amap_update write address cache amap =
          else
            (r+1,w,bsize)
        in
-       (* printf "%d(0x%x,%d,%d,%d)" (AccMap.cardinal amap) *)
        (*   set_address r w bsize; *)
        Some (AccMap.add set_address
                         (r,w,bsize) amap)
@@ -343,15 +350,14 @@ let access_cache write addr cache amap =
     (*     printf "TAGMAP\n"; *)
     (*     AccMap.iter (fun tag (_,_,v) -> printf "0x%x: %d\n%!" tag v) amap *)
     (* ); *)
-  (* if nocache || cache.disabled then (Nocache,cache,amap) *)
-  (* else *)
   let address = split_address addr cache in
   (* TODO(Romy): fix invalid coherence *)
   let invalid = false in
   let amap,coh = 
     match amap with
     | None -> None,None
-    | Some (RMap amap) -> Some (RMap (amap_update write address cache amap )),None
+    | Some (RMap amap) -> 
+	Some (RMap (amap_update write address cache amap )),None
     | Some (TMap tmap) ->
        let set_address = get_set address cache in
        Some (TMap tmap), get_coherence_penalty set_address tmap
@@ -368,7 +374,11 @@ let access_cache write addr cache amap =
      (Miss,address,set,cache,amap,coh)
          
 let read_line_from_mem tag dirty invalid = (tag,dirty,invalid)
-                                
+
+let cache_hit_rate cache = cache.cacheinfo.hit_time
+
+let is_shared cache = cache.cacheinfo.shared
+  
 let read_cache addr cache amap =
     let (resp,address,set,cache,amap,coh) =
       access_cache false addr cache amap in

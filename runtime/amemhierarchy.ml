@@ -2,7 +2,7 @@ open Amemtype
 open Amemory
 open Acache
 open Printf
-open Aint32congruence  
+open Aint32congruence
 open Config
 
 open Cpumodel
@@ -17,7 +17,7 @@ type cache_hierarchy_t =
 type amemhierarchy = {
     mem : amemory;
     cache : cache_hierarchy_t;
-    amap : mapstype option; (* accessmap_t option; *)
+    amap : mapstype option; 
   }
 
 type memory_access_t = | DCache | ICache
@@ -118,7 +118,7 @@ let get_tmaps t ts =
     match amap_others with
     | [] -> None
     | m::ms -> List.fold_left amap_merge m ms
-  in (*map,oh*)
+  in 
   check_coherence amap_others (amap_read t)
 
 let write_mem addr aval ctype caches mem amap =
@@ -148,30 +148,27 @@ let write_mem addr aval ctype caches mem amap =
        | Hit,Some Private | Hit, None -> nticks, c'::cs, mem, None,amap'
        | Miss,Some Private | Miss, None ->
           let ticks, caches = write_caches cs nticks [c'] in
-          ticks, c'::cs, mem, None, amap'
+          ticks, caches, mem, None, amap'
        | Hit,Some (OtherRead(_)) ->
           nticks + !inv_penalty, c'::cs, mem, None,amap'
        (*TODO(Romy): go up to the first shared cache/mem*)
        | Miss,Some (OtherRead(_)) ->
           let ticks, caches = write_caches cs nticks [c'] in
-          max ticks !cache_penalty, c'::cs, mem, None, amap'
+          max ticks !cache_penalty, caches, mem, None, amap'
+          (*max ticks !cache_penalty, c'::cs, mem, None, amap'*)
        | Hit,Some (ThisRead) | Miss,Some (ThisRead) ->
           let ticks, caches = write_caches cs nticks [c'] in
           (* possible write - any data *)
           let mem = set_memval addr (AInt32 (aint32_any_set true)) mem in
-          max ticks !cache_penalty, c'::cs, mem, None, amap'
+          max ticks !cache_penalty, caches, mem, None, amap'
+          (*max ticks !cache_penalty, c'::cs, mem, None, amap'*)
        | Hit,Some (ThisRW(_)) | Miss,Some (ThisRW(_)) ->
           let ticks, caches = write_caches cs nticks [c'] in
           (* possible write - any data *)
           let mem = set_memval addr (AInt32 (aint32_any_set true)) mem in
-          max ticks (!cache_penalty + !inv_penalty), c'::cs, mem, None, amap'
-  (* match resp with *)
-  (* | Hit -> nticks, c'::cs, mem,None,amap' *)
-  (* | Miss -> *)
-  (*    let ticks, caches = write_caches cs nticks [c'] in *)
-  (*    ticks, c'::cs, mem,None,amap' *)
+          max ticks (!cache_penalty + !inv_penalty), caches, mem, None, amap'
+          (*max ticks (!cache_penalty + !inv_penalty), c'::cs, mem, None, amap'*)
   in
-
   if (!nocache) then
     (mem.access_time,caches,mem,None,amap)
   else
@@ -180,17 +177,22 @@ let write_mem addr aval ctype caches mem amap =
       
 let read_mem addr slist ctype caches mem amap =
   let mem,sl,v = get_memval addr slist mem in
-  let rec read_caches caches ticks ncaches =
+  let rec read_caches caches ticks ncaches otherW =
     match caches with
     | [] -> ticks + mem.access_time, List.rev ncaches
     | c::cs ->
-       let nticks,resp,c',_,_ = read_cache addr
-         (get_cache ctype c) None in
-       match resp with
-       | Hit ->
-          ticks + nticks, reverse_append ncaches ((update_cache c ctype c')::cs)
-       | Miss ->
-          read_caches cs (ticks+nticks) ((update_cache c ctype c')::ncaches) 
+       let cache = get_cache ctype c in
+       if (otherW && (is_shared cache))
+       then (
+         read_caches cs (ticks + (cache_hit_rate cache)) ((update_cache c ctype cache)::ncaches)) otherW  
+       else (
+         let nticks,resp,c',_,_ = read_cache addr
+           cache None in
+         match resp with
+         | Hit ->
+            ticks + nticks, reverse_append ncaches ((update_cache c ctype c')::cs)
+         | Miss ->
+            read_caches cs (ticks+nticks) ((update_cache c ctype c')::ncaches) otherW)
   in
   let read_cache_one caches amap =
     match caches with
@@ -199,32 +201,33 @@ let read_mem addr slist ctype caches mem amap =
        let nticks,resp,c',amap',coh = read_cache addr (get_cache ctype c) amap in
        let c' = (update_cache c ctype c') in
        match resp,coh with
-       | Hit,Some Private | Hit, None -> nticks, sl, c'::cs, mem, v,amap'
+       | Hit,Some Private | Hit, None -> 
+		nticks, sl, c'::cs, mem, v,amap'
        | Miss,Some Private | Miss, None ->
-          let ticks, caches = read_caches cs nticks [c'] in
-          ticks, sl, c'::cs, mem, v, amap'
+          let ticks, caches = read_caches cs nticks [c'] false in
+          ticks, sl, caches, mem, v, amap'
+          (*ticks, sl, c'::cs, mem, v, amap'*)
        | Hit,Some (OtherRead(_)) -> nticks, sl,c'::cs, mem, v,amap'
        (*TODO(Romy): go up to the first shared cache/mem*)
        | Miss,Some (OtherRead(_)) ->
-          let ticks, caches = read_caches cs nticks [c'] in
-          max ticks !cache_penalty, sl, c'::cs, mem, v, amap'
+          let ticks, caches = read_caches cs nticks [c'] false in
+          max ticks !cache_penalty, sl, caches, mem, v, amap'
+          (*max ticks !cache_penalty, sl, c'::cs, mem, v, amap'*)
        | Hit,Some (ThisRead) | Miss,Some (ThisRead) ->
-          let ticks, caches = read_caches cs nticks [c'] in
+          let ticks, caches = read_caches cs nticks [c'] true in
           let v = AInt32 (aint32_any_set true) in (* (get_initialized_amh v)) in *)
-          max ticks !cache_penalty, sl, c'::cs, mem, v, amap'
+          max ticks !cache_penalty, sl, caches, mem, v, amap'
+          (*max ticks !cache_penalty, sl, c'::cs, mem, v, amap'*)
        | Hit,Some (ThisRW(_)) | Miss,Some (ThisRW(_)) ->
-          let ticks, caches = read_caches cs nticks [c'] in
+          let ticks, caches = read_caches cs nticks [c'] true in
           let v = AInt32 (aint32_any_set true) in (* (get_initialized_amh v)) in *)
-          max ticks (!cache_penalty + !inv_penalty), sl, c'::cs, mem, v, amap'
+          (*max ticks (!cache_penalty + !inv_penalty), sl, c'::cs, mem, v, amap'*)
+          max ticks (!cache_penalty + !inv_penalty), sl, caches, mem, v, amap'
   in
   if (!nocache) then
     (mem.access_time,sl,caches,mem,v,amap)
   else 
     read_cache_one caches amap 
-(* let ticks, cache, caches, amap = read_cache_one caches amap in *)
-    
-    (* let ticks, caches, amap = read_caches caches ticks [] None in *)
-    (* (ticks,cache::caches,mem,v,amap) *)
 
 (************************* MAIN MEMORY OPERATIONS ************************)
     
@@ -349,7 +352,6 @@ let hcache_join c1 c2 =
     | Sep (ic1,dc1), Sep (ic2,dc2) -> Sep (cache_join ic1 ic2, cache_join dc1 dc2) 
     | _ -> failwith ("impossible")
   in
-  (* let (c1,cs1),(c2,cs2) = c1,c2 in *)
   (List.map2 join_internal c1 c2) 
 
 let hmem_join m1 m2 =
@@ -365,10 +367,14 @@ let get_instruction addr hmem =
   let ticks,_,cache,mem,_,amap = read_mem addr [] ICache hmem.cache hmem.mem hmem.amap in
   (ticks,hmem |> hmem_update_cache cache |> hmem_update_amap amap)
 
+(* Instruction Miss for return address "jr ra" *)
+let get_instruction_always_miss hmem =
+  List.fold_left (fun t c -> t + miss_cache (get_cache ICache c)) (!mem_access_time) (hmem.cache)
+
 (********* LD and ST -> ANY - Case of a interval access *******) 
 let ld_any hmem =
   let caches = hmem.cache in
-  let ticks = List.fold_left (fun t c -> t + miss_cache (get_cache DCache c)) 0 caches in
+  let ticks = List.fold_left (fun t c -> t + miss_cache (get_cache DCache c)) (!mem_access_time) caches in
   (ticks, hmem, aint32_any_set true)
 
 let st_any hmem =
@@ -378,7 +384,7 @@ let st_any hmem =
     | Sep (ic,dc) -> Sep (ic, cache_to_any dc)
   in
   let cs = hmem.cache in
-  let ticks = List.fold_left (fun t c -> t + miss_cache (get_cache DCache c)) 0 (cs) in
+  let ticks = List.fold_left (fun t c -> t + miss_cache (get_cache DCache c)) (!mem_access_time) (cs) in
   let cache = List.map cache_to_any hmem.cache in
   let hmem = {hmem with mem = mem_to_any hmem.mem;
                         cache = cache;}
@@ -400,9 +406,4 @@ let read_amem lst =
   amap_read lst
 
 let print_hmem_stats hmem = ()
-  (* match hmem.cache with *)
-  (* | Uni c -> print_cache_stats c "Unified Cache"; *)
-  (* | Sep (ic,dc) -> *)
-  (*    print_cache_stats ic "Instruction Cache"; *)
-  (*    print_cache_stats dc "Data Cache" *)
     
