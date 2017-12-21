@@ -7,7 +7,6 @@ type acache_info_t = {
   write_allocate : bool;
   write_back : bool;
   hit_time : int; (* * int;*)
-    (* miss_penalty : int; (\* * int;*\) *)
   shared : bool;
 }
 
@@ -18,40 +17,62 @@ type l1cache_type =
 let cache_model =
   [S (
        (*Icache*)
-       { assoc = 1; size = 2048;
-         word_size = 4; block_size = 16;
+       { assoc = 4; size = 32768;
+         word_size = 4; block_size = 32;
          write_allocate = true; write_back = true;
          hit_time = 1;
          shared = false; 
        },
        (*Dcache*)
-       { assoc = 4; size = 2048;
-         word_size = 4; block_size = 16;
+       { assoc = 4; size = 32768; (*1 lsl 15 *)
+         word_size = 4; block_size = 32;
          write_allocate = true; write_back = true;
-         hit_time = 1;
+         hit_time = 2;
          shared = false;});
    (*L2*)
-   U ({ assoc = 4; size = 8192;
-        word_size = 4; block_size = 16;
+   U ({ assoc = 8; size = 1 lsl 19;
+        word_size = 4; block_size = 32;
         write_allocate = true; write_back = true;
-        hit_time = 5; 
-        shared = false;
+        hit_time = 10-2; 
+        shared = true;
      });
    (*L3*)
-   U ({ assoc = 8; size = 32768;
-        word_size = 4; block_size = 16;
-        write_allocate = true; write_back = true;
-        hit_time = 50;
-        shared = false;
-      })
+   (* U ({ assoc = 8; size = 32768; *)
+   (*      word_size = 4; block_size = 16; *)
+   (*      write_allocate = true; write_back = true; *)
+   (*      hit_time = 50; *)
+   (*      shared = false; *)
+   (*    }) *)
   ]
 
 (****** MEMORY ******)
+let mem_access_time = ref (300 - 10 - 2 - 2) (* measured: 300+ -  datasheet: 50-200 *)
 
-let mem_access_time = ref 100
 
+(****** CPU MODEL ******)
+(* Execution stage of MIPS instructions *)
+type instructions_t = {
+  br : int;
+  div : int;
+  mul : int;
+  mult : int;
+  madd : int;
+  arithm : int;
+  movlh : int;
+}
+
+
+
+let cpu_model = {
+  br = 6;
+  div = 40;
+  mul = 5;
+  mult = 7;
+  madd = 7;
+  arithm = 1;
+  movlh = 2;
+}
 (****** COHERENCE PENALTY ******)
-
 (* let coherence_penalty = ref 130 *)
 let inv_penalty = ref 15
 let wb_penalty = ref 10

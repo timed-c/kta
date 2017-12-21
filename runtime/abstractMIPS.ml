@@ -5,12 +5,12 @@
 *)
 
 
-(* open Aint32congruence *)
-open Aint32relint
+open Aint32congruence
 open Aregsimple
 open Amemhierarchy
 open Apipeline
-       
+open Cpumodel
+
 open Ustring.Op
 open Printf
 open Scanf
@@ -178,6 +178,11 @@ let str2reg str =
   | "internal_lo" -> Some R32            | "internal_hi" -> Some R33
   | _ -> None
     
+
+let instruction_always_miss ps =
+   get_instruction_always_miss ps.hmem 
+
+
 (** Creates an initial any state of the program state 
     ps = The program counter value *)
 let init_pstate =
@@ -320,10 +325,26 @@ let print_pqueue_elem noregs elem =
 (* Debug print the program queue *)
 let print_pqueue noregs pqueue =
   List.iter (print_pqueue_elem noregs) pqueue 
-      
+
+
+let rec pstate_wcet ps =
+  match ps with
+  | Branch (_,(None,None)) | Sbranch(_,None,None,None) -> 0
+  | Nobranch ps  -> ps.wcet 
+  | Branch (_,(Some ps,None))
+  | Branch (_,(None, Some ps))
+  | Sbranch (_,None,None,Some ps)
+  | Sbranch (_,None,Some ps,None)
+  | Sbranch (_,Some ps,None,None) -> pstate_wcet ps
+  | Branch (_, (Some ps1, Some ps2)) 
+  | Sbranch (_, Some ps1, Some ps2, None)
+  | Sbranch (_, None, Some ps1, Some ps2)
+  | Sbranch (_, Some ps1, None, Some ps2) -> max (pstate_wcet ps1) (pstate_wcet ps2)
+  | Sbranch (rd, Some psold, Some ps1, Some ps2) -> max (pstate_wcet psold) (max (pstate_wcet ps1) (pstate_wcet ps2))
+
 let prn_inst_main linebreak ms str =
   if !dbg_inst then
-    (printf "%10s | pc=0x%x | %s" ms.bbtable.(ms.cblock).name ms.pc (Ustring.to_utf8 str);
+    (printf "%10s | pc=0x%x | wcet=%d | %s" ms.bbtable.(ms.cblock).name ms.pc (pstate_wcet ms.pstate) (Ustring.to_utf8 str);
      if linebreak then printf "\n" else ())
   else ()
     
@@ -408,7 +429,8 @@ let dequeue ms =
          {ms with cblock = 0; pstate=ps'; prio=rest} 
        else
          (* No, just pop from the call stack *)
-         (match ms.cstack with
+         ( assert (rest = []);
+           match ms.cstack with
           | (retid,prio')::cstackrest ->  
              {ms with cblock=blockid; pstate=ps; batch=max_batch_size pss;
                       prio=prio'; returnid = retid; cstack=cstackrest;}
@@ -511,7 +533,8 @@ let rec proc_slt proc_ps ps =
      match psold with
      | Some ps -> proc_branches proc_ps ps
      | None -> should_not_happen 14
-     
+
+
 
 let instruction_fetch pc ps =
   let ticks,hmem = get_instruction pc ps.hmem in
@@ -522,7 +545,6 @@ let instruction_fetch pc ps =
 
   
 let r_instruction str de binop rd rs rt ms =
-  (* let ticks = 1 in *)
   let proc_ps ps =
     let df,ps = instruction_fetch ms.pc ps in
     let r = ps.reg in
@@ -544,51 +566,74 @@ let r_instruction str de binop rd rs rt ms =
   let ps = proc_branches proc_ps ms.pstate in
   ps |> to_mstate ms |> inc_pc
 
+let r_instruction_low str de binop rd rs rt ms =
+  let proc_ps ps =
+    let df,ps = instruction_fetch ms.pc ps in
+    let r = ps.reg in
+    let (r,sl,v_rs) = getreg rs ps.input_set r in
+    let (r,sl,v_rt) = getreg rt sl r in
+    let (hi,lo) = binop v_rs v_rt in
+    let r' = setreg rd lo r in
+    let ticks,pip = pipeline_update (ND (Some rd, None, (Some rt),(Some rs))) ps.pipeline (df,1,de,1,1) in
+    if !dbg then
+      prn_inst_no_linebreak ms str;
+    if !dbg && !dbg_inst then
+      uprint_endline
+        (us" " ^. 
+           (reg2ustr rd) ^. us"=" ^. (preg rd r') ^. us" " ^.
+             (reg2ustr rs) ^. us"=" ^. (preg rs r) ^. us" " ^.
+               (reg2ustr rt) ^. us"=" ^. (preg rt r) )
+    else ();
+    ps |> update r'|> updatesl sl |> updatepipl pip |> tick ticks |> nobranch
+  in
+  let ps = proc_branches proc_ps ms.pstate in
+  ps |> to_mstate ms |> inc_pc
+
       
 let add =
-  r_instruction (us"add") 1 aint32_add
+  r_instruction (us"add") cpu_model.arithm aint32_add
 
 let addu =
-  r_instruction (us"addu") 1 aint32_add
+  r_instruction (us"addu") cpu_model.arithm aint32_add
 
 let sub =
-  r_instruction (us"sub") 1 aint32_sub
+  r_instruction (us"sub") cpu_model.arithm aint32_sub
 
 let subu =
-  r_instruction (us"subu") 1 aint32_sub
+  r_instruction (us"subu") cpu_model.arithm aint32_sub
 
 let mul =
-  r_instruction (us"mul") 5 aint32_mul
+  r_instruction_low (us"mul") cpu_model.mul aint64_mult
             
 let and_ = 
-  r_instruction (us"and") 1 aint32_and
+  r_instruction (us"and") cpu_model.arithm aint32_and
 
 let or_ = 
-  r_instruction (us"or") 1 aint32_or
+  r_instruction (us"or") cpu_model.arithm aint32_or
 
 let nor = 
-  r_instruction (us"nor") 1 aint32_nor
+  r_instruction (us"nor") cpu_model.arithm aint32_nor
 
 let xor = 
-  r_instruction (us"xor") 1 aint32_xor
+  r_instruction (us"xor") cpu_model.arithm aint32_xor
 
 let sllv =
-  r_instruction (us"sllv") 1 aint32_sllv
+  r_instruction (us"sllv") cpu_model.arithm aint32_sllv
 
 let srlv =
-  r_instruction (us"srlv") 1 aint32_srlv
+  r_instruction (us"srlv") cpu_model.arithm aint32_srlv
 
 
 (* Shift Word Right Arithmetic Variable
    Copies the sign bit.
 *)
 let srav =
-  r_instruction (us"srav") 1 aint32_srav
+  r_instruction (us"srav") cpu_model.arithm aint32_srav
 
                 
 (* TODO: handle 64-bit. Right now, we only use 32-bit multiplication. *)    
 let mult rs rt ms =
-  let de = 5 in
+  let de = cpu_model.mult in
   (* let ticks = 1 in *)
   let proc_ps ps = 
     let df,ps = instruction_fetch ms.pc ps in
@@ -613,7 +658,8 @@ let mult rs rt ms =
 
 let multu = mult
 (* Multiply ADD - no support for internal_hi *)
-let madd rs rt ms = 
+let madd rs rt ms =
+  let de = cpu_model.madd in 
   let proc_ps ps =
     let df,ps = instruction_fetch ms.pc ps in
     let r = ps.reg in
@@ -625,14 +671,14 @@ let madd rs rt ms =
     let v_rlo = aint32_mul v_rs v_rt in
     let r = setreg internal_lo (aint32_add v_rlo v_ilo) r in
     let r = setreg internal_hi (aint32_any) r in
-    let ticks,pip = pipeline_update (ND (Some internal_lo, Some internal_hi, Some rs,Some rt)) ps.pipeline (df,1,1,1,1) in
+    let ticks,pip = pipeline_update (ND (Some internal_lo, Some internal_hi, Some rs,Some rt)) ps.pipeline (df,1,de,1,1) in
     ps |> update r |> updatesl sl |> updatepipl pip |> tick ticks |> nobranch
   in
   let ps = proc_branches proc_ps ms.pstate in
   ps |> to_mstate ms |> inc_pc
 
 let div rs rt ms =
-  let de = 16 in
+  let de = cpu_model.div in
   (* let ticks = 1 in *)
   let proc_ps ps =
     let df,ps = instruction_fetch ms.pc ps in
@@ -663,8 +709,9 @@ let teq rs rt ms =
   (* let ticks = 1 in *)
   let ps = proc_branches
              (fun ps ->
+               let de = cpu_model.arithm in
                let df,ps = instruction_fetch ms.pc ps in
-               let ticks,pip = pipeline_update (ND (None, None,Some rs,Some rt)) ps.pipeline (df,1,1,1,1) in
+               let ticks,pip = pipeline_update (ND (None, None,Some rs,Some rt)) ps.pipeline (df,1,de,1,1) in
                ps |>
                  updatepipl pip |>
                  tick ticks |> nobranch) ms.pstate in
@@ -690,7 +737,7 @@ let mflo rd ms =
   let dbg_f rd rt r rnew ms =
     prn_inst ms (us "mflo");
   in
-  let de = 2 in (*Execution time for pipeline*)
+  let de = cpu_model.movlh in (*Execution time for pipeline*)
   let ps = ms.pstate in
   let ps = process_ps rd internal_lo (fun v-> v) de dbg_f ps ms in
   ps |> to_mstate ms |> inc_pc
@@ -700,7 +747,7 @@ let mfhi rd ms =
   let dbg_f rd rt r rnew ms =
     prn_inst ms (us "mfhi");
   in
-  let de = 2 in (*Execution time for pipeline*)
+  let de = cpu_model.movlh in (*Execution time for pipeline*)
   let ps = ms.pstate in
   let ps = process_ps rd internal_hi (fun v-> v) de dbg_f ps ms in
   ps |> to_mstate ms |> inc_pc
@@ -709,7 +756,7 @@ let mtlo rs ms =
   let dbg_f rd rt r rnew ms =
     prn_inst ms (us "mtlo");
   in
-  let de = 1 in
+  let de = cpu_model.movlh in
   let ps = ms.pstate in
   let ps = process_ps internal_lo rs (fun v-> v) de dbg_f ps ms in
   ps |> to_mstate ms |> inc_pc
@@ -719,7 +766,7 @@ let mthi rs ms =
   let dbg_f rs rt r rnew ms =
     prn_inst ms (us "mthi");
   in
-  let de = 1 in
+  let de = cpu_model.movlh in
   let ps = ms.pstate in
   let ps = process_ps internal_hi rs (fun v-> v) de dbg_f ps ms in
   ps |> to_mstate ms |> inc_pc
@@ -735,7 +782,7 @@ let dbg_imm_f instr imm imm_str rd rt r rnew ms =
            
 let addi rt rs imm ms =
   (* Execution time *)
-  let de = 1 in
+  let de = cpu_model.arithm in
   let ps = ms.pstate in
   let imval = aint32_const imm in
   let dbg_f = dbg_imm_f "addi" imm "imm" in
@@ -746,7 +793,7 @@ let addi rt rs imm ms =
 let addiu = addi
 
 let andi rt rs imm ms  =
-  let de = 1 in
+  let de = cpu_model.arithm in 
   let ps = ms.pstate in
   let imval = aint32_const imm in
   let dbg_f = dbg_imm_f "andi" imm "imm" in
@@ -754,7 +801,7 @@ let andi rt rs imm ms  =
   ps |> to_mstate ms |> inc_pc
 
 let ori rt rs imm ms  =
-  let de = 1 in
+  let de = cpu_model.arithm in 
   let ps = ms.pstate in
   let imval = aint32_const imm in
   let dbg_f = dbg_imm_f "ori" imm "imm" in
@@ -762,7 +809,7 @@ let ori rt rs imm ms  =
   ps |> to_mstate ms |> inc_pc
 
 let xori rt rs imm ms  =
-  let de = 1 in
+  let de = cpu_model.arithm in 
   let ps = ms.pstate in
   let imval = aint32_const imm in
   let dbg_f = dbg_imm_f "xori" imm "imm" in
@@ -771,35 +818,39 @@ let xori rt rs imm ms  =
 
 
 let sll rd rt shamt ms =
-  let de = 1 in
+  let de = cpu_model.arithm in 
   let ps = ms.pstate in
-  let mval = aint32_const (1 lsl shamt) in
+  (* let mval = aint32_const (1 lsl shamt) in *)
+  let mval = aint32_const shamt in
   let dbg_f = dbg_imm_f "sll" shamt "shamt" in
-  let ps = process_ps rd rt (fun v -> aint32_mul v mval) de dbg_f ps ms in
+  let ps = process_ps rd rt (fun v -> aint32_sllv v mval) de dbg_f ps ms in
   ps |> to_mstate ms |> inc_pc
 
 let srl rd rt shamt ms =
-  let de = 1 in
+  let de = cpu_model.arithm in 
   let ps = ms.pstate in
-  let mval = aint32_const (1 lsl shamt) in
+  (* let mval = aint32_const (1 lsl shamt) in *)
+  let mval = aint32_const shamt in
   let dbg_f = dbg_imm_f "srl" shamt "shamt" in
-  let ps = process_ps rd rt (fun v -> aint32_div v mval) de dbg_f ps ms in
+  let ps = process_ps rd rt (fun v -> aint32_srlv v mval) de dbg_f ps ms in
   ps |> to_mstate ms |> inc_pc
 
       
 let sra rd rt shamt ms =
-  let de = 1 in
+  let de = cpu_model.arithm in 
   let ps = ms.pstate in
-  let mval = aint32_const (1 lsl shamt) in
+  (* let mval = aint32_const (1 lsl shamt) in *)
+  let mval = aint32_const shamt in
   let dbg_f = dbg_imm_f "sra" shamt "shamt" in
-  let ps = process_ps rd rt (fun v -> aint32_div v mval) de dbg_f ps ms in 
+  let ps = process_ps rd rt (fun v -> aint32_srav v mval) de dbg_f ps ms in 
   ps |> to_mstate ms |> inc_pc
 
 (* EXT - not implemented. *)
 let ext rt rs pos size ms =
+  let de = cpu_model.arithm in
   let proc_ps ps =
     let df,ps = instruction_fetch ms.pc ps in
-    let ticks,pip = pipeline_update (ND (None,None,Some rs,Some rt)) ps.pipeline (df,1,1,1,1) in
+    let ticks,pip = pipeline_update (ND (None,None,Some rs,Some rt)) ps.pipeline (df,1,de,1,1) in
     {ps with reg = setreg rt aint32_any ps.reg}
     |> updatepipl pip
     |> tick ticks
@@ -810,9 +861,10 @@ let ext rt rs pos size ms =
 
 (* INS - not implemented. *)
 let ins rs rt pos size ms =
+  let de = cpu_model.arithm in    
   let proc_ps ps =
     let df,ps = instruction_fetch ms.pc ps in
-    let ticks,pip = pipeline_update (ND (None,None,Some rs,Some rt)) ps.pipeline (df,1,1,1,1) in
+    let ticks,pip = pipeline_update (ND (None,None,Some rs,Some rt)) ps.pipeline (df,1,de,1,1) in
     {ps with reg = setreg rt aint32_any ps.reg}
     |> updatepipl pip
     |> tick ticks
@@ -823,12 +875,13 @@ let ins rs rt pos size ms =
 
 (* INS - not implemented. *)
 let clz rd rs ms =
+  let de = cpu_model.arithm in
   let proc_ps ps =
     let df,ps = instruction_fetch ms.pc ps in
     let r = ps.reg in
     let (r,sl,v_rs) = getreg rs ps.input_set r in
     let r = setreg rd (aint32_clz v_rs) r in
-    let ticks,pip = pipeline_update (ND (Some rd, None, Some rs,None)) ps.pipeline (df,1,1,1,1) in
+    let ticks,pip = pipeline_update (ND (Some rd, None, Some rs,None)) ps.pipeline (df,1,de,1,1) in
     if !dbg then 
       prn_inst ms (us "clz" ^. us" " ^. 
                  (reg2ustr rd) ^. us"=" ^. (preg rd r) ^. us" " ^.
@@ -841,9 +894,10 @@ let clz rd rs ms =
 
 (* MOVZ - not implemented. *)                                               
 let movz rd rs rt ms =
+  let de = cpu_model.arithm in
   let proc_ps ps =
     let df,ps = instruction_fetch ms.pc ps in
-    let ticks,pip = pipeline_update (ND (Some rd, None, Some rs,Some rt)) ps.pipeline (df,1,1,1,1) in
+    let ticks,pip = pipeline_update (ND (Some rd, None, Some rs,Some rt)) ps.pipeline (df,1,de,1,1) in
     {ps with reg = setreg rd aint32_any ps.reg}
     |> updatepipl pip
     |> tick ticks
@@ -853,9 +907,10 @@ let movz rd rs rt ms =
 
 (* MOVZ - not implemented. *) 
 let movn rd rs rt ms =
+  let de = cpu_model.arithm in
   let proc_ps ps =
     let df,ps = instruction_fetch ms.pc ps in
-    let ticks,pip = pipeline_update (ND (Some rd, None, Some rs,Some rt)) ps.pipeline (df,1,1,1,1) in
+    let ticks,pip = pipeline_update (ND (Some rd, None, Some rs,Some rt)) ps.pipeline (df,1,de,1,1) in
     {ps with reg = setreg rd aint32_any ps.reg}
     |> updatepipl pip
     |> tick ticks
@@ -865,7 +920,7 @@ let movn rd rs rt ms =
                                                        
 (* LWL - not implemented. *) 
 let lwl rt imm rs ms =
-  let de = 2 in
+  let de = cpu_model.arithm in
   let proc_ps ps =
     let df,ps = instruction_fetch ms.pc ps in
     let dm,m,v = ld_any ps.hmem in
@@ -880,8 +935,7 @@ let lwl rt imm rs ms =
 
 (* LWL - not implemented. *) 
 let lwr rt imm rs ms =
-  (* let ticks = 1 in *)
-  let de = 2 in
+  let de = cpu_model.arithm in
   let proc_ps ps =
     let df,ps = instruction_fetch ms.pc ps in
     let dm,m,v = ld_any ps.hmem in
@@ -914,7 +968,9 @@ let branch_main str equal dslot op rs rt label ms =
   let proc_ps ps =
     let df,ps = instruction_fetch ms.pc ps in
     (* assume delay slot *)
-    let ticks,pip = pipeline_update (Br (Some rs, Some rt)) ps.pipeline (df,1,1,1,1) in
+    (* let de = 6 in *)
+    let de = cpu_model.br in
+    let ticks,pip = pipeline_update (Br (Some rs, Some rt)) ps.pipeline (df,1,de,1,1) in
     ps |> updatepipl pip |> tick ticks |> nobranch
   in
   let proc_ps_option = function | None -> None
@@ -965,7 +1021,6 @@ let branch_main str equal dslot op rs rt label ms =
   )
   | Nobranch ps | Sbranch (_, Some (Nobranch ps), _, _) -> (
     (* Ordinary branch equality check *)
-    (*let ps = tick 1 ps in    *)
     let r = ps.reg in
     let (r,sl,v_rs) = getreg rs ps.input_set r in
     let (r,sl,v_rt) = getreg rt sl r in
@@ -1134,9 +1189,10 @@ let bgtzlds rs label ms =
 let lui rt imm ms =
   let ps = ms.pstate in
   let immi = (aint32_const (imm lsl 16)) in
+  let de = cpu_model.arithm in
   let proc_ps ps =
     let df,ps = instruction_fetch ms.pc ps in
-    let ticks,pip = pipeline_update (ND (Some rt, None,None,None)) ps.pipeline (df,1,1,1,1) in
+    let ticks,pip = pipeline_update (ND (Some rt, None,None,None)) ps.pipeline (df,1,de,1,1) in
     let r = ps.reg in
     let r = setreg rt immi r in
     if !dbg then prn_inst ms
@@ -1154,17 +1210,27 @@ let lui rt imm ms =
    by the pseudo instruction 'ret'. The reason is that
    all functions should only have one final basic block node *)    
 let jr rs ms =
+  let proc_ps ps = 
+    let de = cpu_model.br in
+    let df,ps = instruction_fetch ms.pc ps in
+    let ticks,pip = pipeline_update (Br (Some rs, None)) ps.pipeline (df,1,de,1,1) in
+    ps |> updatepipl pip |> tick ticks |> nobranch
+  in
   if !dbg then prn_inst ms (us"jr " ^. (reg2ustr rs));
-  if rs = ra then (ms |> inc_pc)
+  if rs = ra then (*then (ms |> inc_pc)*)
+    let ps = proc_branches proc_ps ms.pstate in
+    ps |> to_mstate ms |> inc_pc
 (*    let nextid = ms.bbtable.(ms.cblock).nextid in
-      continue (enqueue nextid (tick 2 ms.pstate) ms) *)
+      continue (enqueue nextid (tick 2 ms.pstate) ms) a)
+*)
   else failwith "Not yet implemented."
 
 
 let jrds rs ms =
   let proc_ps ps = 
+    let de = cpu_model.br in
     let df,ps = instruction_fetch ms.pc ps in
-    let ticks,pip = pipeline_update (Br (Some rs, None)) ps.pipeline (df,1,1,1,1) in
+    let ticks,pip = pipeline_update (Br (Some rs, None)) ps.pipeline (df,1,de,1,1) in
     ps |> updatepipl pip |> tick ticks |> nobranch
   in
   if !dbg then prn_inst ms (us"jrds " ^. (reg2ustr rs));
@@ -1173,13 +1239,14 @@ let jrds rs ms =
     ps |> to_mstate ms |> inc_pc
   (*    let nextid = ms.bbtable.(ms.cblock).nextid in
       continue (enqueue nextid (tick 2 ms.pstate) ms) *)
-  else failwith "Not yet implemented."
+  else failwith "jr not yet implemented."
 
 let jal label ms =
   if !dbg then prn_inst ms (us"jal " ^. us(ms.bbtable.(label).name));
   let proc_ps ps = 
+    let de = cpu_model.br in
     let df,ps = instruction_fetch ms.pc ps in
-    let ticks,pip = pipeline_update (Br (None, None)) ps.pipeline (df,1,1,1,1) in
+    let ticks,pip = pipeline_update (Br (None, None)) ps.pipeline (df,1,de,1,1) in
     ps |> updatepipl pip |> tick ticks |> nobranch
   in
   let ps = proc_branches proc_ps ms.pstate in
@@ -1188,8 +1255,9 @@ let jal label ms =
 let jalds label ms =
   if !dbg then prn_inst ms (us"jalds " ^. us(ms.bbtable.(label).name));
   let proc_ps ps = 
+    let de = cpu_model.br in
     let df,ps = instruction_fetch ms.pc ps in
-    let ticks,pip = pipeline_update (Br (None, None)) ps.pipeline (df,1,1,1,1) in
+    let ticks,pip = pipeline_update (Br (None, None)) ps.pipeline (df,1,de,1,1) in
     ps |> updatepipl pip |> tick ticks 
   in
   let branch ps =
@@ -1199,7 +1267,7 @@ let jalds label ms =
   | Nobranch ps ->
      let ps = proc_branches (fun ps -> proc_ps ps |> branch) (Nobranch ps) in
      ps |> to_mstate ms |> inc_pc
-  | Sbranch(_,_,Some ps1,_) | Sbranch(_,_,_,Some ps1) -> (*??*)
+  | Sbranch(_,_,Some ps1,_) | Sbranch(_,_,_,Some ps1) -> 
      proc_branches
        (fun ps -> proc_ps ps |> branch)
        ps1 |> to_mstate ms |> inc_pc
@@ -1209,8 +1277,9 @@ let jalds label ms =
                        
 let jds label ms =
   let proc_ps ps = 
+    let de = cpu_model.br in
     let df,ps = instruction_fetch ms.pc ps in
-    let ticks,pip = pipeline_update (Br (None, None)) ps.pipeline (df,1,1,1,1) in
+    let ticks,pip = pipeline_update (Br (None, None)) ps.pipeline (df,1,de,1,1) in
     ps |> updatepipl pip |> tick ticks 
   in
   let branch ps =
@@ -1231,8 +1300,7 @@ let jds label ms =
      should_not_happen 6
   
 let sw rt imm rs ms =
-  let de = 2 in
-  (* let ticks = 1 in *)
+  let de = cpu_model.arithm in
   let proc_ps ps = 
     let df,ps = instruction_fetch ms.pc ps in
     let r = ps.reg in
@@ -1260,7 +1328,7 @@ let sw rt imm rs ms =
 
 
 let sb rt imm rs ms =
-  let de = 2 in
+  let de = cpu_model.arithm in
   let proc_ps ps =
     let df,ps = instruction_fetch ms.pc ps in
     let r = ps.reg in
@@ -1287,8 +1355,7 @@ let sb rt imm rs ms =
   ps |> to_mstate ms |> inc_pc 
 
 let sh rt imm rs ms =
-  (* let ticks = 1 in *)
-  let de = 2 in
+  let de = cpu_model.arithm in
   let proc_ps ps = 
     let df,ps = instruction_fetch ms.pc ps in
     let r = ps.reg in
@@ -1316,8 +1383,7 @@ let sh rt imm rs ms =
 
                                              
 let lw rt imm rs ms =
-  (* let ticks = 1 in *)
-  let de = 2 in
+  let de = cpu_model.arithm in
   let ps = ms.pstate in
   let proc_ps ps =
     let df,ps = instruction_fetch ms.pc ps in
@@ -1347,8 +1413,7 @@ let lw rt imm rs ms =
   ps |> to_mstate ms |> inc_pc
 
 let lb rt imm rs ms =
-  let de = 2 in
-  (* let ticks = 1 in *)
+  let de = cpu_model.arithm in 
   let proc_ps ps =
     let df,ps = instruction_fetch ms.pc ps in
     let r = ps.reg in
@@ -1381,7 +1446,7 @@ let lbu rt imm rs ms = lb rt imm rs ms
 
 
 let lh rt imm rs ms = 
-  let de = 2 in
+  let de = cpu_model.arithm in 
   let proc_ps ps =
     let df,ps = instruction_fetch ms.pc ps in
     let r = ps.reg in
@@ -1414,10 +1479,11 @@ let lh rt imm rs ms =
 let lhu rt imm rs ms = lh rt imm rs ms
 
 let slt_main signed r v_rs v_rt rd rs rt sl ps ms =
+  let de = cpu_model.arithm in
   let proc_ps st rd_v ps =
     let df,ps = instruction_fetch ms.pc ps in
     let ticks,pip = pipeline_update (ND (Some rd, None, Some rs, Some rt))
-                                    ps.pipeline (df,1,1,1,1) in
+                                    ps.pipeline (df,1,de,1,1) in
     match st with
     | Some(sval,tval) -> Some
                            (Nobranch
@@ -1432,7 +1498,7 @@ let slt_main signed r v_rs v_rt rd rs rt sl ps ms =
   let proc_ps_old rd_v ps =
     let df,ps = instruction_fetch ms.pc ps in
     let ticks,pip = pipeline_update (ND (Some rd, None, Some rs, Some rt))
-                                    ps.pipeline (df,1,1,1,1) in
+                                    ps.pipeline (df,1,de,1,1) in
     Some (Nobranch ({ps with reg = setreg rd rd_v r}
                     |> updatesl sl |> updatepipl pip
                     |> tick ticks))
@@ -1524,7 +1590,14 @@ let next ms =
 
 (* Return from a function. Pseudo-instruction that does not take time *)    
 let ret ms =
+  (*let proc_ps ps = 
+    let df = instruction_always_miss ps in
+    let ticks,pip = pipeline_update (Br (None, None)) ps.pipeline (df,1,1,1,1) in
+    ps |> updatepipl pip |> tick ticks |> nobranch
+  in *)
   if !dbg then prn_inst ms (us(sprintf "ret returnid=%d" ms.returnid));
+   (* let ps = proc_branches proc_ps ms.pstate in
+    let ms = to_mstate ms ps in*)
   continue (enqueue ms.returnid ms.pstate ms)
 
 (* load immediate interval *)
@@ -1551,12 +1624,17 @@ let analyze_main startblock bblocks gp_addr args init_mem task_amem n bound inpu
   (* Update the program states with abstract inputs from program arguments *)
   set_max_cycles bound;    
   let ps = 
-    try pstate_input init_pstate args
+    let ipstate = init_pstate in
+    (* Add the cycles for returning to the calling process. Better move to the end. *)
+    let ra_miss = instruction_always_miss ipstate in 
+    let ipstate = {ipstate with wcet = ra_miss} in
+    try pstate_input ipstate args
     with Failure s -> (printf "Error: %s\n" s; exit 1) in 
   let ps = updatesl inputlist ps in
 
   (* Initiate the stack pointer *)
   let stack_addr = 0x80000000 - 8 - (n*0x01000000) in
+  let stack_addr = Utils.sign_extension (stack_addr land 0xffffffff) 32 in
   let frame_ptr = 0x04000000 - 8 - (n*0x01000000) in
   let reg = setreg sp (aint32_const stack_addr) ps.reg in
   let reg = setreg gp (aint32_const gp_addr) reg in
@@ -1568,7 +1646,7 @@ let analyze_main startblock bblocks gp_addr args init_mem task_amem n bound inpu
   set_nocache nocache;
   (* let hmem = enable_dcache hmem in *)
 
-  (* TODO(Romy): Overhead *)
+  (* Overhead *)
   let hmem,ps =
     if not !record_mtags then
       let tmap,oh =
@@ -1646,7 +1724,7 @@ let generateConcrete u =
   
 (* Implements the sound abstract search, according to the paper *)  
 let sound_abstract_search bound wcetfunc  =
-  printf "Sound abstract search\n%!";
+  (* printf "Sound abstract search\n%!"; *)
   let rec search inputsetU w =
     match inputsetU with
     (* Pick an interval and abstractly execute it *)
@@ -1677,34 +1755,22 @@ let optimal_abstract_search w bound wcetfunc =
   let rec search w =
     (* Pick the input set with the highest WCET *)
     
-    (* printf "size %d\n%!" (IntMap.cardinal w); *)
     let (t_o,u) = IntMap.max_binding w in
-    (* print_spliter u; *)
     let w = IntMap.remove t_o w in
-    (* printf "Rsize %d\n%!" (IntMap.cardinal w); *)
     (* Check if it is the optimal interval *)
     let (i1,i2) = generateConcrete u in
-    (* printf "print spliter concrete\n%!"; *)
-    (* print_spliter i1; *)
-    (* print_spliter i2; *)
     let t_c1 = wcetfunc bound i1 in
     let t_c2 = wcetfunc bound i2 in
-    (* printf "tc1tc2 %d %d\n%!" t_c1 t_c2; *)
     if t_c1 = t_o || t_c2 = t_o then
       (* Optimal value *)
       t_o
     else      
       (* Split the interval *)
       let (u1,u2) = abstractSplit u in
-      (* printf "print spliter\n%!"; *)
-      (* print_spliter u1; *)
-      (* print_spliter u2; *)
       let t_a1 = wcetfunc bound u1 in
       let t_a2 = wcetfunc bound u2 in
       let w = IntMap.add t_a1 u1 w in
       let w = IntMap.add t_a2 u2 w in
-      (* printf "tc1tc2 %d %d\n%!" t_a2 t_a1; *)
-      (* printf "Size %d\n%!" (IntMap.cardinal w); *)
       search w
   in
     search w
@@ -1712,7 +1778,7 @@ let optimal_abstract_search w bound wcetfunc =
 (* Performs abstract search, but first trying to find a sound bound, and then, 
    if successful, find the optimal bound *)          
 let abstract_search bound wcetfunc =
-  printf "abstract_serach\n%!";
+  (* printf "abstract_search\n%!"; *)
   match sound_abstract_search bound wcetfunc with
   | None ->
     printf "Found counter example. For certain input, the execution\n%!";
@@ -1722,7 +1788,7 @@ let abstract_search bound wcetfunc =
     printf "Found a sound WCET bound of %d cycles.\n%!" t_s;
     printf "Trying to find the optimal WCET\n%!";
     let t_o = optimal_abstract_search w bound wcetfunc in
-    printf "Found an optimal WCET bound of %d cycles.\n%!" t_o    
+    printf "Found an optimal WCET bound of %d cycles.\n%!" t_o
 
 let _ = if !dbg && !dbg_trace then Printexc.record_backtrace true else ()
 
@@ -1745,10 +1811,8 @@ let print_mstate str ms =
   let ps = ms.pstate in
   match ps with
   | Nobranch ps -> print_pstate ps
+  | Sbranch (_,Some (Nobranch psold),ps1,ps2) -> print_pstate psold 
   | Sbranch (_,psold,ps1,ps2) -> should_not_happen 15
-  (*  (match psold with
-     | Some (Nobranch ps) -> print_pstate ps
-     | _ -> should_not_happen 15)*)
   | Branch _ -> should_not_happen 12
                
 type options_t =
@@ -1757,6 +1821,7 @@ type options_t =
   | OpConfigBatchSize
   | OpConfigMaxCycles
   | OpRecord
+  | OpNoCache
   | OpOptimize
       
 open Ustring.Op
@@ -1764,6 +1829,8 @@ open Ustring.Op
 let options =
   [ (OpDebug, Uargs.No, us"-debug", us"",
      us"Enable debug.");
+    (OpNoCache, Uargs.No, us"-nocache", us"",
+     us"Disable cache.");
     (OpOptimize, Uargs.No, us"-optimization", us"",
      us"Enable search based optimization.");
     (OpRecord, Uargs.Int, us"-record", us"",
@@ -1794,6 +1861,8 @@ let analyze startblock bblocks gp_addr mem defaultargs tasks n =
     (set_max_cycles (Uargs.int_op OpConfigMaxCycles ops));
   if Uargs.has_op OpConfigBatchSize ops then
     (set_max_batch_size (Uargs.int_op OpConfigBatchSize ops));
+  if Uargs.has_op OpNoCache ops then
+    (set_nocache true);
   let args =
     if Uargs.has_op OpArgs ops then
       Uargs.strlist_op OpArgs ops |> List.map Ustring.to_utf8
@@ -1802,14 +1871,15 @@ let analyze startblock bblocks gp_addr mem defaultargs tasks n =
   in
   let args = if args = [] then defaultargs else args in
   if !record_mtags then
-    (printf "RECORDING\n%!";
+    ( 
     analyze_main startblock bblocks gp_addr args mem tasks n (!config_max_cycles) [Abstract] |> print_mstate bblocks.(startblock).name
     )else if optimization then
-        (printf "OPT\n%!";
+        (
          abstract_search (!config_max_cycles)
            (mywcetfunc startblock bblocks gp_addr args mem tasks n ))  
       else
-        (printf "NORMAL\n%!";try
+        (
+         try
            analyze_main startblock bblocks gp_addr args mem tasks n (!config_max_cycles) [Abstract] |> print_mstate bblocks.(startblock).name;
          with
          | MaxCyclesException -> printf "Analysis not finished. A path reached the maximum cycles allowed: %d\n%!" (!config_max_cycles)

@@ -30,37 +30,37 @@ let normalize pf (f,d,e,m,w) = (f-pf, d-pf, e-pf, m-pf, w-pf)
   
 let pipeline_update instr p dp =
     let get_dependencies dr instr = 
-    match dr,instr with
+      match dr,instr with
     (* | (Mem (dr,_,_),t),Br(sr1,sr2) -> *)
-    | Some (dr,t), Br(sr1,sr2) ->
-       let dr =
-         match dr with
-         | Mem (dr,_,_) | ND (dr,_,_,_) -> dr
-         | _ -> None
-       in
-       let t =
-         match dr,sr1,sr2 with
-         | Some dr, Some sr, _ when sr = dr -> t
-         | Some dr, _, Some sr when sr = dr -> t
-         | _ -> 0
-       in
-       (t,0)
-    | Some (Mem (dr,_,_),t),instr ->
-       let sr1,sr2 =
-         match instr with
-         | Mem (_,sr1,sr2)
+      | Some (dr,t), Br(sr1,sr2) ->
+         let dr =
+           match dr with
+           | Mem (dr,_,_) | ND (dr,_,_,_) -> dr
+           | _ -> None
+         in
+         let t =
+           match dr,sr1,sr2 with
+           | Some dr, Some sr, _ when sr = dr -> t
+           | Some dr, _, Some sr when sr = dr -> t
+           | _ -> 0
+         in
+         (t,0)
+      | Some (Mem (dr,_,_),t),instr ->
+         let sr1,sr2 =
+           match instr with
+           | Mem (_,sr1,sr2)
            | ND (_,_,sr1,sr2)
            | Br (sr1,sr2) -> (sr1,sr2)
-       in
-       let t =
-         match dr,sr1,sr2 with
-         | Some dr, Some sr, _
+         in
+         let t =
+           match dr,sr1,sr2 with
+           | Some dr, Some sr, _
            | Some dr, _, Some sr when dr = sr -> t
-         | _ -> 0
-       in
-       (0,t)
-    | _ -> (0,0) 
-  in
+           | _ -> 0
+         in
+         (0,t)
+      | _ -> (0,0) 
+    in
 
   if !disable_pipeline then
     let (f,d,e,m,w) = dp in
@@ -101,11 +101,6 @@ let pipeline_update instr p dp =
     ticks,p')
           
 let pipeline_join p1 p2 =
-  (* let pipeline_join_int p1 p2 = *)
-  (*     let (f1,d1,e1,m1,w1) = p1 in *)
-  (*     let (f2,d2,e2,m2,w2) = p2 in *)
-  (*     (max f1 f2, max d1 d2, max e1 e2, max m1 m2, max w1 w2) *)
-  (* in *)
   let pipeline_join_int p1 p2 t =
       let (f1,d1,e1,m1,w1) = p1 in
       let (f2,d2,e2,m2,w2) = p2 in
