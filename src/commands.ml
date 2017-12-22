@@ -477,6 +477,9 @@ let ta_command args =
                                                                      
 let wcet_command args =
   (* Parse options and get the binary file name *)
+  let remove_file fname = if Sys.file_exists fname then
+      Sys.remove fname
+    else () in  
   let (ops,args,binfile_name,funcargs) = parse_ops_get_filename args wcet_options in
 
   let prog_args = Uargs.strlist_op OpWCET_OCamlArgs ops |> List.map Ustring.to_utf8 in
@@ -511,6 +514,15 @@ let wcet_command args =
      List.iter (fun (i,fname) -> 
        MipsCfg.test prog (Ustring.to_utf8 fname) (prog_args, optimize, max_cycles, bsconfig, tasks, record, i, print_out_option, nocache)) tasks;
      MipsCfg.test prog (Ustring.to_utf8 func_name) (prog_args, optimize, max_cycles, bsconfig, tasks, false, 0, print_out_option, nocache);
+     let runtime_path =
+       try
+         Sys.getenv(MipsSys.kta_wcet_runtime_path) ^ "/"
+       with Not_found -> "runtime/"
+     in
+     ((0,func_name)::tasks) |>
+         List.map (fun (i,fname) -> runtime_path ^
+           "memmap_" ^ Ustring.to_utf8 fname ^ "_" ^ (string_of_int i) ^ ".ml") |>
+             List.iter remove_file;
     )
   else 
     MipsCfg.test prog (Ustring.to_utf8 func_name) (prog_args, optimize, max_cycles, bsconfig, [], true, 0, print_out_option, nocache);

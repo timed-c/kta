@@ -74,7 +74,7 @@ val wcet_compile: string -> bool -> bool -> int option -> int option ->
 
 val verbose_enabled: unit -> bool
 
-
+val kta_wcet_runtime_path: string
 
 
 
