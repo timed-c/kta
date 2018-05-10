@@ -1,0 +1,7 @@
+S src
+S runtime
+S ext/ucamlib/src
+
+B _build/src
+B _build/ext/ucamlib/src
+B runtime/_build
