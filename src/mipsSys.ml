@@ -5,6 +5,7 @@ open Printf
 open MipsEval
 open Printf
        
+(* Compiler configuration for mips-mti-elf *)
 (*
 let comp_name = "mips-mti-elf"
 let cflags = " -ffreestanding -EL -mips32r3 -msoft-float -Wa,-msoft-float "
