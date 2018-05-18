@@ -1,1 +1,80 @@
 filename|function name|inputs|optimization flag|batch config (-1 for default)|expected bcet|expected wcet|verbose|comments|
+test/wcet_tests/tacle-bench/sequential/anagram/anagram.c test/wcet_tests/tacle-bench/sequential/anagram/anagram_input.c test/wcet_tests/tacle-bench/sequential/anagram/anagram_stdlib.c|main||0|-1|48|186|false||
+test/wcet_tests/tacle-bench/sequential/h264_dec/h264_dec.c test/wcet_tests/tacle-bench/sequential/h264_dec/h264_decinput.c|main||0|-1|48|186|false||
+test/wcet_tests/tacle-bench/sequential/h264_dec/h264_dec.c test/wcet_tests/tacle-bench/sequential/h264_dec/h264_decinput.c|main||1|-1|48|186|false||
+test/wcet_tests/tacle-bench/sequential/h264_dec/h264_dec.c test/wcet_tests/tacle-bench/sequential/h264_dec/h264_decinput.c|main||2|-1|48|186|false||
+test/wcet_tests/tacle-bench/sequential/h264_dec/h264_dec.c test/wcet_tests/tacle-bench/sequential/h264_dec/h264_decinput.c|main||3|-1|48|186|false||
+test/wcet_tests/tacle-bench/sequential/petrinet/petrinet.c|main||0|-1|48|186|false||
+test/wcet_tests/tacle-bench/sequential/petrinet/petrinet.c|main||1|-1|48|186|false||
+test/wcet_tests/tacle-bench/sequential/petrinet/petrinet.c|main||2|-1|48|186|false||
+test/wcet_tests/tacle-bench/sequential/petrinet/petrinet.c|main||3|-1|48|186|false||
+test/wcet_tests/tacle-bench/sequential/huff_enc/huff_enc.c|main||2|-1|48|186|false||
+test/wcet_tests/tacle-bench/sequential/huff_enc/huff_enc.c|main||3|-1|48|186|false||
+test/wcet_tests/tacle-bench/sequential/gsm_dec/gsm_dec.c|main||0|-1|48|186|false||
+test/wcet_tests/tacle-bench/sequential/gsm_dec/gsm_dec.c|main||1|-1|48|186|false||
+test/wcet_tests/tacle-bench/sequential/gsm_dec/gsm_dec.c|main||2|-1|48|186|false||
+test/wcet_tests/tacle-bench/sequential/gsm_dec/gsm_dec.c|main||3|-1|48|186|false||
+test/wcet_tests/tacle-bench/sequential/g723_enc/g723_enc.c|main||0|-1|48|186|false||
+test/wcet_tests/tacle-bench/sequential/g723_enc/g723_enc.c|main||1|-1|48|186|false||
+test/wcet_tests/tacle-bench/sequential/g723_enc/g723_enc.c|main||2|-1|48|186|false||
+test/wcet_tests/tacle-bench/sequential/g723_enc/g723_enc.c|main||3|-1|48|186|false||
+test/wcet_tests/tacle-bench/sequential/cjpeg_transupp/cjpeg_transupp.c|main||0|-1|48|186|false||
+test/wcet_tests/tacle-bench/sequential/cjpeg_transupp/cjpeg_transupp.c|main||1|-1|48|186|false||
+test/wcet_tests/tacle-bench/sequential/cjpeg_transupp/cjpeg_transupp.c|main||2|-1|48|186|false||
+test/wcet_tests/tacle-bench/sequential/cjpeg_transupp/cjpeg_transupp.c|main||3|-1|48|186|false||
+test/wcet_tests/tacle-bench/sequential/adpcm_dec/adpcm_dec.c|main||0|-1|48|186|false||
+test/wcet_tests/tacle-bench/sequential/adpcm_dec/adpcm_dec.c|main||1|-1|48|186|false||
+test/wcet_tests/tacle-bench/sequential/adpcm_dec/adpcm_dec.c|main||2|-1|48|186|false||
+test/wcet_tests/tacle-bench/sequential/adpcm_dec/adpcm_dec.c|main||3|-1|48|186|false||
+test/wcet_tests/tacle-bench/sequential/adpcm_enc/adpcm_enc.c|main||0|-1|48|186|false||
+test/wcet_tests/tacle-bench/sequential/adpcm_enc/adpcm_enc.c|main||1|-1|48|186|false||
+test/wcet_tests/tacle-bench/sequential/adpcm_enc/adpcm_enc.c|main||2|-1|48|186|false||
+test/wcet_tests/tacle-bench/sequential/adpcm_enc/adpcm_enc.c|main||3|-1|48|186|false||
+test/wcet_tests/tacle-bench/kernel/matrix1/matrix1.c|main||0|-1|48|186|false||
+test/wcet_tests/tacle-bench/kernel/matrix1/matrix1.c|main||1|-1|48|186|false||
+test/wcet_tests/tacle-bench/kernel/matrix1/matrix1.c|main||2|-1|48|186|false||
+test/wcet_tests/tacle-bench/kernel/matrix1/matrix1.c|main||3|-1|48|186|false||
+test/wcet_tests/tacle-bench/kernel/countnegative/countnegative.c|main||0|-1|48|186|false||
+test/wcet_tests/tacle-bench/kernel/countnegative/countnegative.c|main||1|-1|48|186|false||
+test/wcet_tests/tacle-bench/kernel/countnegative/countnegative.c|main||2|-1|48|186|false||
+test/wcet_tests/tacle-bench/kernel/countnegative/countnegative.c|main||3|-1|48|186|false||
+test/wcet_tests/tacle-bench/kernel/bitonic/bitonic.c|main||0|-1|48|186|false||
+test/wcet_tests/tacle-bench/kernel/bitonic/bitonic.c|main||1|-1|48|186|false||
+test/wcet_tests/tacle-bench/kernel/bitonic/bitonic.c|main||2|-1|48|186|false||
+test/wcet_tests/tacle-bench/kernel/bitonic/bitonic.c|main||3|-1|48|186|false||
+test/wcet_tests/tacle-bench/sequential/ndes/ndes.c|main||0|-1|100204|101471|false||
+test/wcet_tests/tacle-bench/sequential/ndes/ndes.c|main||1|-1|41856|41856|false||
+test/wcet_tests/tacle-bench/sequential/ndes/ndes.c|main||2|-1|34184|34184|false||
+test/wcet_tests/tacle-bench/sequential/ndes/ndes.c|main||3|-1|33927|33927|false||
+test/wcet_tests/tacle-bench/sequential/statemate/statemate.c|main||0|-1|955|955|false|To be checked|
+test/wcet_tests/tacle-bench/sequential/statemate/statemate.c|main||1|-1|577|577|false|To be checked|
+test/wcet_tests/tacle-bench/sequential/statemate/statemate.c|main||2|-1|544|544|false|To be checked|
+test/wcet_tests/tacle-bench/sequential/statemate/statemate.c|main||3|-1|481|481|false|To be checked|
+test/wcet_tests/tacle-bench/kernel/prime/prime.c|prime_prime|a0=[0,100]|0|-1|48|186|false||
+test/wcet_tests/tacle-bench/kernel/prime/prime.c|prime_prime|a0=[0,100]|2|-1|4|49|false||
+test/wcet_tests/tacle-bench/kernel/prime/prime.c|prime_prime|a0=[0,100]|1|-1|4|52|false||
+test/wcet_tests/tacle-bench/kernel/prime/prime.c|prime_prime|a0=[0,100]|3|-1|4|48|false||
+test/wcet_tests/tacle-bench/kernel/binarysearch/binarysearch.c|binarysearch_binary_search||0|23|50|152|false||
+test/wcet_tests/tacle-bench/kernel/binarysearch/binarysearch.c|binarysearch_binary_search||1|23|19|52|false||
+test/wcet_tests/tacle-bench/kernel/binarysearch/binarysearch.c|binarysearch_binary_search||2|23|18|54|false||
+test/wcet_tests/tacle-bench/kernel/binarysearch/binarysearch.c|binarysearch_binary_search||3|23|18|54|false||
+test/wcet_tests/tacle-bench/kernel/fac/fac.c|fac_fac|a0=[1,10]|0|-1|4935|267165|false||
+test/wcet_tests/tacle-bench/kernel/fac/fac.c|fac_fac|a0=[1,10]|1|-1|4935|267165|false||
+test/wcet_tests/tacle-bench/kernel/fac/fac.c|fac_fac|a0=[1,10]|2|-1|4935|267165|false||
+test/wcet_tests/tacle-bench/kernel/fac/fac.c|fac_fac|a0=[1,10]|3|-1|4935|267165|false||
+test/wcet_tests/tacle-bench/kernel/recursion/recursion.c|recursion_fib|a0=[0,10]|0|-1|4|1852|false||
+test/wcet_tests/tacle-bench/kernel/recursion/recursion.c|recursion_fib|a0=[0,10]|1|-1|4|1852|false||
+test/wcet_tests/tacle-bench/kernel/recursion/recursion.c|recursion_fib|a0=[0,10]|2|-1|12|1563|false||
+test/wcet_tests/tacle-bench/kernel/recursion/recursion.c|recursion_fib|a0=[0,10]|3|-1|4|1137|false||
+test/wcet_tests/tacle-bench/kernel/bsort/bsort.c|main||0|-1|4935|267165|false||
+test/wcet_tests/tacle-bench/kernel/bsort/bsort.c|main||1|-1|4935|267165|false||
+test/wcet_tests/tacle-bench/kernel/bsort/bsort.c|main||2|-1|4935|267165|false||
+test/wcet_tests/tacle-bench/kernel/bsort/bsort.c|main||3|-1|4935|267165|false||
+test/wcet_tests/tacle-bench/kernel/insertsort/insertsort.c|main||0|-1|2406|2406|false||
+test/wcet_tests/tacle-bench/kernel/insertsort/insertsort.c|main||1|-1|370|370|false||
+test/wcet_tests/tacle-bench/kernel/insertsort/insertsort.c|main||2|-1|370|370|false||
+test/wcet_tests/tacle-bench/kernel/insertsort/insertsort.c|main||3|-1|305|305|false||
+test/wcet_tests/tacle-bench/kernel/jfdctint/jfdctint.c|main||0|-1|6923|6923|false||
+test/wcet_tests/tacle-bench/kernel/jfdctint/jfdctint.c|main||1|-1|3396|3396|false||
+test/wcet_tests/tacle-bench/kernel/jfdctint/jfdctint.c|main||2|-1|3807|3807|false||
+test/wcet_tests/tacle-bench/kernel/jfdctint/jfdctint.c|main||3|-1|3807|3807|false||
