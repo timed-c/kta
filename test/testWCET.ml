@@ -25,9 +25,9 @@ let compile_file filename fname args optimization optimize debug bsconfig =
      let prog = MipsSys.get_program tmpfile |>  MipsUtils.add_branch_symbols in
      let (prog,cfgmap) = MipsCfg.make_cfgmap fname prog in
      let program_code = MipsCfg.pprint_ocaml_cps_from_cfgmap true [] 0 true fname cfgmap prog in
-
+     let nocache = true in
      let stdout = MipsSys.wcet_compile fname optimization debug (Some 20000000)
-       bsconfig false 0 program_code args in
+       bsconfig false 0 nocache program_code args in
      if debug then printf "%s\n%!" stdout;
      try
        let regex = Str.regexp "BCET:[^0-9]*\\([0-9]+\\)\\(.\\|\n\\)*WCET:[^0-9]*\\([0-9]+\\)\\(.\\|\n\\)*Time Elapsed:[^0-9]*\\([0-9\.]+\\)s" in
