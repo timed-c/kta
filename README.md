@@ -19,7 +19,7 @@ KTA should be possible to be executed on Windows, Mac OS X, and Linux, but it ha
 
 4. Clone this repository: `git clone https://github.com/timed-c/kta.git`
 
-5. From the root path, run: `make`. An executable named `kta` should now be available in the directory `/bin`. Add this directory to your path environment.
+5. From the root path, run: `make`. An executable named `kta` should now be available in the directory `./bin`. Add this directory to your path environment.
 
 ## Usage
 
