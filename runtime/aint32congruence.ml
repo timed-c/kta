@@ -176,7 +176,10 @@ let aint32_pprint debug v =
     | l,1,n ->
        us (sprintf "[%d,%d] " l (high l s n))
     | l,s,n ->
-       us (sprintf "[%d,%d,%d] " l s (high l s n))
+       if (high l s n) > max_int then
+         us (sprintf "Error: aint32_pprint - High too large %d:%d:%d" l s n)
+       else
+         us (sprintf "[%d,%d,%d] " l s (high l s n))
   in  
   match v with
   | Any _ -> us"Any "
@@ -496,13 +499,15 @@ let aint32_srlv v1 v2 =
   aint32_binop (fun (l1,s1,n1) (l2,s2,n2) ->
       let (l2,s2,n2) = mod5 (l2,s2,n2) in
       let h1 = high l1 s1 n1 in
-      let h2 = high l2 s2 n2 in
+      (* let h2 = high l2 s2 n2 in *)
       let l = l1 lsr l2 in
-      let h = h1 lsr h2 in
+      let h = h1 lsr l2 in
+      let l,h = if l>h then h,l else l,h in        
+      (* let h = h1 lsr h2 in *)
       let s = if h = l then 0 else 1 in 
       let n = number h l s in
       let s = if n = 1 then 0 else s in
-      if l<lowval || h>highval then raise AnyException
+      if l> highval || l<lowval || h>highval then raise AnyException
       else if (n1 = 1 && n2 = 1) then (l1 lsr l2, 0, 1)
       else (l,s,n)
     ) v1 v2
@@ -731,14 +736,19 @@ let test_equal (l1,s1,n1) (l2,s2,n2) =
         let nn2 = dec_num n2 in
         let ns2 = if nn2 = 1 then 0
                     else s2 in
+        let nn1 = dec_num n1 in
+        let ns1 = if nn1 = 1 then 0
+                    else s1 in
         ([((h1,0,1),(h1,0,1))],                          (* TRUE *)
-         [((l1,s1,n1),(l2+s2,ns2,nn2));((l1,s1,dec_num n1),(l2,s2,n2))])    (* FALSE *)
+         [((l1,s1,n1),(l2+s2,ns2,nn2));((l1,ns1,nn1),(l2,s2,n2))])    (* FALSE *)
       else if l1 < h1 && l2 = h2 then
+        let n1 = dec_num n1 in
+        let s1 = if n1 = 1 then 0 else s1 in 
       (*  11111
 
               2  *)  
         ([((h1,0,1),(h1,0,1))],                          (* TRUE *)
-         [((l1,s1,dec_num n1),(l2,s2,n2))])                        (* FALSE *)
+         [((l1,s1,n1),(l2,s2,n2))])                        (* FALSE *)
       else if l1 = h1 && l2 < h2 then
       (*      1
               22222 *)
@@ -762,14 +772,20 @@ let test_equal (l1,s1,n1) (l2,s2,n2) =
         let nn1 = dec_num n1 in
         let ns1 = if nn1 = 1 then 0
                   else s1 in
+        let nn2 = dec_num n2 in
+        let ns2 = if nn2 = 1 then 0
+                  else s2 in
       (* Two cases for false *)
       ([((h2,0,1),(h2,0,1))],                          (* TRUE *)
-       [((l1+s1,ns1,nn1),(l2,s2,n2));((l1,s1,n1),(l2,s2,dec_num n2))])    (* FALSE *)
+       [((l1+s1,ns1,nn1),(l2,s2,n2));((l1,s1,n1),(l2,ns2,nn2))])    (* FALSE *)
     else if l2 < h2 && l1 = h1 then
         (*  22222
               1  *)  
-      ([((h2,0,1),(h2,0,1))],                          (* TRUE *)
-       [((l1,s1,n1),(l2,s2,dec_num n2))]                        (* FALSE *)
+        let nn2 = dec_num n2 in
+        let ns2 = if nn2 = 1 then 0
+                  else s2 in
+        ([((h2,0,1),(h2,0,1))],                          (* TRUE *)
+         [((l1,s1,n1),(l2,ns2,nn2))]                        (* FALSE *)
         )    else if l2 = h2 && l1 < h1 then
         let nn1 = dec_num n1 in
         let ns1 = if nn1 = 1 then 0
