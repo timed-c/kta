@@ -1,5 +1,7 @@
-#define size_t unsigned long
-#define EOF -1
+//#define size_t unsigned long
+//#define EOF -1
+
+#include "wccfile.h"
 
 size_t wccfread(void* ptr, size_t size, size_t count, struct wccFILE* stream)
 {

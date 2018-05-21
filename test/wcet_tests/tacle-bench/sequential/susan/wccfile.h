@@ -13,7 +13,8 @@ struct wccFILE {
     unsigned cur_pos;
 };
 
-size_t wccfread         (void* ptr, size_t size, size_t count, struct wccFILE* stream);
+size_t wccfread(void* ptr, size_t size, size_t count, struct wccFILE* stream);
+//size_t wccfread         (void* ptr, size_t size, size_t count, struct wccFILE* stream);
 int    wccfseek         (struct wccFILE* stream, long int offset, Origin origin);
 int    wccfgetpos       (struct wccFILE* stream, unsigned* position);
 int    wccfeof          (struct wccFILE* stream);
