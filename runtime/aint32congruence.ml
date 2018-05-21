@@ -342,22 +342,26 @@ let aint32_and_f (l1,s1,n1) (l2,s2,n2) =
      let n = number h l s in
      let s = if n = 1 then 0 else s in
      (l,s,n)
+  (* | (l2,s2,n2),(l1,0,1) | (l1,0,1),(l2,s2,n2) ->
+   *    let h = l1 in
+   *    let l = 0 in
+   *    let s = 1 in
+   *    let n = number h l s in
+   *    (l,s,n) *)
   | _ ->
      let h1 = high l1 s1 n1 in
      let h2 = high l2 s2 n2 in 
      let l = if l1 >= 0 && l2 >= 0 then 0
-             else if l1*l2 < 0 then
-               if h1>0 && h2>0 then 0
-               else 0 (*TODO(Romy): (maybe) tighten*)
+             else if ((l1/abs(l1))*(l2/abs(l2))) < 0 then 0
              else
-		Utils.sign_extension ((leading_ones (min l1 l2)) land 0xffffffff) 32
-              (* -1 *((lnot (leading_ones (min l1 l2)) + 1) land 0xffffffff)*)
+	       Utils.sign_extension ((leading_ones (min l1 l2)) land 0xffffffff) 32
      in
      let h = if l1>=0 && l2>=0 then min h1 h2
-         else if h1*h2<0 then max h1 h2
+         else if (h1/abs(h1))*(h2/abs(h2))<0 then max h1 h2
        else if l1<0 || l2<0 then max h1 h2
        else max h1 h2 
      in
+     let h,l = if h<l then l,h else h,l in
      let s = if h=l then 0 else 1 in
      let n = number h l s in
      let s = if n = 1 then 0 else s in
@@ -381,9 +385,11 @@ let aint32_not_f (l,s,n) =
   (lnot (high l s n), s, n)
 
 let aint32_or_f v1 v2 =
-  aint32_not_f (aint32_and_f
+  aint32_not_f (
+      aint32_and_f
                   (aint32_not_f v1)
-                  (aint32_not_f v2))
+                  (aint32_not_f v2)
+    )
            
 let aint32_or v1 v2 =
   aint32_binop aint32_or_f v1 v2
