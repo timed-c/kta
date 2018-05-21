@@ -1808,13 +1808,16 @@ let print_mstate str ms =
         print_hmem_stats ps.hmem;
       uprint_endline (pprint_pstate 32 ps))
   in
+  let rec find_pstate ps = 
+    match ps with
+    | Nobranch ps -> print_pstate ps
+    | Sbranch (_,Some (psold),ps1,ps2) -> find_pstate psold
+    | Sbranch _ -> should_not_happen 15
+    | Branch _ -> should_not_happen 12
+  in
   let ps = ms.pstate in
-  match ps with
-  | Nobranch ps -> print_pstate ps
-  | Sbranch (_,Some (Nobranch psold),ps1,ps2) -> print_pstate psold 
-  | Sbranch (_,psold,ps1,ps2) -> should_not_happen 15
-  | Branch _ -> should_not_happen 12
-               
+  find_pstate ps
+              
 type options_t =
   | OpDebug
   | OpArgs
