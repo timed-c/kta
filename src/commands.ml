@@ -139,7 +139,7 @@ let wcet_options =
    (OpWCET_BSConfig, Uargs.Int,  us"-bsconfig",  us"",
     us"Configure maximum batch size.");
    (OpWCET_Optimize, Uargs.No,  us"-optimization",  us"",
-    us"Enable Search-base optimization.");
+    us"Enable Search-based optimization.");
    (OpWCET_NoCache, Uargs.No,  us"-nocache",  us"",
     us"Disable cache analysis.");
    (OpWCET_MCConfig, Uargs.Int,  us"-max_cycles",  us"",
