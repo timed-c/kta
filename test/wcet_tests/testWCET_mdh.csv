@@ -1,4 +1,8 @@
 filename|function name|inputs|optimization flag|batch config (-1 for default)|expected bcet|expected wcet|verbose|comments|
+test/wcet_tests/mdh/nsichneu.c|main||0|-1|9204|9204|false||
+test/wcet_tests/mdh/nsichneu.c|main||1|-1|5656|5656|false||
+test/wcet_tests/mdh/nsichneu.c|main||2|-1|5257|5257|false||
+test/wcet_tests/mdh/nsichneu.c|main||3|-1|5257|5257|false||
 test/wcet_tests/mdh/ns.c|foo|a0=[1,10]|0|-1|5146|25155|false||
 test/wcet_tests/mdh/ns.c|foo|a0=[1,10]|1|-1|736|3530|false||
 test/wcet_tests/mdh/ns.c|foo|a0=[1,10]|2|-1|812|3905|false||
@@ -33,10 +37,6 @@ test/wcet_tests/mdh/fibcall.c|fib|a0=[0,100]|0|-1|26|601|false||
 test/wcet_tests/mdh/fibcall.c|fib|a0=[0,100]|1|-1|4|202|false||
 test/wcet_tests/mdh/fibcall.c|fib|a0=[0,100]|2|-1|4|203|false||
 test/wcet_tests/mdh/fibcall.c|fib|a0=[0,100]|3|-1|4|203|false||
-test/wcet_tests/mdh/nsichneu.c|main||0|-1|9204|9204|false||
-test/wcet_tests/mdh/nsichneu.c|main||1|-1|5656|5656|false||
-test/wcet_tests/mdh/nsichneu.c|main||2|-1|5257|5257|false||
-test/wcet_tests/mdh/nsichneu.c|main||3|-1|5257|5257|false||
 test/wcet_tests/mdh/fdct.c|main||0|-1|5256|5256|false||
 test/wcet_tests/mdh/fdct.c|main||1|-1|2599|2599|false||
 test/wcet_tests/mdh/fdct.c|main||2|-1|3230|3230|false||
@@ -105,8 +105,6 @@ test/wcet_tests/mdh/expint.c|main||2|-1|1|1|false|To be checked|
 test/wcet_tests/mdh/expint.c|main||3|-1|1|1|false|To be checked|
 test/wcet_tests/mdh/janne_complex.c|complex|a0=[1,30];a1=[1,30]|1|-1|3|351|false|To be checked|
 test/wcet_tests/mdh/janne_complex.c|complex|a0=[1,30];a1=[1,30]|2|-1|4|542|false|To be checked|
-test/wcet_tests/mdh/compress.c|main||0|-1|123|123|false||
-test/wcet_tests/mdh/compress.c|main||1|-1|2827|19044|false|To be checked|
 test/wcet_tests/mdh/fir.c|main||0|-1|1|1|false||
 test/wcet_tests/mdh/fir.c|main||1|-1|1|1|false||
 test/wcet_tests/mdh/fir.c|main||2|-1|1|1|false||
