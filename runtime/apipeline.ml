@@ -54,7 +54,7 @@ let pipeline_update instr p dp =
          in
          let t =
            match dr,sr1,sr2 with
-           | Some dr, Some sr, _
+           | Some dr, Some sr, _ when dr = sr -> t
            | Some dr, _, Some sr when dr = sr -> t
            | _ -> 0
          in
