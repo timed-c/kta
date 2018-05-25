@@ -13,7 +13,7 @@ table:
 .text
 
 main:
-        li      $a1,table
+        la      $a1,table
         lw      $t0,0($a1)
         lw      $t1,4($a1)
         lw      $t2,8($a1)
