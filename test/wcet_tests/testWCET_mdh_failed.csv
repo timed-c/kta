@@ -20,6 +20,8 @@ test/wcet_tests/mdh/crc.c|main||3|-1|-1|-1|false||
 test/wcet_tests/mdh/crc.c|icrc|a0=[0,5];a1=[40,50];a2=[0,5];a3=[1,5]|3|-1|-1|-1|false||
 test/wcet_tests/mdh/janne_complex.c|complex|a0=[1,30];a1=[1,30]|0|-1|-1|-1|false||
 test/wcet_tests/mdh/janne_complex.c|complex|a0=[1,30];a1=[1,30]|3|-1|-1|-1|false||
+test/wcet_tests/mdh/compress.c|main||0|-1|123|123|false||
+test/wcet_tests/mdh/compress.c|main||1|-1|2827|19044|false|To be checked|
 test/wcet_tests/mdh/compress.c|main||2|-1|-1|-1|false||
 test/wcet_tests/mdh/compress.c|main||3|-1|-1|-1|false||
 test/wcet_tests/mdh/cover.c|main||0|-1|-1|-1|false||

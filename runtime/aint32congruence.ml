@@ -77,8 +77,8 @@ let high l s n = l+s*(n-1)
 
 let number h l s =
   if s == 0 then 1
-  (* else (h-l)/s+1 *)
-  else (h-l+1)/s
+  else (h-l)/s+1
+  (* else (h-l+1)/s *)
 
     
 let dec_num n = max 1 (n-1) 
@@ -350,14 +350,16 @@ let aint32_and_f (l1,s1,n1) (l2,s2,n2) =
    *    (l,s,n) *)
   | _ ->
      let h1 = high l1 s1 n1 in
-     let h2 = high l2 s2 n2 in 
+     let h2 = high l2 s2 n2 in
      let l = if l1 >= 0 && l2 >= 0 then 0
-             else if ((l1/abs(l1))*(l2/abs(l2))) < 0 then 0
+             else if (l1 lxor l2<0) then 0
+             (* else if ((l1/abs(l1))*(l2/abs(l2))) < 0 then 0 *)
              else
 	       Utils.sign_extension ((leading_ones (min l1 l2)) land 0xffffffff) 32
      in
      let h = if l1>=0 && l2>=0 then min h1 h2
-         else if (h1/abs(h1))*(h2/abs(h2))<0 then max h1 h2
+             else if (h1 lxor h2<0) then max h1 h2
+         (* else if (h1/abs(h1))*(h2/abs(h2))<0 then max h1 h2 *)
        else if l1<0 || l2<0 then max h1 h2
        else max h1 h2 
      in
