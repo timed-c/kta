@@ -15,16 +15,16 @@ let pprint_tpp tpp = ustring_of_sid tpp
 (* ---------------------------------------------------------------------*)
 (** Pretty print a path between timing program points *)
 let pprint_path path =
-  match path with  
+  match path with
   | TppPath(tpps) -> Ustring.concat (us",") (List.map pprint_tpp tpps)
   | TppPathUnknown -> us"unknown"
 
-   
+
 
 
 (* ---------------------------------------------------------------------*)
 (** Pretty print a time value *)
-let pprint_time_value v = 
+let pprint_time_value v =
   match v with
   | TimeCycles(i) -> ustring_of_int i
   | TimeUnknown -> us"unknown"
@@ -40,8 +40,8 @@ let pprint_abstract_value v =
 
 
 (* ---------------------------------------------------------------------*)
-let pprint_req_name req = 
-  match req with 
+let pprint_req_name req =
+  match req with
   | ReqWCP(_,_) -> us"WCP"
   | ReqBCP(_,_) -> us"BCP"
   | ReqLWCET(_,_) -> us"LWCET"
@@ -52,7 +52,7 @@ let pprint_req_name req =
 
 (* ---------------------------------------------------------------------*)
 (* Returns the pair of timing program points from a timing request *)
-let get_req_tpp req = 
+let get_req_tpp req =
   match req with ReqWCP(t1,t2)  | ReqBCP(t1,t2) | ReqLWCET(t1,t2) | ReqLBCET(t1,t2) |
                  ReqFWCET(t1,t2) | ReqFBCET(t1,t2) -> (t1,t2)
 
@@ -66,47 +66,47 @@ let pprint_func_ta_req func_ta_req =
 
   (* Init Function *)
   (if Ustring.length func_ta_req.initfunc <> 0 then
-    us"InitFunction " ^. func_ta_req.initfunc  ^. us"\n" 
+    us"InitFunction " ^. func_ta_req.initfunc  ^. us"\n"
   else us"") ^.
 
   (* Arguments *)
-  (if List.length func_ta_req.args = 0 then us"" else 
-    Ustring.concat (us"\n") 
+  (if List.length func_ta_req.args = 0 then us"" else
+    Ustring.concat (us"\n")
       (List.map (fun (argno,v) -> us"Arg " ^. ustring_of_int argno ^. us" " ^.
                  pprint_abstract_value v) func_ta_req.args) ^. us"\n") ^.
 
   (* Global variables *)
-  (if List.length func_ta_req.gvars = 0 then us"" else 
-    Ustring.concat (us"\n") 
+  (if List.length func_ta_req.gvars = 0 then us"" else
+    Ustring.concat (us"\n")
       (List.map (fun (x,v) -> us"GlobalVar " ^. ustring_of_sid x ^. us" " ^.
-                 pprint_abstract_value v) func_ta_req.gvars) ^. us"\n") ^. 
+                 pprint_abstract_value v) func_ta_req.gvars) ^. us"\n") ^.
 
   (* State variables *)
-  (if List.length func_ta_req.state = 0 then us"" else 
-    Ustring.concat (us"\n") 
+  (if List.length func_ta_req.state = 0 then us"" else
+    Ustring.concat (us"\n")
       (List.map (fun x -> us"State " ^. ustring_of_sid x) func_ta_req.state)
-         ^. us"\n") ^. 
-    
+         ^. us"\n") ^.
+
   (* Function WCET assumptions *)
-  (if List.length func_ta_req.fwcet = 0 then us"" else 
-    Ustring.concat (us"\n") 
+  (if List.length func_ta_req.fwcet = 0 then us"" else
+    Ustring.concat (us"\n")
       (List.map (fun (x,v) -> us"FunctionWCET " ^. ustring_of_sid x ^. us" " ^.
                  ustring_of_int v) func_ta_req.fwcet) ^. us"\n")  ^.
 
   (* Function BCET assumptions *)
-  (if List.length func_ta_req.fbcet = 0 then us"" else 
-    Ustring.concat (us"\n") 
+  (if List.length func_ta_req.fbcet = 0 then us"" else
+    Ustring.concat (us"\n")
       (List.map (fun (x,v) -> us"FunctionBCET " ^. ustring_of_sid x ^. us" " ^.
                  ustring_of_int v) func_ta_req.fbcet) ^. us"\n") ^.
-  
+
   (* Timing requests *)
-  (if List.length func_ta_req.ta_req = 0 then us"" else 
-    Ustring.concat (us"\n") 
-      (List.map (fun (_,req) -> 
+  (if List.length func_ta_req.ta_req = 0 then us"" else
+    Ustring.concat (us"\n")
+      (List.map (fun (_,req) ->
                  let (tpp1,tpp2) = get_req_tpp req in
                  pprint_req_name req ^. us" " ^.
-                 pprint_tpp tpp1 ^. us" " ^. pprint_tpp tpp2) 
-                 func_ta_req.ta_req) ^. us"\n") 
+                 pprint_tpp tpp1 ^. us" " ^. pprint_tpp tpp2)
+                 func_ta_req.ta_req) ^. us"\n")
 
 
 
@@ -115,28 +115,28 @@ let pprint_func_ta_req func_ta_req =
 (* see .mli *)
 let pprint_simple_ta_res ta_res =
   List.fold_left (fun acc res ->
-    (match res with 
-     | ResWCP(path) -> acc ^. pprint_path path  
+    (match res with
+     | ResWCP(path) -> acc ^. pprint_path path
      | ResBCP(path) -> acc ^. pprint_path path
-     | ResLWCET(t) | ResLBCET(t) | ResFWCET(t) | ResFBCET(t) 
+     | ResLWCET(t) | ResLBCET(t) | ResFWCET(t) | ResFBCET(t)
        -> acc ^. pprint_time_value t) ^. us"\n"
   ) (us"") ta_res
 
 
 
-  
+
 (* ---------------------------------------------------------------------*)
 (* see .mli *)
 let pprint_full_ta_res func_ta_req ta_res = us"Full!"
 
 
 
-  
+
 (* ---------------------------------------------------------------------*)
 (** Pretty print the content of a timing analysis file *)
-let pprint_file_ta_req file_ta_req = 
+let pprint_file_ta_req file_ta_req =
   us"Filename: " ^. us(file_ta_req.ta_filename) ^. us"\n" ^.
-  us"Number of function requests: " ^. 
+  us"Number of function requests: " ^.
      ustring_of_int (List.length (file_ta_req.func_ta_reqs)) ^. us"\n" ^.
   Ustring.concat (us"----\n") (List.map pprint_func_ta_req (file_ta_req.func_ta_reqs)) ^.
   us"\n"
@@ -144,25 +144,25 @@ let pprint_file_ta_req file_ta_req =
 
 
 
-  
+
 (* ---------------------------------------------------------------------*)
 (* Parses a positive integer and raises TA_file_syntax_erro if something is wrong. *)
-let parse_positive_int filename line_no value  = 
-  let v = try int_of_string value 
+let parse_positive_int filename line_no value  =
+  let v = try int_of_string value
      with _ -> raise (TA_file_syntax_error(filename,line_no)) in
   if v < 0 then raise (TA_file_syntax_error(filename,line_no))
   else v
 
 
 
-    
+
 (* ---------------------------------------------------------------------*)
 (** Parse a timing program point *)
 let parse_tpp filename line_no str = usid str
 
 
 
-    
+
 (* ---------------------------------------------------------------------*)
 (* Parse an literal to to a time value *)
 let parse_time_literal filename line_no str =
@@ -174,13 +174,13 @@ let parse_time_literal filename line_no str =
 (* Parse an literal to to a int value *)
 let parse_int_literal filename line_no str =
   try int_of_string str
-   with _ -> raise (TA_file_syntax_error(filename,line_no)) 
-  
+   with _ -> raise (TA_file_syntax_error(filename,line_no))
 
 
 
 
-                      
+
+
 (* ---------------------------------------------------------------------*)
 (* Parse a value. Raise exception TA_file_syntax_error if the kind of value is
    unknown. Right now, we only supports integer values (no intervals) *)
@@ -189,7 +189,7 @@ let parse_abstract_value filename line_no value =
   try let v = int_of_string value in VInt(v,v)
 
   (* Is integer interval? *)
-  with _ -> 
+  with _ ->
   (try
      match Str.split (Str.regexp "\\.\\.") value with
      | [l;u] ->
@@ -197,34 +197,34 @@ let parse_abstract_value filename line_no value =
    | _ -> raise (TA_file_syntax_error(filename,line_no))
   with _ ->
     raise (TA_file_syntax_error(filename,line_no)))
-  
 
-   
+
+
 
 (* ---------------------------------------------------------------------*)
-(* Parse text lines. Raises TA_file_syntax_error if there are any 
+(* Parse text lines. Raises TA_file_syntax_error if there are any
    errors in the ta file *)
-let parse_ta_strings filename lines = 
+let parse_ta_strings filename lines =
   (* Removes empty lines and lines with comments. Adds line numbers *)
   let nolines = List.rev (snd (List.fold_left (fun (no,acc) line ->
     let tline = Ustring.trim line in
     if Ustring.length tline = 0 || Ustring.sub tline 0 1 = us"#"
-    then (no+1, acc) 
+    then (no+1, acc)
     else (no+1,((no,tline)::acc))) (1,[]) lines)) in
-  
+
   (* Split lines into token lists *)
   let tokenlst = List.map (fun (no,line) ->
     let tokens = Ustring.split line (us" \t") in
     let ftokens = List.filter (fun t -> Ustring.length t <> 0) tokens in
     (no,ftokens)) nolines in
-  
+
   (* Translate all strings to utf8 strings, which we can do pattern matching on *)
-  let utf8tokens = List.map (fun (n,ls) -> (n,List.map Ustring.to_utf8 ls)) tokenlst in 
+  let utf8tokens = List.map (fun (n,ls) -> (n,List.map Ustring.to_utf8 ls)) tokenlst in
 
   (* Extract timing analysis request data *)
   let rec extract tokens fname initfunc args gvars state fwcet fbcet ta_req acc =
     let uppertokens = (match tokens with
-                      | (k,s::ss)::ts -> (k,(String.uppercase s)::ss)::ts
+                      | (k,s::ss)::ts -> (k,(String.uppercase_ascii s)::ss)::ts
                       | _ -> tokens) in
     match uppertokens with
     | (_,["FUNCTION";name])::ts -> (
@@ -233,29 +233,29 @@ let parse_ta_strings filename lines =
         (* We are done with this function. Process next *)
           let func =  {funcname = us prename; initfunc = initfunc;
                        args = List.rev args; gvars = List.rev gvars;
-                       state = List.rev state; fwcet = List.rev fwcet; 
+                       state = List.rev state; fwcet = List.rev fwcet;
                        fbcet = List.rev fbcet; ta_req = List.rev ta_req} in
           extract ts (Some(name)) (us"") [] [] [] [] [] [] (func::acc)
-        | None -> 
+        | None ->
              (* We have detected a new function (the first one) *)
           extract ts (Some(name)) (us"") [] [] [] [] [] [] acc)
     | (lineno,["INITFUNCTION";name])::ts -> (
         extract ts fname (us name) args gvars state fwcet fbcet ta_req acc)
     | (lineno,["ARG";pos;value])::ts -> (
         let pos' = parse_positive_int filename lineno pos in
-        let value' = parse_abstract_value filename lineno value in 
+        let value' = parse_abstract_value filename lineno value in
         extract ts fname initfunc ((pos',value')::args) gvars state fwcet fbcet ta_req acc)
     | (lineno,["GLOBALVAR";var;value])::ts -> (
-        let value' = parse_abstract_value filename lineno value in 
+        let value' = parse_abstract_value filename lineno value in
         extract ts fname initfunc args (((usid var),value')::gvars) state fwcet fbcet ta_req acc)
     | (lineno,["STATE";var])::ts -> (
         extract ts fname initfunc args gvars ((usid var)::state) fwcet fbcet ta_req acc)
     | (lineno,["FUNCTIONWCET";var;time])::ts -> (
-        let tval = parse_int_literal filename lineno time in 
-        extract ts fname initfunc args gvars state (((usid var),tval)::fwcet) fbcet ta_req acc)        
+        let tval = parse_int_literal filename lineno time in
+        extract ts fname initfunc args gvars state (((usid var),tval)::fwcet) fbcet ta_req acc)
     | (lineno,["FUNCTIONBCET";var;time])::ts -> (
-        let tval = parse_int_literal filename lineno time in 
-        extract ts fname initfunc args gvars state fwcet (((usid var),tval)::fbcet) ta_req acc)        
+        let tval = parse_int_literal filename lineno time in
+        extract ts fname initfunc args gvars state fwcet (((usid var),tval)::fbcet) ta_req acc)
     | (lineno,["WCP";tpp1;tpp2])::ts -> (
         let mktpp = parse_tpp filename lineno in
         let newreq = (lineno,ReqWCP(mktpp tpp1,mktpp tpp2)) in
@@ -283,14 +283,14 @@ let parse_ta_strings filename lines =
     | (lineno,_)::ts -> raise (TA_file_syntax_error(filename,lineno))
     | [] -> (
         match fname with
-        | Some(prename) -> 
+        | Some(prename) ->
           let func = {funcname = us prename; initfunc = initfunc;
                       args = List.rev args; gvars = List.rev gvars;
-                      state = List.rev state; fwcet = List.rev fwcet; 
+                      state = List.rev state; fwcet = List.rev fwcet;
                       fbcet = List.rev fbcet; ta_req = List.rev ta_req} in
           func::acc
         | None -> acc)
-  in 
+  in
   List.rev (extract utf8tokens None (us"") [] [] [] [] [] [] [])
 
 
@@ -305,19 +305,19 @@ let to_args_list lst =
   let rec insert lst k no arg =
     match lst with
     | a::al -> if k = no then arg::al else a::(insert al (k+1) no arg)
-    | [] -> if k = no then [arg] else abstractval::(insert [] (k+1) no arg)        
+    | [] -> if k = no then [arg] else abstractval::(insert [] (k+1) no arg)
   in
   List.fold_left (fun a (no,v) -> insert a 0 no (val_to_aint32 v)) [] lst
 
-  
+
 
 (* ---------------------------------------------------------------------*)
 let parse_ta_file ta_filename =
   (* Read file and split into list of lines *)
-  let lines = 
-      Ustring.split (Ustring.read_file ta_filename) (us"\n") 
+  let lines =
+      Ustring.split (Ustring.read_file ta_filename) (us"\n")
   in
-    
+
   (* Parse requested string and return the request structure for a file *)
   let func_ta_reqs = parse_ta_strings ta_filename lines in
-  {ta_filename; lines; func_ta_reqs} 
+  {ta_filename; lines; func_ta_reqs}

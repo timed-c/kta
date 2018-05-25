@@ -4,13 +4,13 @@ open MipsAst
 open Printf
 open MipsEval
 open Printf
-       
+
 (* Compiler configuration for mips-mti-elf *)
 (*
 let comp_name = "mips-mti-elf"
 let cflags = " -ffreestanding -EL -mips32r3 -msoft-float -Wa,-msoft-float "
 *)
-let comp_name = "mipsel-mcb32-elf" 
+let comp_name = "mipsel-mcb32-elf"
 let cflags = " -ffreestanding -mips32 -mips2 -msoft-float -Wa,-msoft-float "
 let objcopy = comp_name ^ "-objcopy"
 let objdump = comp_name ^ "-objdump"
@@ -25,29 +25,29 @@ let magic_len = Ustring.length tpp_magic
 let enable_verbose = ref false
 let kta_wcet_runtime_path = "KTA_WCET_RUNTIME_PATH"
 (* ---------------------------------------------------------------------*)
-let verbose enable = 
+let verbose enable =
   enable_verbose := enable
-  
+
 (* ---------------------------------------------------------------------*)
 let verbose_enabled() = !enable_verbose
-  
+
 
 (* ---------------------------------------------------------------------*)
 let get_section filename section =
-  try 
-    let command = (objcopy ^ " " ^ filename ^ " --dump-section " 
+  try
+    let command = (objcopy ^ " " ^ filename ^ " --dump-section "
                    ^ section ^ "=" ^ section_guid) in
     if !enable_verbose then print_endline (command ^ "\n");
-    let (code,stdout,stderr) = 
+    let (code,stdout,stderr) =
       USys.shellcmd command in
-    if code != 0 then Bytes.empty 
+    if code != 0 then Bytes.empty
     else
       let data = Utils.read_binfile section_guid in
       Sys.remove section_guid;
       data
   with
     _ -> Bytes.empty
-  
+
 
 (* ---------------------------------------------------------------------*)
 let pic32_compile filenames only_compile optimization outputname =
@@ -55,42 +55,42 @@ let pic32_compile filenames only_compile optimization outputname =
   (*"-I/opt/mcb32tools/include/ -L/opt/mcb32tools/lib/ -lm " in*)
 (* NOTE:  -march=mips32r2  and -mips32 -mips2  are not the same. *)
   let command = (gcc ^ cflags ^ (String.concat " " filenames) ^ " " ^
-                   (if only_compile then "-c " else "") ^ 
-                     (sprintf "-O%d " optimization) ^ 
-                       "-o " ^ outputname) in 
+                   (if only_compile then "-c " else "") ^
+                     (sprintf "-O%d " optimization) ^
+                       "-o " ^ outputname) in
   if !enable_verbose then print_endline (command ^ "\n");
   let (code,stdout,stderr) = USys.shellcmd command in
   if code != 0 then raise (Sys_error (stderr ^ " " ^ stdout)) else ()
   (* () *)
 
-    
+
 (* ---------------------------------------------------------------------*)
-let section_info filename = 
+let section_info filename =
 
   (* Print verbose *)
   let command = (objdump ^ " -h " ^ filename) in
   if !enable_verbose then print_endline (command ^ "\n");
 
-  let (code,stdout,stderr) = 
+  let (code,stdout,stderr) =
     USys.shellcmd command in
   if code != 0 then raise (Sys_error (stderr ^ " " ^ stdout));
   let lines = List.map Ustring.trim (Ustring.split (us stdout) (us"\n")) in
   let splits = List.map (fun x -> (
-                            List.filter (fun y -> Ustring.length y != 0) 
+                            List.filter (fun y -> Ustring.length y != 0)
                               (Ustring.split x (us" ")))) lines in
-  let filtered = List.filter 
-    (fun list -> match list with 
+  let filtered = List.filter
+    (fun list -> match list with
     | l::ls ->
-       (try let _ = int_of_string (Ustring.to_utf8 l) in true 
+       (try let _ = int_of_string (Ustring.to_utf8 l) in true
                           with _ -> false)
-              | _ -> false) splits in                            
+              | _ -> false) splits in
   List.map (fun line ->
             match line with
             | _::sec::size::addr::_ ->
-                 (Ustring.to_utf8 sec, 
+                 (Ustring.to_utf8 sec,
                   (int_of_string ("0x" ^ (Ustring.to_utf8 size)),
                    int_of_string ("0x" ^ (Ustring.to_utf8 addr))))
-            | _ -> raise (Sys_error 
+            | _ -> raise (Sys_error
                             ("Error reading section data: " ^ stdout)))
             filtered
 
@@ -99,20 +99,20 @@ let section_info filename =
 (* ---------------------------------------------------------------------*)
 let symbol_table filename =
   (* proc_str: process names to avoid parse errors in OCaml
-     > replace "." with "_" 
-     > replace initial capital letter 
+     > replace "." with "_"
+     > replace initial capital letter
   *)
-  let proc_str sym = 
-    String.uncapitalize
+  let proc_str sym =
+    String.uncapitalize_ascii
       (Str.global_replace (Str.regexp "\\.") "_" sym) in
   let command = nm ^ " " ^ filename in
   if !enable_verbose then print_endline (command ^ "\n");
   let (code,stdout,stderr) = USys.shellcmd command in
   if code != 0 then raise (Sys_error (stderr ^ " " ^ stdout));
   let lines = List.map Ustring.trim (Ustring.split (us stdout) (us"\n")) in
-  List.fold_left 
+  List.fold_left
     (fun acc line ->
-      let sp = List.filter (fun y -> Ustring.length y != 0) 
+      let sp = List.filter (fun y -> Ustring.length y != 0)
                             (Ustring.split line (us" ")) in
       match sp with
       | addr::_::sym::_ -> (
@@ -125,13 +125,13 @@ let symbol_table filename =
           with _ -> acc)
       | _ -> acc
     ) [] lines
-  
-  
+
+
 (* ---------------------------------------------------------------------*)
 let get_program filename =
   let build_in_names = ["_start"; "_gp"; "_ftext"; "_fdata"; "_fdata_ram"; "_ftext_ram"; "_etext_ram"; "_edata_ram";
 			"_fbss"; "_end"; "_edata"; "__bss_start"] in
-  
+
   let l_symbols = List.rev (symbol_table filename) in
   (* printf "symbols %s\n%!" (List.fold_left (fun x (y,_) -> x ^ " " ^ y) "" l_symbols); *)
   let l_sections = section_info filename in
@@ -143,17 +143,17 @@ let get_program filename =
   let l_rodata = try Some(List.assoc ".rodata" l_sections) with _ -> None in
   let l_textcode = get_section filename ".text" in
 
-  { 
+  {
   filename = filename;
     symbols = l_symbols;
-  sym2addr = List.fold_left (fun m (s,a) -> Sym2Addr.add s a m) 
+  sym2addr = List.fold_left (fun m (s,a) -> Sym2Addr.add s a m)
                 Sym2Addr.empty l_symbols;
-  addr2sym = List.fold_left (fun m (s,a) -> Addr2Sym.add a s m) 
+  addr2sym = List.fold_left (fun m (s,a) -> Addr2Sym.add a s m)
                 Addr2Sym.empty (List.filter (fun (sym,a) -> not (List.exists (fun x -> x = sym) build_in_names)) l_symbols);
   sections = l_sections;
   text_sec = {d = l_textcode;
               addr = (match l_text with Some(_,a) -> a | None -> 0);
-              size = (match l_text with Some(s,_) -> s | None -> 0); 
+              size = (match l_text with Some(s,_) -> s | None -> 0);
              };
   data_sec = {d = get_section filename ".data";
               addr = (match l_data with Some(_,a) -> a | None -> 0);
@@ -176,7 +176,7 @@ let get_program filename =
               size = (match l_rodata with Some(s,_) -> s | None -> 0);
              };
   stack_sec = {d = Bytes.empty;
-             addr = 0; 
+             addr = 0;
              size = 0;
             };
   gp = (try List.assoc "_gp" l_symbols with _ -> 0);
@@ -187,37 +187,37 @@ let get_program filename =
 
 
 (* ---------------------------------------------------------------------*)
-let assign_program_stack prog ptr size addr = 
+let assign_program_stack prog ptr size addr =
   {prog with stack_sec = {d = Bytes.empty; addr = addr; size = size};
              sp = ptr}
 
 
 
-    
+
 (* ---------------------------------------------------------------------*)
-let cycle_count_with_tpp tppmap func_assumptions 
-                         inst pc prog state is_a_delay_slot 
+let cycle_count_with_tpp tppmap func_assumptions
+                         inst pc prog state is_a_delay_slot
                          terminate ((wc_count,bc_count,lst),_) =
   try
-    let tpp_sid_list = Array.get tppmap ((pc - prog.text_sec.addr) / 4) in 
+    let tpp_sid_list = Array.get tppmap ((pc - prog.text_sec.addr) / 4) in
     (* There can be more than one tpp for the same address *)
-    let lst' =       
-      if tpp_sid_list <> [] then 
-        List.fold_left (fun lst tpp_sid -> (tpp_sid,(wc_count,bc_count))::lst) 
+    let lst' =
+      if tpp_sid_list <> [] then
+        List.fold_left (fun lst tpp_sid -> (tpp_sid,(wc_count,bc_count))::lst)
                        lst tpp_sid_list
-      else 
-        lst 
+      else
+        lst
     in
     (* Compute extra time for function assumptions *)
-    let (wc_g,bc_g) = 
+    let (wc_g,bc_g) =
       (match inst with
        | MipsJAL(_,s) -> (try func_assumptions s with _ -> (0,0))
        | _ -> (0,0))
     in
-      (((wc_count+1+wc_g,bc_count+1+bc_g,lst'),terminate), false)      
+      (((wc_count+1+wc_g,bc_count+1+bc_g,lst'),terminate), false)
   with
     _ -> failwith "Internal error in function cycle_count_with_tpp() in mipsSys.ml"
-      
+
 
 
 
@@ -236,31 +236,31 @@ let get_eval_func ?(bigendian=false) prog statevarlist =
       (* Calculate the address in words in the code section *)
       let address = (a - prog.text_sec.addr) / 4 in
       Array.set tppmap address (tpp::(Array.get tppmap address));
-    ) prog.symbols;         
+    ) prog.symbols;
   (* Change the order of symbols, making them the same as original code *)
   let tppmap' = Array.map List.rev tppmap in
 
 
-  
+
   (* Create the timed eval function *)
-  let timed_eval_func funcname args meminitmap func_wcet func_bcet func_assumptions = 
-        
+  let timed_eval_func funcname args meminitmap func_wcet func_bcet func_assumptions =
+
     (* Initialize the state *)
     let state = MipsEval.init prog funcname args in
-    
+
     (* Set memory init map *)
-    List.iter (fun (addr,v) ->          
+    List.iter (fun (addr,v) ->
       let (mem,i,_) = MipsEval.getmemptr state prog addr 4 in
-      MipsUtils.set_32_bits bigendian mem i v; 
+      MipsUtils.set_32_bits bigendian mem i v;
     ) meminitmap;
 
     (* Evaluate/execute the function *)
     let (state,((wc_count,bc_count,tpp_path),terminate)) =
-      MipsEval.eval ~bigendian:bigendian prog state 
-        (cycle_count_with_tpp tppmap' func_assumptions) ((0,0,[]),None)  in 
+      MipsEval.eval ~bigendian:bigendian prog state
+        (cycle_count_with_tpp tppmap' func_assumptions) ((0,0,[]),None)  in
 
     (* Get the state variables *)
-    let statevarmap = List.map (fun x -> 
+    let statevarmap = List.map (fun x ->
       let a = MipsEval.getaddr prog x in
       let v = MipsEval.getval bigendian state prog a in
       (a,v)
@@ -271,13 +271,13 @@ let get_eval_func ?(bigendian=false) prog statevarlist =
     (ExhaustiveTA.TppTimedPath(wc_count,bc_count,List.rev tpp_path), statevarmap)
   in
 
-  
+
   (* Return the timed eval function *)
   timed_eval_func
-  
 
-  
-  
+
+
+
 (* ---------------------------------------------------------------------*)
 let get_init_state_vals ?(bigendian=false) prog initfunc statelist =
 
@@ -287,13 +287,13 @@ let get_init_state_vals ?(bigendian=false) prog initfunc statelist =
   (* Run init function, if it exists, to generate the new state *)
   let state =
     if initfunc <> "" then(
-      MipsEval.eval ~bigendian:bigendian prog state 
+      MipsEval.eval ~bigendian:bigendian prog state
         (fun _ _ _ _ _ _ _ -> (0,false)) 0 |> fst)
     else state
   in
 
   (* Extract the state values *)
-  List.map (fun x ->    
+  List.map (fun x ->
       let a = MipsEval.getaddr prog x in
       let v = MipsEval.getval bigendian state prog a in
       (a,v)
@@ -304,7 +304,7 @@ let get_init_state_vals ?(bigendian=false) prog initfunc statelist =
 let wcet_compile fname optimize debug max_cycles bsconfig record task_num nocache program_code args =
   let remove_file fname = if Sys.file_exists fname then
                             Sys.remove fname
-                          else () in  
+                          else () in
   let bsconfigflag =
     match bsconfig with
     | None -> ""
@@ -331,8 +331,8 @@ let wcet_compile fname optimize debug max_cycles bsconfig record task_num nocach
   in
   let files = [".ml"; ".native"] |> List.map (fun x -> runtime_path ^ ocamlflnm ^ x) in
   Ustring.write_file (List.hd files) program_code;
-  try      
-    if Sys.is_directory runtime_path then	
+  try
+    if Sys.is_directory runtime_path then
       (let command = ("sh -c \"cd " ^ runtime_path ^ "; ocamlbuild " ^ ocamlflnm ^ ".native" ^ ocamlargs ^ "\"") in
        if !enable_verbose then print_endline (command ^ "\n");
        let (code, stdout, stderr) = USys.shellcmd command in
