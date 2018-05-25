@@ -1626,8 +1626,8 @@ let analyze_main startblock bblocks gp_addr args init_mem task_amem n bound inpu
   let ps = 
     let ipstate = init_pstate in
     (* Add the cycles for returning to the calling process. Better move to the end. *)
-    let ra_miss = instruction_always_miss ipstate in 
-    let ipstate = {ipstate with wcet = ra_miss} in
+    (* let ra_miss = instruction_always_miss ipstate in *)
+    (* let ipstate = {ipstate with wcet = ra_miss} in *)
     try pstate_input ipstate args
     with Failure s -> (printf "Error: %s\n" s; exit 1) in 
   let ps = updatesl inputlist ps in

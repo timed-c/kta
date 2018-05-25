@@ -326,10 +326,20 @@ let wcet_compile fname optimize debug max_cycles bsconfig record task_num nocach
 
   let runtime_path =
     try
-      Sys.getenv(kta_wcet_runtime_path) ^ "/"
-    with Not_found -> "runtime/"
+      Sys.getenv(kta_wcet_runtime_path)
+    with Not_found ->
+	try 
+       		let (code, stdout, stderr) = USys.shellcmd "which kta" in
+		if (stdout != "") then
+			let path = List.rev (List.filter (fun x-> String.length x != 0) (Str.split (Str.regexp "/") stdout)) in
+			"/" ^ (String.concat "/" (List.rev ("runtime"::(List.tl (List.tl path)))))
+		(*stdout ^ "../runtime/"*)
+		else 
+			raise Not_found
+	with _ ->
+		failwith "Cannot find runtime path: \n Set KTA_WCET_RUNTIME_PATH\n"
   in
-  let files = [".ml"; ".native"] |> List.map (fun x -> runtime_path ^ ocamlflnm ^ x) in
+  let files = [".ml"; ".native"] |> List.map (fun x -> runtime_path ^ "/" ^ ocamlflnm ^ x) in
   Ustring.write_file (List.hd files) program_code;
   try
     if Sys.is_directory runtime_path then
