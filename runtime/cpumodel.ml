@@ -46,7 +46,7 @@ let cache_model =
   ]
 
 (****** MEMORY ******)
-let mem_access_time = ref (300 - 10 - 2 - 2) (* measured: 300+ -  datasheet: 50-200 *)
+let mem_access_time = ref 1 (* measured: 300+ -  datasheet: 50-200 *)
 
 
 (****** CPU MODEL ******)
@@ -64,13 +64,13 @@ type instructions_t = {
 
 
 let cpu_model = {
-  br = 6;
-  div = 40;
-  mul = 5;
-  mult = 7;
-  madd = 7;
+  br = 1;
+  div = 1;
+  mul = 1;
+  mult = 1;
+  madd = 1;
   arithm = 1;
-  movlh = 2;
+  movlh = 1;
 }
 (****** COHERENCE PENALTY ******)
 (* let coherence_penalty = ref 130 *)

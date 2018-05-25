@@ -21,4 +21,4 @@ val pprint_ocaml_cps_from_cfgmap :
 
 val test : MipsAst.program -> string ->
   (string list * bool * int option *
-     int option * (int * Ustring.Op.ustring) list * bool * int * bool * bool) -> unit
+     int option * (int * Ustring.Op.ustring) list * bool * int * bool * bool * bool) -> unit

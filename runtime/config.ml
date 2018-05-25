@@ -36,7 +36,7 @@ let enable_debug enable =
 (****** Cache configuration test-parameters *****)
 
 (* disable cache *)
-let nocache = ref false
+let nocache = ref true
 let set_nocache v =
   nocache := v
 
@@ -71,7 +71,13 @@ let set_record v n =
 
 let recording() =
   !record_mtags
+
+
 (****** PIPELINE ******)
-let disable_pipeline = ref false
+let disable_pipeline = ref true
+let set_nopipeline v =
+  disable_pipeline := v
+
+
 
   

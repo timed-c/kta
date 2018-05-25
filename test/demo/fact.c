@@ -12,3 +12,6 @@ unsigned int fact(unsigned int n){
   return r;
 }
 
+void test() {
+	return;
+}
