@@ -70,7 +70,7 @@ val get_init_state_vals : ?bigendian:bool -> MipsAst.program -> string ->
     as well as the assignments that are made by the [initfunc] function. *)
 
 val wcet_compile: string -> bool -> bool -> int option -> int option ->
-                  bool -> int ->  bool -> Ustring.ustring -> string list -> string
+                  bool -> int -> bool -> bool -> Ustring.ustring -> string list -> string
 
 val verbose_enabled: unit -> bool
 

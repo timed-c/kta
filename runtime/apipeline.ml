@@ -64,7 +64,7 @@ let pipeline_update instr p dp =
 
   if !disable_pipeline then
     let (f,d,e,m,w) = dp in
-    (e,((0,0,0,0,0),None))
+    (e + (f-1) + (m-1),((0,0,0,0,0),None))
   else(
     let map4 f (a,b,c,d) = (f a, f b, f c, f d) in
     let (df,dd,de,dm,dw) = dp in

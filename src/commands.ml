@@ -59,7 +59,8 @@ type compOpTypes =
 | OpWCET_MCConfig  
 | OpWCET_Tasks  
 | OpWCET_Optimize
-| OpWCET_NoCache
+| OpWCET_Cache
+| OpWCET_Pipeline
 
 (* List of compiler options *)
 let extra_options = 
@@ -140,8 +141,10 @@ let wcet_options =
     us"Configure maximum batch size.");
    (OpWCET_Optimize, Uargs.No,  us"-optimization",  us"",
     us"Enable Search-based optimization.");
-   (OpWCET_NoCache, Uargs.No,  us"-nocache",  us"",
-    us"Disable cache analysis.");
+   (OpWCET_Cache, Uargs.No,  us"-cache",  us"",
+    us"Enable cache analysis. The cache hierachy is defined in $KTA_WCET_RUNTIME_PATH/cpumodel.ml");
+   (OpWCET_Pipeline, Uargs.No,  us"-pipeline",  us"",
+    us"Enable 5-stage pipeline analysis.");
    (OpWCET_MCConfig, Uargs.Int,  us"-max_cycles",  us"",
     us"Configure maximum cycles allowed.");
    (OpWCET_Tasks, Uargs.StrList,  us"-tasks",  us"",
@@ -488,7 +491,8 @@ let wcet_command args =
   let record = Uargs.has_op OpWCET_Tasks ops in
   let tasks = Uargs.strlist_op OpWCET_Tasks ops in
 
-  let nocache = Uargs.has_op OpWCET_NoCache ops in
+  let cache = Uargs.has_op OpWCET_Cache ops in
+  let pipeline = Uargs.has_op OpWCET_Pipeline ops in
   let bsconfig =
     if (Uargs.has_op OpWCET_BSConfig ops) then
       Some (Uargs.int_op OpWCET_BSConfig ops)
@@ -510,10 +514,10 @@ let wcet_command args =
   let tasks = List.mapi (fun i fname -> (i+1,fname)) tasks in
   if record then
     (
-     MipsCfg.test prog (Ustring.to_utf8 func_name) (prog_args, optimize, max_cycles, bsconfig, tasks, record, 0, print_out_option, nocache);
+     MipsCfg.test prog (Ustring.to_utf8 func_name) (prog_args, optimize, max_cycles, bsconfig, tasks, record, 0, print_out_option, cache, pipeline);
      List.iter (fun (i,fname) -> 
-       MipsCfg.test prog (Ustring.to_utf8 fname) (prog_args, optimize, max_cycles, bsconfig, tasks, record, i, print_out_option, nocache)) tasks;
-     MipsCfg.test prog (Ustring.to_utf8 func_name) (prog_args, optimize, max_cycles, bsconfig, tasks, false, 0, print_out_option, nocache);
+       MipsCfg.test prog (Ustring.to_utf8 fname) (prog_args, optimize, max_cycles, bsconfig, tasks, record, i, print_out_option, cache, pipeline)) tasks;
+     MipsCfg.test prog (Ustring.to_utf8 func_name) (prog_args, optimize, max_cycles, bsconfig, tasks, false, 0, print_out_option, cache, pipeline);
      let runtime_path =
        try
          Sys.getenv(MipsSys.kta_wcet_runtime_path) ^ "/"
@@ -525,7 +529,7 @@ let wcet_command args =
              List.iter remove_file;
     )
   else 
-    MipsCfg.test prog (Ustring.to_utf8 func_name) (prog_args, optimize, max_cycles, bsconfig, [], true, 0, print_out_option, nocache);
+    MipsCfg.test prog (Ustring.to_utf8 func_name) (prog_args, optimize, max_cycles, bsconfig, [], true, 0, print_out_option, cache, pipeline);
   us""
 
 

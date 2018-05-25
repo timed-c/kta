@@ -1824,7 +1824,8 @@ type options_t =
   | OpConfigBatchSize
   | OpConfigMaxCycles
   | OpRecord
-  | OpNoCache
+  | OpCache
+  | OpPipeline
   | OpOptimize
       
 open Ustring.Op
@@ -1832,8 +1833,10 @@ open Ustring.Op
 let options =
   [ (OpDebug, Uargs.No, us"-debug", us"",
      us"Enable debug.");
-    (OpNoCache, Uargs.No, us"-nocache", us"",
-     us"Disable cache.");
+    (OpCache, Uargs.No, us"-cache", us"",
+     us"Enable cache.");
+    (OpPipeline, Uargs.No, us"-pipeline", us"",
+     us"Enable 5-stage pipeline.");
     (OpOptimize, Uargs.No, us"-optimization", us"",
      us"Enable search based optimization.");
     (OpRecord, Uargs.Int, us"-record", us"",
@@ -1864,8 +1867,10 @@ let analyze startblock bblocks gp_addr mem defaultargs tasks n =
     (set_max_cycles (Uargs.int_op OpConfigMaxCycles ops));
   if Uargs.has_op OpConfigBatchSize ops then
     (set_max_batch_size (Uargs.int_op OpConfigBatchSize ops));
-  if Uargs.has_op OpNoCache ops then
-    (set_nocache true);
+  if Uargs.has_op OpCache ops then
+    (set_nocache false);
+  if Uargs.has_op OpPipeline ops then
+    (set_nopipeline false);
   let args =
     if Uargs.has_op OpArgs ops then
       Uargs.strlist_op OpArgs ops |> List.map Ustring.to_utf8

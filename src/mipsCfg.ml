@@ -475,15 +475,15 @@ type bblock =
 let test prog fname cm_args =
   let (prog,cfgmap) = make_cfgmap fname prog in
   match cm_args with
-  | (_,_,_,_,fnames,record,n,true,_) ->
+  | (_,_,_,_,fnames,record,n,true,_,_) ->
      let program_code = pprint_ocaml_cps_from_cfgmap record fnames 0 true fname cfgmap prog in
      uprint_endline program_code
-  | (args,optimize,max_cycles,bsconfig,fnames,record,task_n,pr_option,nocache)  ->
+  | (args,optimize,max_cycles,bsconfig,fnames,record,task_n,pr_option,cache,pipeline)  ->
      try
        let debug = MipsSys.verbose_enabled() in
        let program_code = pprint_ocaml_cps_from_cfgmap record fnames task_n true fname cfgmap prog in
        let record = if record && fnames != [] then record else  false in
-       args |> MipsSys.wcet_compile fname optimize debug max_cycles bsconfig record task_n nocache program_code |> print_endline;
+       args |> MipsSys.wcet_compile fname optimize debug max_cycles bsconfig record task_n cache pipeline program_code |> print_endline;
      with Sys_error e ->
         e |> eprintf "%s\n";
      
