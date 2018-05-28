@@ -1,7 +1,7 @@
 
 # TEST 1 - check declared data, no pipeline, no cache
 # Command: kta wcet lwdata.S main
-# Expected output: t0=0, t1=1, t2=3 WCET=5
+# Expected output: t0=0, t1=1, t2=3 WCET=7
 
 
 .data
