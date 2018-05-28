@@ -25,12 +25,13 @@ let compile_file filename fname args optimization optimize debug bsconfig =
      let prog = MipsSys.get_program tmpfile |>  MipsUtils.add_branch_symbols in
      let (prog,cfgmap) = MipsCfg.make_cfgmap fname prog in
      let program_code = MipsCfg.pprint_ocaml_cps_from_cfgmap true [] 0 true fname cfgmap prog in
-     let nocache = true in
+     let cache = false in
+     let pipeline = false in
      let stdout = MipsSys.wcet_compile fname optimization debug (Some 20000000000)
-       bsconfig false 0 nocache program_code args in
+       bsconfig false 0 cache pipeline program_code args in
      if debug then printf "%s\n%!" stdout;
      try
-       let regex = Str.regexp "BCET:[^0-9]*\\([0-9]+\\)\\(.\\|\n\\)*WCET:[^0-9]*\\([0-9]+\\)\\(.\\|\n\\)*Time Elapsed:[^0-9]*\\([0-9\.]+\\)s" in
+       let regex = Str.regexp "BCET:[^0-9]*\\([0-9]+\\)\\(.\\|\n\\)*WCET:[^0-9]*\\([0-9]+\\)\\(.\\|\n\\)*Time Elapsed:[^0-9]*\\([0-9.]+\\)s" in
        let _ = Str.search_forward regex stdout 0 in
        let bcet, wcet= int_of_string (Str.matched_group 1 stdout), int_of_string (Str.matched_group 3 stdout) in
        let time_elapsed = float_of_string (Str.matched_group 5 stdout) in
@@ -69,8 +70,12 @@ let run_test test_file =
          let debug = if debug = "false" then false else true in
 	 let optimization = false in
          let bcet,wcet,time_elapsed = compile_file fname func argslist optimization opt debug bsconfig in      
-         Utest.test_fint (sprintf "%s, opt=-O%d, func=%s, input=[%s], %s=%d, time=%fs" fname opt func args "BCET" bcet time_elapsed) (fun x -> fun y -> x>y || x<=y) bcet exp_bcet;
-         Utest.test_fint (sprintf "%s, opt=-O%d, func=%s, input=[%s], %s=%d, time=%fs" fname opt func args "WCET" wcet time_elapsed) (fun x -> fun y -> x>y || x<=y) wcet exp_wcet;
+
+	 let str = sprintf "%s, opt=-O%d, func=%s, input=[%s], %s=%d, time=%fs%!" fname opt func args "WCET" wcet time_elapsed in
+	 test_ext str (wcet>=1)  (us "P") (us "F") ; 
+         (*Utest.test_int (sprintf "%s, opt=-O%d, func=%s, input=[%s], %s=%d, time=%fs" fname opt func args "BCET" bcet time_elapsed) (fun x -> fun y -> x>y || x<=y) bcet exp_bcet;
+         Utest.test_int (sprintf "%s, opt=-O%d, func=%s, input=[%s], %s=%d, time=%fs" fname opt func args "WCET" wcet time_elapsed) (fun x -> fun y -> x>y || x<=y) wcet exp_wcet; *)
+	(*if wcet != -1 then printf "OK: %s, func=%s WCET=%d time_elapsed=%fs\n%!" fname func wcet time_elapsed;*)
       | _ -> printf "Wrong format in %s\n%!" test_file;
     done;
   with 
