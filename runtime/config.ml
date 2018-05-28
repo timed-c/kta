@@ -35,6 +35,20 @@ let enable_debug enable =
 
 (****** Cache configuration test-parameters *****)
 
+type memacc_t = {
+  cyc : int;
+}
+ 
+let mem_access_time = ref { cyc = 100; } (* measured: 300+ -  datasheet: 50-200 *)
+
+let set_mem_acc v =
+	mem_access_time := { cyc = v;}
+
+
+let get_mem_acc () = 
+	!mem_access_time.cyc
+
+
 (* disable cache *)
 let nocache = ref true
 let set_nocache v =
@@ -80,4 +94,5 @@ let set_nopipeline v =
 
 
 
-  
+(****** MEMORY ******)
+

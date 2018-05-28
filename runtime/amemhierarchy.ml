@@ -83,7 +83,7 @@ let enable_dcache hmem =
   {hmem with cache = cache}
 
 (* Update hmem_init to initialize *)
-let hmem_init =
+let hmem_init () =
   let init_internal c1 =
     match c1 with
     | U c -> Uni (cache_init_info c)
@@ -91,7 +91,7 @@ let hmem_init =
   in
   let cache = List.map init_internal cache_model in
   {
-    mem = mem_init;
+    mem = mem_init ();
     cache = cache;
     amap = tag_init;
   }
@@ -369,12 +369,14 @@ let get_instruction addr hmem =
 
 (* Instruction Miss for return address "jr ra" *)
 let get_instruction_always_miss hmem =
-  List.fold_left (fun t c -> t + miss_cache (get_cache ICache c)) (!mem_access_time) (hmem.cache)
+  let ma = get_mem_acc () in
+  List.fold_left (fun t c -> t + miss_cache (get_cache ICache c)) (ma) (hmem.cache)
 
 (********* LD and ST -> ANY - Case of a interval access *******) 
 let ld_any hmem =
   let caches = hmem.cache in
-  let ticks = List.fold_left (fun t c -> t + miss_cache (get_cache DCache c)) (!mem_access_time) caches in
+  let ma = get_mem_acc () in
+  let ticks = List.fold_left (fun t c -> t + miss_cache (get_cache DCache c)) (ma) caches in
   (ticks, hmem, aint32_any_set true)
 
 let st_any hmem =
@@ -384,7 +386,8 @@ let st_any hmem =
     | Sep (ic,dc) -> Sep (ic, cache_to_any dc)
   in
   let cs = hmem.cache in
-  let ticks = List.fold_left (fun t c -> t + miss_cache (get_cache DCache c)) (!mem_access_time) (cs) in
+  let ma = get_mem_acc () in
+  let ticks = List.fold_left (fun t c -> t + miss_cache (get_cache DCache c)) (ma) (cs) in
   let cache = List.map cache_to_any hmem.cache in
   let hmem = {hmem with mem = mem_to_any hmem.mem;
                         cache = cache;}

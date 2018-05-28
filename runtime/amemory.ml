@@ -28,13 +28,15 @@ type amemory = {
     access_time: int;
   }
 
-let mem_init = {
+let mem_init () = 
+  let ma = get_mem_acc() in
+  {
     memory = Mem.empty;
     mjoins = [];
     bss = { addr = 0; size = 0 };
     sbss = { addr = 0; size = 0 };
-    access_time = !mem_access_time;
-}
+    access_time = ma; (*!mem_access_time;*)
+  }
 
 
                     
@@ -79,7 +81,9 @@ let get_memval addr slist mem =
 let mem_join memlist =
   (*  {mem_init with mjoins = memlist}*)
   match memlist with
-  | [] ->   {mem_init with mjoins = []}
+  | [] ->  
+	let mi = mem_init () in 
+	{mi with mjoins = []}
   | m::ms -> 
      List.fold_left
        (fun m1 m2 ->
@@ -96,7 +100,8 @@ let mem_join memlist =
        }) m ms                      
   
 let mem_to_any mem =
-  mem_init
+   let mi = mem_init () in
+   mi
 
 
 let mem_to_val aval mem =
