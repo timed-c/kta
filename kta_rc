@@ -2,11 +2,10 @@
 
 RPATH=${PWD}/runtime #${BASH_SOURCE[0]}/runtime
 BPATH=${PWD}/bin #${BASH_SOURCE[0]}/runtime
-MCB_PATH=${MCB_PATH} || "${HOME}/opt/mcb32tools/"
-#COMPILER_PATH="${MCB_PATH}/bin/"
-source ${MCB_PATH}/environment
-# echo $RPATH
-# echo $BPATH
+
+if [ -f ${MCB_PATH}/environment ]; then
+	source ${MCB_PATH}/environment
+fi
 yellow=$(tput setaf 3)
 white=$(tput sgr0)
 [[ $PS1 =~ 'kta' ]] || export PS1="\[$yellow\][kta]\[$white\] $PS1"
