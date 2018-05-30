@@ -5,9 +5,9 @@
 # Command: kta wcet icache.S main -pipeline
 # Expected output: t0=0, WCET=514 (execute stage 1 cycle)
 # Command: kta wcet icache.S main -cache
-# Expected output: t0=0, WCET=910
+# Expected output: t0=0, WCET=550
 # Command: kta wcet icache.S main -cache -pipeline
-# Expected output: t0=0, WCET=914
+# Expected output: t0=0, WCET=554
 
 
 .set noreorder

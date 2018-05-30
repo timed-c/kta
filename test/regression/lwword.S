@@ -5,9 +5,9 @@
 # Command: kta wcet lwword.S main -pipeline
 # Expected output: t0=0, WCET=9
 # Command: kta wcet lwword.S main -cache
-# Expected output: t0=0, WCET=305
+# Expected output: t0=0, WCET=35
 # Command: kta wcet lwword.S main -cache -pipeline
-# Expected output: t0=0, WCET=309
+# Expected output: t0=0, WCET=39
 
 
 .set noreorder

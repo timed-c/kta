@@ -5,9 +5,9 @@
 # Command: kta wcet pipdep.S main -pipeline
 # Expected output: WCET=19  ( 4 + 13 + 2 dependencies) dep1: #2,#3 dep2: #3,#4
 # Command: kta wcet pipdep.S main -cache
-# Expected output: WCET=513 (4 i-misses + 1 d-miss)
+# Expected output: WCET=63 (4 i-misses + 1 d-miss)
 # Command: kta wcet pipdep.S main -cache -pipeline
-# Expected output: WCET=519
+# Expected output: WCET=69
 
 
 .set noreorder

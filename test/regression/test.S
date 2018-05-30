@@ -4,9 +4,9 @@
 # Command: kta wcet test.S main -pipeline
 # Expected output: WCET=11
 # Command: kta wcet test.S main -cache
-# Expected output: WCET=406 
+# Expected output: WCET=46 
 # Command: kta wcet test.S main -cache -pipeline
-# Expected output: WCET=410 (1 cycle less due to pipeline)
+# Expected output: WCET=50 (1 cycle less due to pipeline)
 
 
 .set noreorder

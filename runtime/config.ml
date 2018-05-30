@@ -39,7 +39,7 @@ type memacc_t = {
   cyc : int;
 }
  
-let mem_access_time = ref { cyc = 100; } (* measured: 300+ -  datasheet: 50-200 *)
+let mem_access_time = ref { cyc = 10; } (* measured: 300+ -  datasheet: 50-200 *)
 
 let set_mem_acc v =
 	mem_access_time := { cyc = v;}

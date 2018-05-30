@@ -5,9 +5,9 @@
 # Command: kta wcet icache2.S main -pipeline
 # Expected output: t0=0, WCET=514 (execute stage 1 cycle)
 # Command: kta wcet icache2.S main -cache
-# Expected output: t0=0, WCET=21010  (2x100 + 2x100x100 (loop misses) + 3x100)
+# Expected output: t0=0, WCET=2560 (Additional cycles: 2x10 + 2x100x10 (loop misses) + 3x10)
 # Command: kta wcet icache2.S main -cache -pipeline
-# Expected output: t0=0, WCET=21014
+# Expected output: t0=0, WCET=2564
 
 
 .set noreorder
@@ -41,7 +41,7 @@ out:
 	jr $ra
 	nop
 main:
-        li      $a1,100      #Instruction Miss: 2 instructions
+        li      $a1,100       #Instruction Miss: 2 instructions
         li	$a0, 0
 	jal     loop1         #Instruction Miss
 	nop

@@ -5,9 +5,9 @@
 # Command: kta wcet dcache.S main -pipeline
 # Expected output:  WCET=46 //1614 (execute stage 1 cycle - 2 dependencies lw -> add, addi -> beq (next loop))
 # Command: kta wcet dcache.S main -cache
-# Expected output:  WCET=1138 //24510  
+# Expected output:  WCET=148 //1138 //24510  
 # Command: kta wcet dcache.S main -cache -pipeline
-# Expected output:  WCET=1145 //24713 - d-cache miss -> i-cache miss - One cycle less
+# Expected output:  WCET=155 //1145 //24713 - d-cache miss -> i-cache miss - One cycle less
 
 
 .set noreorder

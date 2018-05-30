@@ -5,9 +5,9 @@
 # Command: kta wcet test2.S main -pipeline
 # Expected output: WCET=10 
 # Command: kta wcet test2.S main -cache
-# Expected output: WCET=406 
+# Expected output: WCET=46 
 # Command: kta wcet test2.S main -cache -pipeline
-# Expected output: WCET=411 # 1 extra cycle due to the data miss by "lw"
+# Expected output: WCET=51 # 1 extra cycle due to the data miss by "lw"
 
 
 .set noreorder
